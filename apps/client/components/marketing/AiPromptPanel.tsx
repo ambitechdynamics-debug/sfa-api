@@ -32,7 +32,7 @@ export function AiPromptPanel() {
     <div className="anim-fade-up" style={{
       width: "100%",
       maxWidth: 960,
-      margin: "40px auto 80px",
+      margin: "40px auto 20px",
       padding: "0 20px",
       position: "relative",
       zIndex: 20,

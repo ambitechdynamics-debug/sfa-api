@@ -100,7 +100,7 @@ function MarketingNav() {
 
 function Hero() {
   return (
-    <section style={{ position: "relative", overflow: "hidden", paddingBottom: 120 }}>
+    <section style={{ position: "relative", overflow: "hidden", paddingBottom: 40 }}>
       {/* Ambient glow */}
       <div aria-hidden style={{ position: "absolute", top: -200, left: "50%", transform: "translateX(-50%)", width: 1200, height: 800, pointerEvents: "none", background: "radial-gradient(50% 60% at 50% 50%, var(--acc-soft) 0%, transparent 70%)", filter: "blur(20px)" }} />
       {/* Grid */}
