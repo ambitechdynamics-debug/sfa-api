@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.env
+.env.local
+*.log
+admin-dashboard
+frontend-client
+docs
+.vscode

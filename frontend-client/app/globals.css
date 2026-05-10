@@ -1,0 +1,319 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Studio Flyer AI — design tokens
+   Palette: warm clay (terracotta + cream) over deep walnut.
+   Distinct from the AI blue/violet trope; reads creative SaaS, not generic.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Surfaces — DARK (default) */
+  --bg-0:   #100c08;
+  --bg-1:   #181310;
+  --bg-2:   #211a14;
+  --bg-3:   #2a2118;
+  --bg-4:   #34291e;
+
+  --line-1: rgba(245, 238, 226, 0.06);
+  --line-2: rgba(245, 238, 226, 0.10);
+  --line-3: rgba(245, 238, 226, 0.16);
+
+  /* Ink */
+  --ink-0:  #f5eee2;
+  --ink-1:  #e2d8c5;
+  --ink-2:  #b6a791;
+  --ink-3:  #847666;
+  --ink-4:  #5a4f43;
+
+  /* Accent — terracotta (default) */
+  --acc:        #e08a64;
+  --acc-bright: #ea9b75;
+  --acc-deep:   #c66a45;
+  --acc-soft:   rgba(224, 138, 100, 0.14);
+  --acc-line:   rgba(224, 138, 100, 0.32);
+  --acc-ink:    #1c1108;
+
+  /* Secondary palette tones for chips, status */
+  --sage:    #8aa57a;
+  --sage-soft: rgba(138, 165, 122, 0.14);
+  --plum:    #b08bc7;
+  --plum-soft: rgba(176, 139, 199, 0.14);
+  --gold:    #d8a85a;
+  --gold-soft: rgba(216, 168, 90, 0.14);
+  --rose:    #d97070;
+  --rose-soft: rgba(217, 112, 112, 0.14);
+  --sky:     #7aa3c9;
+  --sky-soft: rgba(122, 163, 201, 0.14);
+
+  /* Status */
+  --ok:    #8aa57a;
+  --warn:  #d8a85a;
+  --err:   #d97070;
+
+  /* Type — loaded via next/font in layout.tsx */
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans:    var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif:   var(--font-instrument), ui-serif, Georgia, serif;
+
+  /* Radii */
+  --r-1: 6px;
+  --r-2: 10px;
+  --r-3: 14px;
+  --r-4: 20px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --sh-1: 0 1px 0 rgba(255,255,255,0.03) inset, 0 1px 2px rgba(0,0,0,0.4);
+  --sh-2: 0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 16px rgba(0,0,0,0.35);
+  --sh-3: 0 1px 0 rgba(255,255,255,0.05) inset, 0 16px 48px rgba(0,0,0,0.5);
+  --sh-acc: 0 0 0 1px var(--acc-line), 0 8px 24px rgba(224,138,100,0.18);
+
+  /* Density */
+  --gap: 16px;
+  --pad-card: 20px;
+  --row-h: 38px;
+}
+
+[data-theme="light"] {
+  --bg-0:   #f7f3ec;
+  --bg-1:   #fbf8f1;
+  --bg-2:   #ffffff;
+  --bg-3:   #fbf6ec;
+  --bg-4:   #f1ead9;
+
+  --line-1: rgba(40, 28, 18, 0.06);
+  --line-2: rgba(40, 28, 18, 0.10);
+  --line-3: rgba(40, 28, 18, 0.16);
+
+  --ink-0:  #1d1611;
+  --ink-1:  #382d23;
+  --ink-2:  #6b5d4f;
+  --ink-3:  #9c8f80;
+  --ink-4:  #c7baa8;
+
+  --acc-ink: #fff7ee;
+  --sh-1: 0 1px 0 rgba(255,255,255,0.6) inset, 0 1px 2px rgba(40,28,18,0.06);
+  --sh-2: 0 1px 0 rgba(255,255,255,0.5) inset, 0 4px 16px rgba(40,28,18,0.08);
+  --sh-3: 0 1px 0 rgba(255,255,255,0.6) inset, 0 16px 48px rgba(40,28,18,0.14);
+}
+
+[data-density="compact"] { --gap: 12px; --pad-card: 14px; --row-h: 32px; }
+[data-density="comfy"]   { --gap: 22px; --pad-card: 28px; --row-h: 44px; }
+
+/* ─── Tailwind v4 theme inline — expose CSS vars as utility classes ────────── */
+@theme inline {
+  --color-bg-0: var(--bg-0);
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-bg-4: var(--bg-4);
+
+  --color-line-1: var(--line-1);
+  --color-line-2: var(--line-2);
+  --color-line-3: var(--line-3);
+
+  --color-ink-0: var(--ink-0);
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+
+  --color-acc: var(--acc);
+  --color-acc-bright: var(--acc-bright);
+  --color-acc-deep: var(--acc-deep);
+  --color-acc-soft: var(--acc-soft);
+  --color-acc-line: var(--acc-line);
+  --color-acc-ink: var(--acc-ink);
+
+  --color-sage: var(--sage);
+  --color-plum: var(--plum);
+  --color-gold: var(--gold);
+  --color-rose: var(--rose);
+  --color-sky: var(--sky);
+
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-err: var(--err);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg-0);
+  color: var(--ink-0);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; }
+img { max-width: 100%; display: block; }
+::selection { background: var(--acc); color: var(--acc-ink); }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line-3); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-3); border: 2px solid transparent; background-clip: content-box; }
+
+/* Display type */
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+}
+.serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Subtle grain on dark surfaces */
+.grain { position: relative; }
+.grain::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.95  0 0 0 0 0.85  0 0 0 0.04 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay; opacity: .6;
+}
+
+/* ─── Animations ────────────────────────────────────────────────────────────── */
+@keyframes skel { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.5} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes popIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+@keyframes toastIn { from{opacity:0;transform:translate(-50%,12px)} to{opacity:1;transform:translate(-50%,0)} }
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes shimmer { 0%,100%{opacity:.7} 50%{opacity:1} }
+
+.anim-fade-up   { animation: fadeUp 400ms cubic-bezier(.2,.7,.2,1) backwards; }
+.anim-fade-in   { animation: fadeIn 300ms ease backwards; }
+.anim-pop-in    { animation: popIn 300ms cubic-bezier(.2,.7,.2,1) backwards; }
+.anim-spin      { animation: spin 700ms linear infinite; }
+.anim-shimmer   { animation: shimmer 1.6s ease-in-out infinite; }
+.anim-skeleton  {
+  background: linear-gradient(90deg, var(--bg-2) 0%, var(--bg-3) 50%, var(--bg-2) 100%);
+  background-size: 200% 100%;
+  animation: skel 1.6s linear infinite;
+}
+@keyframes penWrite {
+  0% { transform: translateX(0) rotate(0); opacity: 0; }
+  5% { transform: translateX(0) rotate(0); opacity: 1; }
+  15% { transform: translateX(10px) rotate(25deg); }
+  60% { transform: translateX(130px) rotate(25deg); }
+  75% { transform: translateX(0) rotate(0); }
+  100% { transform: translateX(0) rotate(0); }
+}
+@keyframes textReveal {
+  0% { clip-path: inset(0 100% 0 0); }
+  15% { clip-path: inset(0 100% 0 0); }
+  60% { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+@keyframes brandMasterGlide {
+  0%, 65% { transform: translateX(0); }
+  75% { transform: translateX(20px); }
+  90%, 100% { transform: translateX(0); }
+}
+@keyframes headerShimmer {
+  0% { transform: translateX(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+.anim-pen {
+  animation: penWrite 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.anim-writing-text {
+  animation: textReveal 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.anim-brand-master {
+  animation: brandMasterGlide 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.header-shimmer-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.header-shimmer-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  transform: translateX(-100%);
+  animation: headerShimmer 1.2s ease-in-out 2.3s forwards;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.logo-hover {
+  display: inline-block;
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.3s ease !important;
+}
+
+.logo-hover:hover {
+  transform: translateY(-1px) scale(1.03);
+  filter: brightness(1.1) drop-shadow(0 0 12px var(--acc-soft));
+}
+
+.logo-hover:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.cta-glow {
+  position: relative;
+  z-index: 1;
+  transition: all 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) !important;
+  overflow: hidden;
+}
+
+.cta-glow::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    transparent 40%,
+    var(--acc-bright) 50%,
+    transparent 60%,
+    transparent 100%
+  );
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  animation: rotate 2.5s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.cta-glow:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(224, 138, 100, 0.35) !important;
+}
+
+.cta-glow:hover::before {
+  opacity: 1;
+}
+
+.cta-glow:active {
+  transform: translateY(-1px) scale(0.98);
+}
