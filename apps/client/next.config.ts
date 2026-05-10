@@ -4,7 +4,7 @@ import path from "node:path";
 const nextConfig: NextConfig = {
   // Silence the multi-lockfile warning by anchoring Turbopack to this folder
   turbopack: {
-    root: path.resolve(__dirname),
+    root: path.resolve(__dirname, "../../"),
   },
   images: {
     remotePatterns: [

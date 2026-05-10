@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge"
 import { Icon } from "@/components/ui/Icon"
 import { BrandMark } from "@/components/ui/BrandMark"
 import { Poster } from "@/components/poster/Poster"
+import { AiPromptPanel } from "./AiPromptPanel"
 
 const FAQ = [
   { q: "Comment fonctionne la génération par IA ?", a: "Vous remplissez un brief en quelques étapes (type, message, style, couleurs, format). Notre IA combine ces informations avec vos préférences de marque pour produire 4 propositions de visuels en moins d'une minute. Vous pouvez ensuite demander des retouches en langage naturel." },
@@ -32,9 +33,7 @@ export function Landing() {
       <Hero />
       <PartnerLogos />
       <Features />
-      <Gallery />
       <Pricing />
-      <Faq />
       <CTA />
       <Footer />
     </div>
@@ -46,12 +45,10 @@ function PartnerLogos() {
   return (
     <section style={{
       padding: "32px 0",
-      background: "rgba(24, 19, 16, 0.4)",
-      backdropFilter: "blur(12px)",
-      WebkitBackdropFilter: "blur(12px)",
-      borderTop: "1px solid var(--line-1)",
-      borderBottom: "1px solid var(--line-1)",
-      marginTop: -60,
+      background: "transparent", // Fully transparent
+      borderTop: "none", // Remove borders
+      borderBottom: "none",
+      marginTop: -60, // Move up to close gap with AiPromptPanel
       position: "relative",
       zIndex: 10,
       overflow: "hidden",
@@ -143,84 +140,8 @@ function Hero() {
       </div>
 
       {/* Hero showcase */}
-      <div className="anim-fade-up" style={{ position: "relative", maxWidth: 1180, margin: "80px auto 0", padding: "0 32px", animationDelay: "400ms" }}>
-        <HeroShowcase />
-      </div>
+      <AiPromptPanel />
     </section>
-  )
-}
-
-function HeroShowcase() {
-  return (
-    <div style={{
-      position: "relative", borderRadius: 20,
-      background: "var(--bg-1)",
-      border: "1px solid var(--line-2)",
-      boxShadow: "0 60px 120px rgba(0,0,0,0.6), 0 0 0 1px var(--line-1)",
-      overflow: "hidden",
-    }}>
-      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", minHeight: 520 }} className="max-md:!grid-cols-1">
-        {/* Brief sidebar */}
-        <div style={{ padding: 24, borderRight: "1px solid var(--line-1)", display: "flex", flexDirection: "column", gap: 18, background: "var(--bg-1)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--acc)", letterSpacing: "0.1em" }}>BRIEF · ÉTAPE 3/7</span>
-            <Badge size="sm" tone="acc" dot>Live</Badge>
-          </div>
-          <div style={{ height: 4, background: "var(--bg-3)", borderRadius: 2, overflow: "hidden" }}>
-            <div style={{ width: "42%", height: "100%", background: "var(--acc)" }} />
-          </div>
-          <BriefRow label="Type de visuel"><Badge tone="acc" icon="calendar">Affiche événement</Badge></BriefRow>
-          <BriefRow label="Message principal">
-            <div style={{ padding: 12, background: "var(--bg-2)", border: "1px solid var(--line-1)", borderRadius: 8, fontSize: 13, lineHeight: 1.5, color: "var(--ink-1)" }}>
-              Soirée After Work du vendredi 12 mai, ambiance chaleureuse, bar à cocktails, DJ jusqu&apos;à 1h.
-            </div>
-          </BriefRow>
-          <BriefRow label="Style">
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <Badge tone="neutral">Élégant</Badge><Badge tone="neutral">Chaleureux</Badge><Badge tone="neutral">Soirée</Badge>
-            </div>
-          </BriefRow>
-          <BriefRow label="Palette">
-            <div style={{ display: "flex", gap: 6 }}>
-              {["#c66a45", "#1a0e08", "#f4ecd8", "#d8a85a"].map((c) => (
-                <div key={c} style={{ width: 28, height: 28, background: c, borderRadius: 6, border: "1px solid var(--line-2)" }} />
-              ))}
-            </div>
-          </BriefRow>
-          <div style={{ flex: 1 }} />
-          <Button full icon="sparkles">Générer 4 propositions</Button>
-        </div>
-
-        {/* Results grid */}
-        <div style={{ padding: 24, background: "var(--bg-0)", display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div className="display" style={{ fontSize: 18, marginBottom: 2 }}>4 propositions</div>
-              <div style={{ fontSize: 12, color: "var(--ink-2)" }}>Générées en 38 secondes · Cliquez pour retoucher</div>
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <Button size="sm" variant="outline" icon="refresh">Régénérer</Button>
-              <Button size="sm" variant="secondary" icon="download">Exporter</Button>
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, flex: 1 }}>
-            <Poster kind="editorial" ratio="3/4" brief={{ title: "Soirée\nAfter Work", date: "Vendredi 12 Mai", venue: "Le Loft · Paris 10", brand: "EVENTLAB" }} />
-            <Poster kind="music" ratio="3/4" brief={{ title: "Soirée\nAfter Work", artist: "EVENTLAB", date: "12.05", venue: "Le Loft · Paris 10" }} />
-            <Poster kind="menu" ratio="3/4" brief={{ title: "After\nWork", price: "Gratuit", brand: "EVENTLAB" }} />
-            <Poster kind="corp" ratio="3/4" brief={{ title: "Soirée\nAfter Work", date: "12 Mai", brand: "EVENTLAB" }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function BriefRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 12, color: "var(--ink-2)", fontWeight: 500 }}>{label}</div>
-      {children}
-    </div>
   )
 }
 
@@ -265,31 +186,6 @@ function Features() {
   )
 }
 
-function Gallery() {
-  const items: Array<{ kind: "editorial" | "menu" | "launch" | "sale" | "corp" | "music"; brief: Record<string, string> }> = [
-    { kind: "editorial", brief: { title: "Soirée\nAfter Work", date: "VEN 12.05", venue: "Le Loft · Paris", brand: "EVENTLAB" } },
-    { kind: "menu", brief: { title: "Brunch\nDominical", price: "18€", brand: "MAISON CAFÉ" } },
-    { kind: "launch", brief: { title: "Drop\nÉté '25", subtitle: "Nouvelle collection", brand: "MAREA" } },
-    { kind: "sale", brief: { percent: "40", brand: "BOUTIQUE 22" } },
-    { kind: "corp", brief: { title: "Lancement\nProduit", date: "Q3 2025", brand: "NORTH LABS" } },
-    { kind: "music", brief: { title: "Live\nSession", artist: "MARA", date: "23.06", venue: "La Bellevilloise" } },
-  ]
-  return (
-    <section id="gallery" style={{ padding: "120px 32px", background: "var(--bg-1)", borderTop: "1px solid var(--line-1)", borderBottom: "1px solid var(--line-1)" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-        <SectionTitle overline="Galerie" title="Des résultats que vous pourriez signer." subtitle="Chaque visuel ci-dessous a été généré en moins d'une minute à partir d'un brief de quelques lignes." />
-        <div style={{ marginTop: 56, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-          {items.map((it, i) => (
-            <div key={i} style={{ animation: `fadeUp 400ms ${i * 80}ms backwards` }}>
-              <Poster kind={it.kind} brief={it.brief} ratio="3/4" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function Pricing() {
   return (
     <section id="pricing" style={{ padding: "120px 32px", maxWidth: 1280, margin: "0 auto" }}>
@@ -324,36 +220,6 @@ function Pricing() {
   )
 }
 
-function Faq() {
-  const [open, setOpen] = useState<number | null>(0)
-  return (
-    <section id="faq" style={{ padding: "120px 32px", maxWidth: 880, margin: "0 auto" }}>
-      <SectionTitle overline="FAQ" title="Questions fréquentes." />
-      <div style={{ marginTop: 56, display: "flex", flexDirection: "column", gap: 8 }}>
-        {FAQ.map((item, i) => {
-          const active = open === i
-          return (
-            <Card key={i} padding={0} style={{ overflow: "hidden" }}>
-              <button
-                onClick={() => setOpen(active ? null : i)}
-                style={{ width: "100%", padding: "20px 24px", background: "transparent", border: 0, color: "var(--ink-0)", fontSize: 15, fontWeight: 500, textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-              >
-                <span>{item.q}</span>
-                <Icon name={active ? "chevronU" : "chevronD"} size={16} style={{ color: "var(--ink-3)", flexShrink: 0 }} />
-              </button>
-              {active && (
-                <div className="anim-fade-up" style={{ padding: "0 24px 20px", fontSize: 14, color: "var(--ink-2)", lineHeight: 1.6 }}>
-                  {item.a}
-                </div>
-              )}
-            </Card>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
 function CTA() {
   return (
     <section style={{ padding: "120px 32px", textAlign: "center", borderTop: "1px solid var(--line-1)" }}>
@@ -378,3 +244,4 @@ function Footer() {
     </footer>
   )
 }
+
