@@ -31,7 +31,6 @@ export default function RegisterPage() {
         email,
         password,
         name: fullName,
-        callbackURL: `${window.location.origin}/dashboard`,
       })
 
       if (authError) {

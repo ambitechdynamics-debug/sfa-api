@@ -23,13 +23,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (session.isPending) return
     if (!session.data) {
-      // Allow Better Auth to process cross-domain session verifiers in the URL
-      if (typeof window !== "undefined" && window.location.search.includes("neon_auth_session_verifier")) {
-        return
+      if (session.error) {
+        console.error("Session error:", session.error)
       }
       router.replace("/login")
     }
-  }, [session.isPending, session.data, router])
+  }, [session.isPending, session.data, session.error, router])
 
   // ─── Hydrate local profile from backend whenever a session is active ──────
   // Retry up to 3 times with delay — needed after OAuth redirect where the
@@ -51,10 +50,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("client-auth-expired", onExpired)
   }, [router])
 
-  const isVerifying = typeof window !== "undefined" && window.location.search.includes("neon_auth_session_verifier")
-
-  // Loading state — session resolving or processing URL verifier
-  if (session.isPending || (isVerifying && !session.data)) {
+  // Loading state — session resolving
+  if (session.isPending) {
     return (
       <div
         style={{
@@ -71,7 +68,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ animation: "spin 1s linear infinite" }}>
           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40" strokeLinecap="round" />
         </svg>
-        <span>Authentification en cours…</span>
+        <span>Chargement…</span>
       </div>
     )
   }
