@@ -27,7 +27,7 @@ export default function LoginPage() {
       const { error: authError } = await authClient.signIn.email({
         email,
         password,
-        callbackURL: "/dashboard",
+        callbackURL: `${window.location.origin}/dashboard`,
       })
 
       if (authError) {
@@ -55,7 +55,7 @@ export default function LoginPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/dashboard",
+        callbackURL: `${window.location.origin}/dashboard`,
       })
     } catch {
       setError("Connexion Google impossible. Veuillez réessayer.")

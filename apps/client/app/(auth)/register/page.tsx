@@ -31,7 +31,7 @@ export default function RegisterPage() {
         email,
         password,
         name: fullName,
-        callbackURL: "/dashboard",
+        callbackURL: `${window.location.origin}/dashboard`,
       })
 
       if (authError) {
@@ -60,7 +60,7 @@ export default function RegisterPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/dashboard",
+        callbackURL: `${window.location.origin}/dashboard`,
       })
     } catch {
       setError("Connexion Google impossible. Veuillez réessayer.")
