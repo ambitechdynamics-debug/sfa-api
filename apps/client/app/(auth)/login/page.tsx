@@ -53,10 +53,14 @@ export default function LoginPage() {
   async function signInWithGoogle() {
     setLoadingGoogle(true)
     try {
-      await authClient.signIn.social({
+      const { error: authError } = await authClient.signIn.social({
         provider: "google",
         callbackURL: `${window.location.origin}/dashboard`,
       })
+      if (authError) {
+        setError(authError.message || "Connexion Google impossible. Veuillez réessayer.")
+        setLoadingGoogle(false)
+      }
     } catch {
       setError("Connexion Google impossible. Veuillez réessayer.")
       setLoadingGoogle(false)
@@ -128,7 +132,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               icon="user"
-              placeholder="vous@exemple.fr"
+              placeholder="Saisissez votre adresse e-mail"
               required
               autoFocus
               autoComplete="email"
@@ -141,7 +145,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 icon="lock"
-                placeholder="••••••••"
+                placeholder="Saisissez votre mot de passe"
                 required
                 minLength={8}
                 autoComplete="current-password"

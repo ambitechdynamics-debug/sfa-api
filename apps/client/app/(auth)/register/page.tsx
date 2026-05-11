@@ -58,10 +58,14 @@ export default function RegisterPage() {
   async function signInWithGoogle() {
     setLoadingGoogle(true)
     try {
-      await authClient.signIn.social({
+      const { error: authError } = await authClient.signIn.social({
         provider: "google",
         callbackURL: `${window.location.origin}/dashboard`,
       })
+      if (authError) {
+        setError(authError.message || "Connexion Google impossible. Veuillez réessayer.")
+        setLoadingGoogle(false)
+      }
     } catch {
       setError("Connexion Google impossible. Veuillez réessayer.")
       setLoadingGoogle(false)
@@ -134,7 +138,7 @@ export default function RegisterPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               icon="user"
-              placeholder="Amélie Bonnet"
+              placeholder="Saisissez votre nom complet"
               required
               autoFocus
               autoComplete="name"
@@ -145,7 +149,7 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               icon="message"
-              placeholder="vous@exemple.fr"
+              placeholder="Saisissez votre adresse e-mail"
               required
               autoComplete="email"
             />
@@ -155,7 +159,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               icon="lock"
-              placeholder="8 caractères minimum"
+              placeholder="Saisissez le mot de passe"
               required
               hint="8 caractères minimum"
               minLength={8}
