@@ -51,20 +51,27 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("client-auth-expired", onExpired)
   }, [router])
 
-  // Loading state — session resolving
-  if (session.isPending) {
+  const isVerifying = typeof window !== "undefined" && window.location.search.includes("neon_auth_session_verifier")
+
+  // Loading state — session resolving or processing URL verifier
+  if (session.isPending || (isVerifying && !session.data)) {
     return (
       <div
         style={{
           display: "flex",
+          flexDirection: "column",
+          gap: 16,
           alignItems: "center",
           justifyContent: "center",
           minHeight: "100vh",
           color: "var(--ink-3)",
-          fontSize: 13,
+          fontSize: 14,
         }}
       >
-        Chargement…
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ animation: "spin 1s linear infinite" }}>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40" strokeLinecap="round" />
+        </svg>
+        <span>Authentification en cours…</span>
       </div>
     )
   }
