@@ -58,11 +58,11 @@ export default function LoginPage() {
         callbackURL: `${window.location.origin}/dashboard`,
       })
       if (authError) {
-        setError(authError.message || "Connexion Google impossible. Veuillez réessayer.")
+        setError(`Erreur Auth: ${authError.message || JSON.stringify(authError)}`)
         setLoadingGoogle(false)
       }
-    } catch {
-      setError("Connexion Google impossible. Veuillez réessayer.")
+    } catch (e: any) {
+      setError(`Erreur Catch: ${e.message || String(e)}`)
       setLoadingGoogle(false)
     }
   }
