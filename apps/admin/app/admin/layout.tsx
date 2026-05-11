@@ -11,7 +11,7 @@ import { authClient } from '@/lib/authClient'
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const session = authClient.useSession()
-  const { user: profile, isAuthenticated, fetchProfile, logout } = useAdminStore()
+  const { user: profile, isAuthenticated, fetchProfile, logout, isLoading: isProfileLoading } = useAdminStore()
   const [isDark, setIsDark] = useState(false)
 
   // ─── Theme bootstrap ──────────────────────────────────────────────────────
@@ -48,13 +48,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => window.removeEventListener('admin-auth-invalid', handleInvalidAuth)
   }, [logout, router])
 
-  // ─── Non-admin sessions: kick out ─────────────────────────────────────────
+  // ─── Non-admin sessions or failed profile fetch: kick out ─────────────────
   useEffect(() => {
-    if (profile && profile.role !== 'ADMIN') {
-      logout()
-      router.replace('/login')
+    // If we finished loading the profile but it's null, or if it's not an admin, kick out.
+    if (!isProfileLoading && session.data) {
+      if (!profile || profile.role !== 'ADMIN') {
+        logout()
+        router.replace('/login')
+      }
     }
-  }, [profile, logout, router])
+  }, [profile, isProfileLoading, session.data, logout, router])
 
   function toggleTheme() {
     const next = !isDark
@@ -64,7 +67,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   // Loading state — session resolving OR session valid but profile not yet loaded
-  if (session.isPending || (session.data && !profile)) {
+  if (session.isPending || (session.data && isProfileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
         <div className="flex flex-col items-center gap-3">
