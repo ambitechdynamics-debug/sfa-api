@@ -34,12 +34,8 @@ export default function LoginPage() {
       })
 
       if (authError) {
-        const msg = authError.code === 'INVALID_EMAIL_OR_PASSWORD'
-          ? 'Email ou mot de passe incorrect.'
-          : authError.code === 'EMAIL_NOT_VERIFIED'
-            ? 'Email non vérifié.'
-            : 'Connexion impossible.'
-        setError(msg)
+        setError(`Erreur Auth: ${authError.message || JSON.stringify(authError)}`)
+        setIsLoading(false)
         return
       }
 
@@ -49,16 +45,18 @@ export default function LoginPage() {
         if (profile.role !== 'ADMIN') {
           await authClient.signOut()
           setError("Ce compte n'a pas les droits administrateur.")
+          setIsLoading(false)
           return
         }
-      } catch {
-        setError('Impossible de vérifier les droits administrateur.')
+      } catch (e: any) {
+        setError(`Erreur getMe: ${e.message || String(e)}`)
+        setIsLoading(false)
         return
       }
 
       router.push('/admin')
-    } catch {
-      setError('Erreur de connexion au service d\'authentification.')
+    } catch (e: any) {
+      setError(`Erreur Catch: ${e.message || String(e)}`)
     } finally {
       setIsLoading(false)
     }
