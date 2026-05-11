@@ -23,6 +23,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (session.isPending) return
     if (!session.data) {
+      // Allow Better Auth to process cross-domain session verifiers in the URL
+      if (typeof window !== "undefined" && window.location.search.includes("neon_auth_session_verifier")) {
+        return
+      }
       router.replace("/login")
     }
   }, [session.isPending, session.data, router])
