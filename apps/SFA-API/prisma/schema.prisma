@@ -1,0 +1,436 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  fullName           String
+  email              String              @unique
+  phone              String?
+  /// Conservé pour les comptes hérités (bcrypt). Stack gère les nouveaux mots de passe.
+  password           String?
+  role               Role                @default(USER)
+  credits            Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  /// Lien vers le compte Stack Auth (neon_auth.users_sync.id). Null pour les
+  /// utilisateurs hérités pas encore migrés.
+  stackUserId        String?             @unique
+  creditTransactions CreditTransaction[]
+  files              FileAsset[]
+  forbiddenRules     ForbiddenRule[]
+  generatedPosters   GeneratedPoster[]
+  memoryEntries      MemoryEntry[]
+  payments           Payment[]
+  projects           Project[]
+  conversations      Conversation[]
+  uxMetricEvents     UxMetricEvent[]
+
+  @@index([role])
+}
+
+model Project {
+  id               String            @id @default(cuid())
+  userId           String
+  title            String
+  posterType       String?
+  category         String?
+  status           ProjectStatus     @default(DRAFT)
+  format           String?
+  style            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  agentRuns        AgentRun[]
+  files            FileAsset[]
+  generatedPosters GeneratedPoster[]
+  memoryEntries    MemoryEntry[]
+  conversations    Conversation[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model MemoryDefinition {
+  id          String            @id @default(cuid())
+  key         String            @unique
+  name        String
+  description String?
+  scope       MemoryScope       @default(PROJECT)
+  schema      Json
+  isSystem    Boolean           @default(false)
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  agentLinks  AgentMemoryLink[]
+  entries     MemoryEntry[]
+
+  @@index([key])
+}
+
+model AgentDefinition {
+  id                   String            @id @default(cuid())
+  key                  String            @unique
+  name                 String
+  description          String?
+  provider             AgentProvider     @default(MOCK)
+  model                String
+  systemPrompt         String
+  expectedOutputSchema Json
+  isActive             Boolean           @default(true)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  memoryLinks          AgentMemoryLink[]
+
+  @@index([key])
+}
+
+model AgentMemoryLink {
+  id                 String               @id @default(cuid())
+  agentDefinitionId  String
+  memoryDefinitionId String
+  usageType          AgentMemoryUsageType @default(INPUT)
+  isRequired         Boolean              @default(true)
+  priority           Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  agent              AgentDefinition      @relation(fields: [agentDefinitionId], references: [id], onDelete: Cascade)
+  memory             MemoryDefinition     @relation(fields: [memoryDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([agentDefinitionId, memoryDefinitionId])
+  @@index([agentDefinitionId])
+  @@index([memoryDefinitionId])
+}
+
+model MemoryEntry {
+  id                 String           @id @default(cuid())
+  memoryDefinitionId String
+  userId             String
+  projectId          String?
+  content            Json
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  memoryDefinition   MemoryDefinition @relation(fields: [memoryDefinitionId], references: [id], onDelete: Cascade)
+  project            Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, memoryDefinitionId])
+  @@index([userId])
+  @@index([projectId])
+  @@index([memoryDefinitionId])
+}
+
+model FileAsset {
+  id            String        @id @default(cuid())
+  userId        String
+  projectId     String?
+  fileUrl       String
+  fileType      String
+  originalName  String
+  usageType     FileUsageType @default(OTHER)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  fileSizeBytes Int?
+  format        String?
+  height        Int?
+  publicId      String?
+  width         Int?
+  project       Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([usageType])
+}
+
+model ArtisticResource {
+  id           String               @id @default(cuid())
+  title        String
+  category     String
+  resourceType ArtisticResourceType
+  url          String?
+  description  String?
+  tags         Json?
+  content      Json?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([category])
+  @@index([resourceType])
+}
+
+model GeneratedPoster {
+  id              String                @id @default(cuid())
+  userId          String
+  projectId       String
+  imageUrl        String
+  promptUsed      String
+  variationNumber Int                   @default(1)
+  status          GeneratedPosterStatus @default(PENDING)
+  createdAt       DateTime              @default(now())
+  isExample       Boolean               @default(false)
+  qualityScore    Int?
+  updatedAt       DateTime              @updatedAt
+  project         Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model AgentRun {
+  id         String         @id @default(cuid())
+  projectId  String
+  agentName  String
+  provider   String
+  model      String
+  input      Json
+  output     Json?
+  status     AgentRunStatus @default(PENDING)
+  error      String?
+  durationMs Int?
+  createdAt  DateTime       @default(now())
+  project    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([agentName])
+  @@index([status])
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  userId    String
+  amount    Float
+  currency  String        @default("XOF")
+  provider  String
+  status    PaymentStatus @default(PENDING)
+  reference String        @unique
+  planName  String?
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model AppSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  category    String   @default("general")
+  isSecret    Boolean  @default(false)
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}
+
+model ForbiddenRule {
+  id             String                @id @default(cuid())
+  key            String                @unique
+  title          String
+  description    String?
+  category       ForbiddenRuleCategory
+  severity       ForbiddenRuleSeverity @default(MEDIUM)
+  scope          ForbiddenRuleScope    @default(GLOBAL)
+  appliesTo      Json?
+  examples       Json?
+  correctionTips Json?
+  negativePrompt String?
+  isSystem       Boolean               @default(false)
+  isActive       Boolean               @default(true)
+  createdById    String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  createdBy      User?                 @relation(fields: [createdById], references: [id])
+
+  @@index([category])
+  @@index([severity])
+  @@index([isActive])
+  @@index([scope])
+}
+
+model CreditTransaction {
+  id           String   @id @default(cuid())
+  userId       String
+  type         String
+  amount       Int
+  balanceAfter Int
+  reason       String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UxMetricEvent {
+  id                String            @id @default(cuid())
+  userId            String
+  eventType         UxMetricEventType
+  path              String
+  fromPath          String?
+  toPath            String?
+  durationMs        Int?
+  satisfactionScore Int?
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([eventType])
+  @@index([path])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UxMetricEventType {
+  PAGE_VIEW
+  NAVIGATION
+  SATISFACTION
+  NAVIGATION_ERROR
+}
+
+enum ProjectStatus {
+  DRAFT
+  QUESTIONING
+  ANALYZING
+  READY_FOR_PROMPT
+  PROMPT_READY
+  GENERATING
+  GENERATED
+  FAILED
+}
+
+enum MemoryScope {
+  PROJECT
+  USER
+  GLOBAL
+}
+
+enum AgentProvider {
+  OPENAI
+  ANTHROPIC
+  GEMINI
+  MOCK
+}
+
+enum AgentMemoryUsageType {
+  INPUT
+  OUTPUT
+  BOTH
+}
+
+enum FileUsageType {
+  LOGO
+  MODEL
+  REFERENCE_IMAGE
+  PRODUCT_IMAGE
+  PERSON_IMAGE
+  OTHER
+  BRAND_GUIDELINE
+  GENERATED_POSTER
+}
+
+enum ArtisticResourceType {
+  MODEL
+  TEXTURE
+  FONT
+  PALETTE
+  STYLE
+  REFERENCE
+  FORBIDDEN_RULE
+}
+
+enum GeneratedPosterStatus {
+  PENDING
+  GENERATING
+  GENERATED
+  FAILED
+}
+
+enum AgentRunStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum ForbiddenRuleCategory {
+  TYPOGRAPHY
+  COLORS
+  COMPOSITION
+  LOGO
+  IMAGE_QUALITY
+  TEXT_CONTENT
+  BRAND_IDENTITY
+  CONTACT_INFO
+  EFFECTS
+  TEXTURES
+  SOCIAL_MEDIA
+  PRINT
+  AI_GENERATION
+  LEGAL_SECURITY
+  OTHER
+}
+
+enum ForbiddenRuleSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ForbiddenRuleScope {
+  GLOBAL
+  CATEGORY
+  STYLE
+  PROJECT_TYPE
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  userId    String
+  projectId String?
+  title     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  messages  Message[]
+
+  @@index([userId])
+  @@index([projectId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  role           MessageRole
+  content        String
+  createdAt      DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
