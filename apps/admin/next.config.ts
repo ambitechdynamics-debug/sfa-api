@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+const buildRoot = process.env.VERCEL
+  ? path.resolve(__dirname)
+  : path.resolve(__dirname, "../../");
+
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: buildRoot,
   turbopack: {
-    root: path.resolve(__dirname, "../../"),
+    root: buildRoot,
   },
   images: {
     remotePatterns: [

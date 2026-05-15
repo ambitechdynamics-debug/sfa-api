@@ -15,13 +15,6 @@ import { env } from './env';
 
 let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 
-const DEFAULT_AUTH_ORIGINS = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'https://studio-flyer.vercel.app',
-  'https://admin-seven-teal-10.vercel.app'
-];
-
 export function isNeonAuthEnabled(): boolean {
   return Boolean(env.NEON_AUTH_ENABLED && env.NEON_AUTH_ISSUER && env.NEON_AUTH_JWKS_URL);
 }
@@ -48,56 +41,32 @@ export interface NeonAuthClaims extends JWTPayload {
   picture?: string;
 }
 
+type NeonSessionResponse = {
+  session?: {
+    userId?: string;
+    token?: string;
+    expiresAt?: string | Date;
+  };
+  user?: {
+    id?: string;
+    email?: string;
+    name?: string;
+    image?: string | null;
+    emailVerified?: boolean;
+  };
+} | null;
+
 function normalizeUrl(value: string) {
   return value.replace(/\/+$/, '');
-}
-
-function isAllowedPreviewAuthUrl(value: string) {
-  try {
-    const url = new URL(normalizeUrl(value));
-    return (
-      url.protocol === 'https:' &&
-      url.hostname.endsWith('-ambitechdynamics-debugs-projects.vercel.app') &&
-      (url.pathname === '' || url.pathname === '/' || url.pathname === '/api/auth')
-    );
-  } catch {
-    return false;
-  }
-}
-
-function isAllowedAuthValue(value: string, allowed: Set<string>) {
-  const normalized = normalizeUrl(value);
-  return allowed.has(normalized) || isAllowedPreviewAuthUrl(normalized);
-}
-
-function getConfiguredAppOrigins() {
-  return env.APP_URL.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-}
-
-function getAllowedAuthIssuers() {
-  const issuers = new Set<string>();
-  if (env.NEON_AUTH_ISSUER) issuers.add(normalizeUrl(env.NEON_AUTH_ISSUER));
-
-  for (const origin of [...DEFAULT_AUTH_ORIGINS, ...getConfiguredAppOrigins()]) {
-    const cleanOrigin = normalizeUrl(origin);
-    issuers.add(cleanOrigin);
-    issuers.add(`${cleanOrigin}/api/auth`);
-  }
-
-  return issuers;
-}
-
-function hasAllowedAudience(audience: JWTPayload['aud'], allowed: Set<string>) {
-  if (!audience) return true;
-  if (typeof audience === 'string') return isAllowedAuthValue(audience, allowed);
-  return audience.some((item) => isAllowedAuthValue(item, allowed));
 }
 
 /**
  * Verify a Neon-Auth-issued JWT. Throws if invalid.
  * Returns the decoded payload (claims).
+ *
+ * The JWKS URL is already scoped to the Neon Auth project. Neon/Better Auth can
+ * emit JWTs whose `iss`/`aud` reflect the hosted auth URL, the app proxy URL, or
+ * a custom base URL, so we only enforce `aud` when explicitly configured.
  */
 export async function verifyNeonAuthToken(accessToken: string): Promise<NeonAuthClaims> {
   if (!isNeonAuthEnabled()) {
@@ -110,15 +79,37 @@ export async function verifyNeonAuthToken(accessToken: string): Promise<NeonAuth
     throw new Error('Token missing required `sub` claim');
   }
 
-  const allowedIssuers = getAllowedAuthIssuers();
-  const issuer = payload.iss ? normalizeUrl(payload.iss) : '';
-  if (!issuer || !isAllowedAuthValue(issuer, allowedIssuers)) {
-    throw new Error(`Token issuer is not allowed: ${issuer || 'missing'}`);
-  }
-
-  if (!env.NEON_AUTH_AUDIENCE && !hasAllowedAudience(payload.aud, allowedIssuers)) {
-    throw new Error('Token audience is not allowed');
-  }
-
   return payload as NeonAuthClaims;
+}
+
+export async function verifyNeonAuthSessionToken(sessionToken: string): Promise<NeonAuthClaims> {
+  if (!isNeonAuthEnabled() || !env.NEON_AUTH_ISSUER) {
+    throw new Error('Neon Auth is not enabled. Set NEON_AUTH_ENABLED=true and provide NEON_AUTH_ISSUER.');
+  }
+
+  const response = await fetch(`${normalizeUrl(env.NEON_AUTH_ISSUER)}/get-session`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${sessionToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Neon Auth session lookup failed with ${response.status}`);
+  }
+
+  const data = (await response.json().catch(() => null)) as NeonSessionResponse;
+  const userId = data?.user?.id ?? data?.session?.userId;
+  if (!userId) {
+    throw new Error('Neon Auth session lookup returned no user');
+  }
+
+  return {
+    sub: userId,
+    email: data?.user?.email,
+    email_verified: data?.user?.emailVerified,
+    name: data?.user?.name,
+    picture: data?.user?.image ?? undefined,
+  };
 }

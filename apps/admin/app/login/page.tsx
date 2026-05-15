@@ -2,18 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { authClient } from '@/lib/authClient'
-import { getMe } from '@/lib/auth'
+import { getMe, loginWithLegacyAdmin } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 
 /**
  * Admin sign-in page.
  *
- * Authentication flows through Neon Auth (Better Auth) — the legacy JWT
- * backend is no longer used. After Better Auth confirms the credentials, we
- * load the local profile from `/api/users/me` to verify the `role === 'ADMIN'`
- * check before granting access; otherwise the session is signed out.
+ * Authentication flows through Neon Auth first. If the admin account still
+ * exists only in the legacy backend user table, the page falls back to the
+ * backend `/api/auth/login` endpoint and stores its JWT for the migration
+ * window.
  */
 export default function LoginPage() {
   const router = useRouter()
@@ -22,6 +22,16 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  function getErrorMessage(value: unknown) {
+    return value instanceof Error ? value.message : String(value)
+  }
+
+  async function completeLoginWithLegacy() {
+    await authClient.signOut().catch(() => undefined)
+    await loginWithLegacyAdmin(email, password)
+    router.push('/admin')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -34,8 +44,12 @@ export default function LoginPage() {
       })
 
       if (authError) {
-        setError(`Erreur Auth: ${authError.message || JSON.stringify(authError)}`)
-        setIsLoading(false)
+        try {
+          await completeLoginWithLegacy()
+        } catch {
+          setError('Email ou mot de passe incorrect.')
+          setIsLoading(false)
+        }
         return
       }
 
@@ -48,15 +62,20 @@ export default function LoginPage() {
           setIsLoading(false)
           return
         }
-      } catch (e: any) {
-        setError(`Erreur getMe: ${e.message || String(e)}`)
-        setIsLoading(false)
-        return
+      } catch {
+        try {
+          await completeLoginWithLegacy()
+          return
+        } catch (legacyError) {
+          setError(`Erreur getMe: ${getErrorMessage(legacyError)}`)
+          setIsLoading(false)
+          return
+        }
       }
 
       router.push('/admin')
-    } catch (e: any) {
-      setError(`Erreur Catch: ${e.message || String(e)}`)
+    } catch (e: unknown) {
+      setError(`Erreur Catch: ${getErrorMessage(e)}`)
     } finally {
       setIsLoading(false)
     }
@@ -79,19 +98,8 @@ export default function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--accent)] mb-4 shadow-lg shadow-violet-500/30">
-            <Sparkles className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="text-xl font-bold text-white">STUDIO FLYER AI</h1>
-          <p className="text-sm text-slate-400 mt-1">Administration</p>
-        </div>
-
         {/* Card */}
         <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-7 shadow-2xl">
-          <h2 className="text-base font-semibold text-white mb-5">Connexion Administrateur</h2>
-
           {error && (
             <div role="alert" className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 mb-4">
               <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
@@ -111,7 +119,7 @@ export default function LoginPage() {
                   required
                   autoComplete="email"
                   className="w-full bg-[#0F172A] border border-[#334155] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-[var(--accent)] focus:outline-none transition-colors"
-                  placeholder="admin@example.com"
+                  placeholder="Saisissez votre adresse e-mail"
                 />
               </div>
             </div>
@@ -127,7 +135,7 @@ export default function LoginPage() {
                   required
                   autoComplete="current-password"
                   className="w-full bg-[#0F172A] border border-[#334155] rounded-lg pl-10 pr-10 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-[var(--accent)] focus:outline-none transition-colors"
-                  placeholder="••••••••"
+                  placeholder="Saisissez votre mot de passe"
                 />
                 <button
                   type="button"

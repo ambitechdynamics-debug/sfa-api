@@ -16,7 +16,7 @@ import { env } from '../config/env';
 import { prisma } from '../config/database';
 import { AppError } from '../utils/appError';
 import { logger } from '../utils/logger';
-import { isNeonAuthEnabled, verifyNeonAuthToken } from '../config/neonAuth';
+import { isNeonAuthEnabled, verifyNeonAuthSessionToken, verifyNeonAuthToken } from '../config/neonAuth';
 
 type LegacyJwtPayload = {
   userId: string;
@@ -28,6 +28,10 @@ type AuthedUser = {
   email: string;
   role: Role;
 };
+
+function looksLikeCompactJwt(token: string) {
+  return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token);
+}
 
 // ─── Legacy JWT path (kept until full Neon Auth migration) ───────────────────
 async function authenticateWithLegacyJwt(token: string): Promise<AuthedUser> {
@@ -51,7 +55,12 @@ async function authenticateWithLegacyJwt(token: string): Promise<AuthedUser> {
 async function authenticateWithNeonAuth(token: string): Promise<AuthedUser> {
   let claims;
   try {
-    claims = await verifyNeonAuthToken(token);
+    try {
+      claims = await verifyNeonAuthToken(token);
+    } catch (jwtError) {
+      if (looksLikeCompactJwt(token)) throw jwtError;
+      claims = await verifyNeonAuthSessionToken(token);
+    }
   } catch (error) {
     logger.warn('[auth] Neon token verification failed', error instanceof Error ? error.message : error);
     throw new AppError('Invalid or expired authentication token', 401);

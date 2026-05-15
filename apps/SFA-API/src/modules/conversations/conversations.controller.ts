@@ -3,7 +3,8 @@ import { conversationsService } from './conversations.service';
 import { z } from 'zod';
 
 const updateSchema = z.object({
-  title: z.string().min(1).max(255)
+  title: z.string().min(1).max(255).optional(),
+  archived: z.boolean().optional()
 });
 
 const createSchema = z.object({
@@ -38,13 +39,15 @@ export const conversationsController = {
     res.status(201).json({ success: true, data: conversation });
   },
 
-  async updateConversationTitle(req: Request, res: Response) {
+  async updateConversation(req: Request, res: Response) {
     const userId = req.user?.id;
     if (!userId) throw new Error('User missing in request');
     const { id } = req.params;
-    const { title } = updateSchema.parse(req.body);
+    const { title, archived } = updateSchema.parse(req.body);
 
-    const conversation = await conversationsService.updateConversationTitle(id, userId, title);
+    const status = archived === true ? 'ARCHIVED' : archived === false ? 'ACTIVE' : undefined;
+
+    const conversation = await conversationsService.updateConversation(id, userId, { title, status });
     res.json({ success: true, data: conversation });
   },
 

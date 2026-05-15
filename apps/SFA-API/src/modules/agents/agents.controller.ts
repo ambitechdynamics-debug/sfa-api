@@ -66,10 +66,6 @@ export const runPlanner = asyncHandler(async (req: Request, res: Response) => {
 
   const result = await runPlannerAgent({
     projectId,
-    mSms,
-    mQt2,
-    mMd,
-    mId,
     provider,
     model
   });
@@ -112,7 +108,6 @@ export const runImageAnalyst = asyncHandler(async (req: Request, res: Response) 
       originalName: f.originalName,
       usageType: f.usageType
     })),
-    mSms,
     provider,
     model
   });
@@ -160,8 +155,6 @@ export const runTextAnalyst = asyncHandler(async (req: Request, res: Response) =
 
   const result = await runTextAnalystAgent({
     projectId,
-    mSms,
-    mQt2,
     plannerResult,
     provider,
     model
@@ -190,10 +183,6 @@ export const runBrand = asyncHandler(async (req: Request, res: Response) => {
 
   const result = await runBrandAgent({
     projectId,
-    mSms,
-    mQt2,
-    mMd,
-    mId,
     logoFile: logoFile
       ? {
           id: logoFile.id,
@@ -259,7 +248,6 @@ export const runArtisticBase = asyncHandler(async (req: Request, res: Response) 
       content: r.content,
       url: r.url
     })),
-    mBa,
     provider,
     model
   });
@@ -312,7 +300,6 @@ export const runQuality = asyncHandler(async (req: Request, res: Response) => {
   const result = await runQualityAgent({
     projectId,
     mPrompt1: mPrompt1 as unknown as import('./agents.service').PromptArchitectOutput,
-    allMemories,
     provider,
     model
   });

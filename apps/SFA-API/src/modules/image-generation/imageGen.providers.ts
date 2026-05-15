@@ -15,6 +15,21 @@ import { AppError } from '../../utils/appError';
 import { settingsService } from '../settings/settings.service';
 import type { ImageGenAdapter, ImageGenInput, ImageGenProvider, ImageGenResult } from './imageGen.types';
 
+// ─── Utility to fetch image and convert to base64 ─────────────────────────────
+async function fetchImageAsBase64(url: string): Promise<{ mimeType: string; data: string }> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image from ${url}`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const mimeType = response.headers.get('content-type') || 'image/jpeg';
+  return {
+    mimeType,
+    data: buffer.toString('base64')
+  };
+}
+
 // ─── Aspect ratio → pixel dimensions (used by the mock provider) ─────────────
 const RATIO_DIMS: Record<string, { w: number; h: number }> = {
   '1:1':  { w: 1024, h: 1024 },
@@ -96,10 +111,42 @@ class GeminiImageProvider implements ImageGenAdapter {
       input.prompt,
       input.negativePrompt ? `\n\nÉvite absolument : ${input.negativePrompt}` : '',
       `\n\nVariation ${input.variationNumber} (style légèrement différent des autres variantes).`,
+      input.layoutReferenceUrl ? `\n\nINSTRUCTION CRITIQUE DE GABARIT (Layout) : Utilise l'image de GABARIT fournie comme structure absolue au pixel près (composition, placement des éléments).` : '',
+      input.styleReferenceUrl ? `\n\nINSTRUCTION CRITIQUE DE STYLE (Style Reference) : Utilise l'image de STYLE fournie pour cloner exactement l'esthétique (couleurs, textures, éclairage).` : '',
     ].join('').trim();
 
+    const parts: any[] = [{ text: fullPrompt }];
+
+    if (input.layoutReferenceUrl) {
+      try {
+        const layoutImage = await fetchImageAsBase64(input.layoutReferenceUrl);
+        parts.push({
+          inlineData: {
+            mimeType: layoutImage.mimeType,
+            data: layoutImage.data
+          }
+        });
+      } catch (err) {
+        console.warn(`Could not fetch layout reference image: ${err}`);
+      }
+    }
+
+    if (input.styleReferenceUrl) {
+      try {
+        const styleImage = await fetchImageAsBase64(input.styleReferenceUrl);
+        parts.push({
+          inlineData: {
+            mimeType: styleImage.mimeType,
+            data: styleImage.data
+          }
+        });
+      } catch (err) {
+        console.warn(`Could not fetch style reference image: ${err}`);
+      }
+    }
+
     const body = {
-      contents: [{ parts: [{ text: fullPrompt }] }],
+      contents: [{ parts }],
       generationConfig: {
         responseModalities: ['IMAGE'],
         ...(input.aspectRatio && { imageConfig: { aspectRatio: input.aspectRatio } }),
@@ -128,8 +175,8 @@ class GeminiImageProvider implements ImageGenAdapter {
       throw new AppError(`Image generation blocked: ${json.promptFeedback.blockReason}`, 400);
     }
 
-    const parts = json.candidates?.[0]?.content?.parts ?? [];
-    const imagePart = parts.find((p) => p.inlineData);
+    const responseParts = json.candidates?.[0]?.content?.parts ?? [];
+    const imagePart = responseParts.find((p) => p.inlineData);
     if (!imagePart?.inlineData) {
       throw new AppError('Gemini response did not contain an image', 502);
     }

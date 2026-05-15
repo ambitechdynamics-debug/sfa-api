@@ -27,6 +27,7 @@ vi.mock('../../config/database', () => ({
 vi.mock('../../config/neonAuth', () => ({
   isNeonAuthEnabled: vi.fn(() => true),
   verifyNeonAuthToken: vi.fn(),
+  verifyNeonAuthSessionToken: vi.fn(() => Promise.reject(new Error('invalid session'))),
 }));
 
 vi.mock('../../config/env', () => ({
@@ -39,7 +40,7 @@ vi.mock('../../config/env', () => ({
 }));
 
 import { prisma } from '../../config/database';
-import { isNeonAuthEnabled, verifyNeonAuthToken } from '../../config/neonAuth';
+import { isNeonAuthEnabled, verifyNeonAuthSessionToken, verifyNeonAuthToken } from '../../config/neonAuth';
 import { authMiddleware, requireAdmin } from '../auth.middleware';
 import { AppError } from '../../utils/appError';
 
@@ -95,6 +96,32 @@ describe('authMiddleware — Neon Auth path', () => {
     const err = (next as unknown as { mock: { calls: AppError[][] } }).mock.calls[0][0];
     expect(err).toBeInstanceOf(AppError);
     expect(err.statusCode).toBe(401);
+  });
+
+  it('accepts signed Neon session tokens when no JWT header is available', async () => {
+    vi.mocked(verifyNeonAuthToken).mockRejectedValue(new Error('not a jwt'));
+    vi.mocked(verifyNeonAuthSessionToken).mockResolvedValue({
+      sub: 'neon-session-123',
+      email: 'session@example.com',
+      name: 'Session User',
+    });
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: 'session-user-id',
+      email: 'session@example.com',
+      role: Role.USER,
+    } as never);
+
+    const req = makeReq('signed-session-token.signature');
+    const next = makeNext();
+    await authMiddleware(req, makeRes(), next);
+
+    expect(verifyNeonAuthSessionToken).toHaveBeenCalledWith('signed-session-token.signature');
+    expect(next).toHaveBeenCalledWith();
+    expect((req as unknown as { user: unknown }).user).toEqual({
+      id: 'session-user-id',
+      email: 'session@example.com',
+      role: 'USER',
+    });
   });
 
   it('attaches req.user when an existing local profile is linked by stackUserId', async () => {

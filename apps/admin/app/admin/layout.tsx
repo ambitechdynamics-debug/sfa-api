@@ -7,12 +7,18 @@ import { AdminSidebar } from '@/components/admin/AdminSidebar'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 import { useAdminStore } from '@/store/admin-store'
 import { authClient } from '@/lib/authClient'
+import { hasLegacySession } from '@/lib/auth'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const session = authClient.useSession()
   const { user: profile, isAuthenticated, fetchProfile, logout, isLoading: isProfileLoading } = useAdminStore()
   const [isDark, setIsDark] = useState(false)
+  const [hasLegacyAuth, setHasLegacyAuth] = useState(false)
+
+  useEffect(() => {
+    setHasLegacyAuth(hasLegacySession())
+  }, [])
 
   // ─── Theme bootstrap ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -26,22 +32,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // ─── Auth gate driven by Better Auth ──────────────────────────────────────
   useEffect(() => {
     if (session.isPending) return
-    if (!session.data) {
+    if (!session.data && !hasLegacyAuth) {
       router.replace('/login')
     }
-  }, [session.isPending, session.data, router])
+  }, [hasLegacyAuth, session.isPending, session.data, router])
 
   // ─── Hydrate local profile (role + name) ─────────────────────────────────
   useEffect(() => {
-    if (session.data && !profile) {
+    if ((session.data || hasLegacyAuth) && !profile) {
       void fetchProfile()
     }
-  }, [session.data, profile, fetchProfile])
+  }, [hasLegacyAuth, session.data, profile, fetchProfile])
 
   // ─── Listen for backend-issued 401 events ─────────────────────────────────
   useEffect(() => {
     function handleInvalidAuth() {
       logout()
+      setHasLegacyAuth(false)
       router.replace('/login')
     }
     window.addEventListener('admin-auth-invalid', handleInvalidAuth)
@@ -51,13 +58,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // ─── Non-admin sessions or failed profile fetch: kick out ─────────────────
   useEffect(() => {
     // If we finished loading the profile but it's null, or if it's not an admin, kick out.
-    if (!isProfileLoading && session.data) {
+    if (!isProfileLoading && (session.data || hasLegacyAuth)) {
       if (!profile || profile.role !== 'ADMIN') {
         logout()
+        setHasLegacyAuth(false)
         router.replace('/login')
       }
     }
-  }, [profile, isProfileLoading, session.data, logout, router])
+  }, [hasLegacyAuth, profile, isProfileLoading, session.data, logout, router])
 
   function toggleTheme() {
     const next = !isDark
@@ -67,7 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   // Loading state — session resolving OR session valid but profile not yet loaded
-  if (session.isPending || (session.data && isProfileLoading)) {
+  if (session.isPending || ((session.data || hasLegacyAuth) && isProfileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
         <div className="flex flex-col items-center gap-3">
@@ -79,7 +87,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   // No session, or non-admin profile — redirect already triggered, render nothing
-  if (!session.data || !isAuthenticated || profile?.role !== 'ADMIN') return null
+  if ((!session.data && !hasLegacyAuth) || !isAuthenticated || profile?.role !== 'ADMIN') return null
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg)]">

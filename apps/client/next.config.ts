@@ -1,10 +1,15 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+const buildRoot = process.env.VERCEL
+  ? path.resolve(__dirname)
+  : path.resolve(__dirname, "../../");
+
 const nextConfig: NextConfig = {
   // Silence the multi-lockfile warning by anchoring Turbopack to this folder
+  outputFileTracingRoot: buildRoot,
   turbopack: {
-    root: path.resolve(__dirname, "../../"),
+    root: buildRoot,
   },
   images: {
     remotePatterns: [

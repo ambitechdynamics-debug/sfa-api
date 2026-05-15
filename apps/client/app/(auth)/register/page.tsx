@@ -2,21 +2,24 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { AuthShell, AuthLeftPitch } from "@/components/auth/AuthShell"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { authClient } from "@/lib/authClient"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { loginWithGoogle, registerWithEmail } = useAuth()
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const nextPath = searchParams.get("next")
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -27,26 +30,17 @@ export default function RegisterPage() {
     }
     setLoading(true)
     try {
-      const { error: authError } = await authClient.signUp.email({
-        email,
-        password,
-        name: fullName,
-      })
-
-      if (authError) {
-        const msg = authError.code === "USER_ALREADY_EXISTS"
-          ? "Un compte existe déjà avec cet email."
-          : authError.code === "PASSWORD_TOO_SHORT"
-            ? "Mot de passe trop court (8 caractères minimum)."
-            : authError.code === "INVALID_EMAIL"
-              ? "Format d'email invalide."
-              : "Inscription impossible. Veuillez réessayer."
-        setError(msg)
+      const result = await registerWithEmail({ fullName, email, password, nextPath })
+      if (!result.success) {
+        setError(result.message)
         return
       }
 
-      toast.success(`Compte créé. Bienvenue ${fullName.split(" ")[0]} 🎉`)
-      router.push("/dashboard")
+      toast.success(`Compte créé. Bienvenue ${fullName.split(" ")[0]}`)
+      if ("verificationRequired" in result && result.verificationRequired) {
+        router.push(`/check-email?email=${encodeURIComponent(result.email)}`)
+        return
+      }
     } catch {
       setError("Erreur de connexion au service d'authentification.")
     } finally {
@@ -56,17 +50,15 @@ export default function RegisterPage() {
 
   async function signInWithGoogle() {
     setLoadingGoogle(true)
+    setError(null)
     try {
-      const { error: authError } = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: `${window.location.origin}/dashboard`,
-      })
-      if (authError) {
-        setError(`Erreur Auth: ${authError.message || JSON.stringify(authError)}`)
+      const result = await loginWithGoogle(nextPath)
+      if (!result.success) {
+        setError(result.message)
         setLoadingGoogle(false)
       }
-    } catch (e: any) {
-      setError(`Erreur Catch: ${e.message || String(e)}`)
+    } catch {
+      setError("Connexion Google impossible. Veuillez réessayer.")
       setLoadingGoogle(false)
     }
   }

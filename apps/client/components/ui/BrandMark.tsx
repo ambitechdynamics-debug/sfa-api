@@ -13,8 +13,8 @@ export function BrandMark({ size = 20, withWordmark = true, color, animate = fal
       <span
         className={animate ? "anim-pen" : ""}
         style={{
-          width: size + 10,
-          height: size + 10,
+          width: size + 5,
+          height: size + 5,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -38,11 +38,11 @@ export function BrandMark({ size = 20, withWordmark = true, color, animate = fal
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 600,
-            fontSize: size * 0.78,
+            fontSize: size * 1.10,
             letterSpacing: "-0.04em",
             display: "inline-flex",
             alignItems: "baseline",
-            gap: 4,
+            gap: 10,
             whiteSpace: "nowrap",
           }}
         >
@@ -56,7 +56,6 @@ export function BrandMark({ size = 20, withWordmark = true, color, animate = fal
               letterSpacing: "0.04em",
             }}
           >
-            ·AI
           </span>
         </span>
       )}

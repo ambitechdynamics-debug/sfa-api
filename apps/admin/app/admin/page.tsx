@@ -39,6 +39,9 @@ export default function AdminOverviewPage() {
   const [recentErrors, setRecentErrors] = useState<AgentRunRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
+  // Import dynamique pour éviter SSR si besoin
+
+
   useEffect(() => {
     Promise.all([
       fetchStats(),
@@ -60,7 +63,9 @@ export default function AdminOverviewPage() {
     chartData[chartData.length - 1]?.generations ?? 0
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
+    <div className="space-y-6 max-w-[1400px] mx-auto relative" style={{minHeight: '60vh'}}>
+      {/* Témoignages clients flottants en overlay */}
+
       <div>
         <h1 className="text-lg font-bold text-[var(--text)]">Tableau de bord</h1>
         <p className="text-xs text-[var(--text-muted)] mt-0.5 capitalize">{today}</p>

@@ -23,7 +23,7 @@ router.use(conversationAuthMiddleware);
 router.get('/', asyncHandler(conversationsController.getConversations));
 router.post('/', asyncHandler(conversationsController.createConversation));
 router.get('/:id', asyncHandler(conversationsController.getConversationById));
-router.patch('/:id', asyncHandler(conversationsController.updateConversationTitle));
+router.patch('/:id', asyncHandler(conversationsController.updateConversation));
 router.delete('/:id', asyncHandler(conversationsController.deleteConversation));
 
 export default router;

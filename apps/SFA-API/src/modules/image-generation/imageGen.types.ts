@@ -13,6 +13,10 @@ export interface ImageGenInput {
    * Hint about the desired style. Useful for the mock to vary its picsum seed.
    */
   styleSeed?: string;
+  /** URL de l'image modèle pour forcer le gabarit/composition (Niveau 2: Clonage visuel) */
+  layoutReferenceUrl?: string;
+  /** URL de l'image de style pour forcer la couleur/texture (Niveau 2: Clonage visuel) */
+  styleReferenceUrl?: string;
 }
 
 export interface ImageGenResult {

@@ -46,6 +46,8 @@ Retourner uniquement ce JSON valide :
   "recommended_fonts": ["Police recommandée 1 (usage)", "Police 2 (usage)"],
   "recommended_palettes": ["Description palette 1", "Description palette 2"],
   "recommended_styles": ["Style recommandé 1", "Style 2"],
+  "selected_model_url": "URL exacte du [MODEL] ou [REFERENCE] principal choisi (ou null)",
+  "selected_style_url": "URL exacte de la [TEXTURE] ou [STYLE] principal choisi (ou null)",
   "forbidden_elements": [
     "Polices manuscrites illisibles sur fond complexe",
     "Logo déformé ou pixelisé",

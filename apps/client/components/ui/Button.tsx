@@ -79,7 +79,7 @@ export function Button({
         fontFamily: "var(--font-sans)",
         fontSize: sizes.font,
         fontWeight: 500,
-        letterSpacing: "-0.005em",
+        letterSpacing: 0,
         borderRadius: sizes.radius,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,

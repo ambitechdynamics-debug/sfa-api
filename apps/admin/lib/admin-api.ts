@@ -5,34 +5,18 @@ import { AgentDefinition, AgentMemoryLink, AgentRunRecord } from '@/types/agent'
 import { MemoryDefinition } from '@/types/memory'
 import { Payment, ArtisticResource } from '@/types/payment'
 import { ForbiddenRule, ForbiddenRulesFilters, ForbiddenRulesPaginated } from '@/types/forbidden-rule'
-import { clearSession } from './auth'
+import { clearSession, getToken } from './auth'
 import { AdminApiError } from './api-error'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV !== 'production' ? 'http://localhost:5000' : '')
+).replace(/\/+$/, '')
 
 type ApiResponse<T> = {
   success?: boolean
   message?: string
   data?: T
-}
-
-/**
- * Resolve the Bearer token: pulled from the active Better Auth session.
- * Falls back to the legacy localStorage token to keep the migration window
- * working (will be removed once all sessions are issued by Neon Auth).
- */
-async function getToken(): Promise<string> {
-  if (typeof window === 'undefined') return ''
-  try {
-    const { getSession } = await import('./authClient')
-    const { data } = await getSession()
-    const session = data as { session?: { token?: string }; jwt?: string } | null
-    const fromBetterAuth = session?.jwt ?? session?.session?.token ?? ''
-    if (fromBetterAuth) return fromBetterAuth
-  } catch {
-    /* fall through to legacy */
-  }
-  return localStorage.getItem('admin_token') || ''
 }
 
 function notifyInvalidAuth() {
@@ -42,6 +26,10 @@ function notifyInvalidAuth() {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  if (!API_URL) {
+    throw new AdminApiError('URL API manquante. Configurez NEXT_PUBLIC_API_URL.', 0)
+  }
+
   const token = await getToken()
   let res: Response
   try {
@@ -177,14 +165,19 @@ export async function uploadArtisticResourceImage(
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<{ url: string; publicId: string }> {
+  if (!API_URL) {
+    throw new AdminApiError('URL API manquante. Configurez NEXT_PUBLIC_API_URL.', 0)
+  }
+
   const formData = new FormData()
   formData.append('file', file)
+  const token = await getToken()
 
   // Use XMLHttpRequest for upload progress support
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open('POST', `${API_URL}/api/admin/artistic-resources/upload-image`)
-    xhr.setRequestHeader('Authorization', `Bearer ${getToken()}`)
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
 
     xhr.upload.onprogress = (evt) => {
       if (evt.lengthComputable && onProgress) {

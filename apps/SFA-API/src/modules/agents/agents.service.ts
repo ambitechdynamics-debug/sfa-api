@@ -23,6 +23,8 @@ import { ARTISTIC_BASE_SYSTEM_PROMPT } from './system-prompts/artisticBase.promp
 import { PROMPT_ARCHITECT_SYSTEM_PROMPT } from './system-prompts/promptArchitect.prompt';
 import { QUALITY_AGENT_SYSTEM_PROMPT } from './system-prompts/qualityAgent.prompt';
 
+import { buildAgentContext, saveAgentOutputs } from './dynamic-context.service';
+
 // ─── Types de sortie de chaque agent ────────────────────
 
 export interface PlannerOutput {
@@ -109,6 +111,8 @@ export interface ArtisticBaseOutput {
   recommended_fonts: string[];
   recommended_palettes: string[];
   recommended_styles: string[];
+  selected_model_url: string | null;
+  selected_style_url: string | null;
   forbidden_elements: string[];
   quality_rules: string[];
 }
@@ -185,27 +189,13 @@ async function upsertMemory(projectId: string, memoryKey: string, content: Prism
 
 export interface RunPlannerParams {
   projectId: string;
-  mSms: Record<string, unknown>;
-  mQt2?: Record<string, unknown> | null;
-  mMd?: Record<string, unknown> | null;
-  mId?: Record<string, unknown> | null;
   provider?: AIProvider;
   model?: string;
 }
 
 export async function runPlannerAgent(params: RunPlannerParams): Promise<PlannerOutput> {
-  const userPrompt = `
-## Demande client (M-SMS)
-${JSON.stringify(params.mSms, null, 2)}
-
-${params.mQt2 ? `## Réponses client (M-QT2)\n${JSON.stringify(params.mQt2, null, 2)}` : ''}
-
-${params.mMd ? `## Analyse du modèle/image (M-MD)\n${JSON.stringify(params.mMd, null, 2)}` : ''}
-
-${params.mId ? `## Identité visuelle existante (M-ID)\n${JSON.stringify(params.mId, null, 2)}` : ''}
-
-Analyse cette demande et retourne le JSON demandé.
-  `.trim();
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('PLANNER_AGENT', params.projectId);
+  const userPrompt = `${promptText}\n\nAnalyse cette demande et retourne le JSON demandé.`.trim();
 
   let agentRunStatus: 'SUCCESS' | 'FAILED' = 'SUCCESS';
   let agentError: string | undefined;
@@ -213,8 +203,8 @@ Analyse cette demande et retourne le JSON demandé.
 
   try {
     result = await callTextAI({
-      provider: params.provider,
-      model: params.model,
+      provider: params.provider || agentProvider,
+      model: params.model || agentModel,
       systemPrompt: PLANNER_SYSTEM_PROMPT,
       userPrompt,
       temperature: 0.7,
@@ -230,7 +220,7 @@ Analyse cette demande et retourne le JSON demandé.
     agentName: 'PlannerAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
-    input: { mSms: params.mSms, mQt2: params.mQt2 ?? null } as unknown as Prisma.InputJsonValue,
+    input: { dynamicContext: true } as unknown as Prisma.InputJsonValue,
     output: (result?.parsed ?? null) as unknown as Prisma.InputJsonValue,
     status: agentRunStatus,
     error: agentError,
@@ -238,6 +228,10 @@ Analyse cette demande et retourne le JSON demandé.
   });
 
   if (agentRunStatus === 'FAILED') throw new Error(`PlannerAgent failed: ${agentError}`);
+
+  if (result && result.parsed) {
+    await saveAgentOutputs('PLANNER_AGENT', params.projectId, result.parsed);
+  }
 
   return result!.parsed as PlannerOutput;
 }
@@ -255,19 +249,19 @@ export interface FileInfo {
 export interface RunImageAnalystParams {
   projectId: string;
   files: FileInfo[];
-  mSms?: Record<string, unknown> | null;
   provider?: AIProvider;
   model?: string;
 }
 
 export async function runImageAnalystAgent(params: RunImageAnalystParams): Promise<ImageAnalystOutput[]> {
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('IMAGE_ANALYST', params.projectId);
   const results: ImageAnalystOutput[] = [];
 
   for (const file of params.files) {
     const userPrompt = `
 Analyse cette image de type "${file.usageType}" (fichier : ${file.originalName}).
 
-${params.mSms ? `Contexte de la demande client :\n${JSON.stringify(params.mSms, null, 2)}` : ''}
+${promptText}
 
 Retourne le JSON d'analyse demandé.
     `.trim();
@@ -278,8 +272,8 @@ Retourne le JSON d'analyse demandé.
 
     try {
       result = await callVisionAI({
-        provider: params.provider,
-        model: params.model,
+        provider: params.provider || agentProvider,
+        model: params.model || agentModel,
         systemPrompt: IMAGE_ANALYST_SYSTEM_PROMPT,
         userPrompt,
         imageUrls: [file.fileUrl],
@@ -296,7 +290,7 @@ Retourne le JSON d'analyse demandé.
       agentName: 'ImageAnalystAgent',
       provider: result?.provider ?? params.provider ?? 'mock',
       model: result?.model ?? params.model ?? 'mock-vision',
-      input: { fileId: file.id, fileUrl: file.fileUrl, usageType: file.usageType } as unknown as Prisma.InputJsonValue,
+      input: { fileId: file.id, fileUrl: file.fileUrl, usageType: file.usageType, dynamicContext: true } as unknown as Prisma.InputJsonValue,
       output: (result?.parsed ?? null) as unknown as Prisma.InputJsonValue,
       status: agentRunStatus,
       error: agentError,
@@ -308,6 +302,8 @@ Retourne le JSON d'analyse demandé.
     }
   }
 
+  await saveAgentOutputs('IMAGE_ANALYST', params.projectId, results);
+
   return results;
 }
 
@@ -315,19 +311,15 @@ Retourne le JSON d'analyse demandé.
 
 export interface RunTextAnalystParams {
   projectId: string;
-  mSms: Record<string, unknown>;
-  mQt2?: Record<string, unknown> | null;
   plannerResult: PlannerOutput;
   provider?: AIProvider;
   model?: string;
 }
 
 export async function runTextAnalystAgent(params: RunTextAnalystParams): Promise<TextAnalystOutput> {
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('TEXT_ANALYST', params.projectId);
   const userPrompt = `
-## Demande client (M-SMS)
-${JSON.stringify(params.mSms, null, 2)}
-
-${params.mQt2 ? `## Réponses client (M-QT2)\n${JSON.stringify(params.mQt2, null, 2)}` : ''}
+${promptText}
 
 ## Analyse Planner
 - Type d'affiche : ${params.plannerResult.poster_type}
@@ -343,8 +335,8 @@ Corrige, améliore et hiérarchise les textes pour cette affiche.
 
   try {
     result = await callTextAI({
-      provider: params.provider,
-      model: params.model,
+      provider: params.provider || agentProvider,
+      model: params.model || agentModel,
       systemPrompt: TEXT_ANALYST_SYSTEM_PROMPT,
       userPrompt,
       temperature: 0.5,
@@ -360,7 +352,7 @@ Corrige, améliore et hiérarchise les textes pour cette affiche.
     agentName: 'TextAnalystAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
-    input: { mSms: params.mSms, plannerResult: params.plannerResult } as unknown as Prisma.InputJsonValue,
+    input: { plannerResult: params.plannerResult, dynamicContext: true } as unknown as Prisma.InputJsonValue,
     output: (result?.parsed ?? null) as unknown as Prisma.InputJsonValue,
     status: agentRunStatus,
     error: agentError,
@@ -369,6 +361,10 @@ Corrige, améliore et hiérarchise les textes pour cette affiche.
 
   if (agentRunStatus === 'FAILED') throw new Error(`TextAnalystAgent failed: ${agentError}`);
 
+  if (result && result.parsed) {
+    await saveAgentOutputs('TEXT_ANALYST', params.projectId, result.parsed);
+  }
+
   return result!.parsed as TextAnalystOutput;
 }
 
@@ -376,10 +372,6 @@ Corrige, améliore et hiérarchise les textes pour cette affiche.
 
 export interface RunBrandAgentParams {
   projectId: string;
-  mSms: Record<string, unknown>;
-  mQt2?: Record<string, unknown> | null;
-  mMd?: Record<string, unknown> | null;
-  mId?: Record<string, unknown> | null;
   logoFile?: FileInfo | null;
   imageAnalystResult?: ImageAnalystOutput | null;
   provider?: AIProvider;
@@ -387,15 +379,9 @@ export interface RunBrandAgentParams {
 }
 
 export async function runBrandAgent(params: RunBrandAgentParams): Promise<BrandAgentOutput> {
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('BRAND_AGENT', params.projectId);
   const userPrompt = `
-## Demande client (M-SMS)
-${JSON.stringify(params.mSms, null, 2)}
-
-${params.mQt2 ? `## Réponses client (M-QT2)\n${JSON.stringify(params.mQt2, null, 2)}` : ''}
-
-${params.mMd ? `## Analyse du modèle (M-MD)\n${JSON.stringify(params.mMd, null, 2)}` : ''}
-
-${params.mId ? `## Identité visuelle existante (M-ID)\n${JSON.stringify(params.mId, null, 2)}` : ''}
+${promptText}
 
 ${params.logoFile ? `## Logo disponible\nURL : ${params.logoFile.fileUrl}\nNom : ${params.logoFile.originalName}` : '## Aucun logo fourni'}
 
@@ -410,8 +396,8 @@ Structure l'identité visuelle complète et retourne le JSON demandé.
 
   try {
     result = await callTextAI({
-      provider: params.provider,
-      model: params.model,
+      provider: params.provider || agentProvider,
+      model: params.model || agentModel,
       systemPrompt: BRAND_AGENT_SYSTEM_PROMPT,
       userPrompt,
       temperature: 0.4,
@@ -427,7 +413,7 @@ Structure l'identité visuelle complète et retourne le JSON demandé.
     agentName: 'BrandAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
-    input: { mSms: params.mSms, mQt2: params.mQt2 ?? null, logoFile: params.logoFile ?? null } as unknown as Prisma.InputJsonValue,
+    input: { logoFile: params.logoFile ?? null, dynamicContext: true } as unknown as Prisma.InputJsonValue,
     output: (result?.parsed ?? null) as unknown as Prisma.InputJsonValue,
     status: agentRunStatus,
     error: agentError,
@@ -435,6 +421,10 @@ Structure l'identité visuelle complète et retourne le JSON demandé.
   });
 
   if (agentRunStatus === 'FAILED') throw new Error(`BrandAgent failed: ${agentError}`);
+
+  if (result && result.parsed) {
+    await saveAgentOutputs('BRAND_AGENT', params.projectId, result.parsed);
+  }
 
   return result!.parsed as BrandAgentOutput;
 }
@@ -456,13 +446,15 @@ export interface RunArtisticBaseParams {
   projectId: string;
   plannerResult: PlannerOutput;
   artisticResources: ArtisticResourceInfo[];
-  mBa?: Record<string, unknown> | null;
   provider?: AIProvider;
   model?: string;
 }
 
 export async function runArtisticBaseAgent(params: RunArtisticBaseParams): Promise<ArtisticBaseOutput> {
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('ARTISTIC_BASE', params.projectId);
   const userPrompt = `
+${promptText}
+
 ## Contexte du projet
 - Type d'affiche : ${params.plannerResult.poster_type}
 - Catégorie : ${params.plannerResult.category}
@@ -472,10 +464,8 @@ export async function runArtisticBaseAgent(params: RunArtisticBaseParams): Promi
 
 ## Ressources artistiques disponibles (${params.artisticResources.length} ressources)
 ${params.artisticResources.length > 0
-  ? params.artisticResources.map(r => `- [${r.resourceType}] ${r.title} (${r.category}) : ${r.description ?? 'Pas de description'}`).join('\n')
+  ? params.artisticResources.map(r => `- [${r.resourceType}] "${r.title}" (URL: ${r.url || 'aucune'}) : ${r.description ?? 'Pas de description'}`).join('\n')
   : 'Aucune ressource disponible dans la base artistique.'}
-
-${params.mBa ? `## Base artistique existante (M-BA)\n${JSON.stringify(params.mBa, null, 2)}` : ''}
 
 Sélectionne les ressources les plus appropriées et retourne le JSON demandé.
   `.trim();
@@ -486,8 +476,8 @@ Sélectionne les ressources les plus appropriées et retourne le JSON demandé.
 
   try {
     result = await callTextAI({
-      provider: params.provider,
-      model: params.model,
+      provider: params.provider || agentProvider,
+      model: params.model || agentModel,
       systemPrompt: ARTISTIC_BASE_SYSTEM_PROMPT,
       userPrompt,
       temperature: 0.5,
@@ -506,7 +496,8 @@ Sélectionne les ressources les plus appropriées et retourne le JSON demandé.
     input: {
       posterType: params.plannerResult.poster_type,
       category: params.plannerResult.category,
-      resourceCount: params.artisticResources.length
+      resourceCount: params.artisticResources.length,
+      dynamicContext: true
     } as unknown as Prisma.InputJsonValue,
     output: (result?.parsed ?? null) as unknown as Prisma.InputJsonValue,
     status: agentRunStatus,
@@ -516,6 +507,10 @@ Sélectionne les ressources les plus appropriées et retourne le JSON demandé.
 
   if (agentRunStatus === 'FAILED') throw new Error(`ArtisticBaseAgent failed: ${agentError}`);
 
+  if (result && result.parsed) {
+    await saveAgentOutputs('ARTISTIC_BASE', params.projectId, result.parsed);
+  }
+
   return result!.parsed as ArtisticBaseOutput;
 }
 
@@ -523,12 +518,6 @@ Sélectionne les ressources les plus appropriées et retourne le JSON demandé.
 
 export interface RunPromptArchitectParams {
   projectId: string;
-  mSms: Record<string, unknown>;
-  mQt1?: Record<string, unknown> | null;
-  mQt2?: Record<string, unknown> | null;
-  mMd?: Record<string, unknown> | null;
-  mId?: Record<string, unknown> | null;
-  mBa?: Record<string, unknown> | null;
   plannerResult: PlannerOutput;
   textAnalystResult: TextAnalystOutput;
   brandAgentResult: BrandAgentOutput;
@@ -538,17 +527,9 @@ export interface RunPromptArchitectParams {
 }
 
 export async function runPromptArchitectAgent(params: RunPromptArchitectParams): Promise<PromptArchitectOutput> {
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('PROMPT_ARCHITECT', params.projectId);
   const userPrompt = `
-## Demande client (M-SMS)
-${JSON.stringify(params.mSms, null, 2)}
-
-${params.mQt2 ? `## Réponses client (M-QT2)\n${JSON.stringify(params.mQt2, null, 2)}` : ''}
-
-${params.mMd ? `## Analyse du modèle (M-MD)\n${JSON.stringify(params.mMd, null, 2)}` : ''}
-
-${params.mId ? `## Identité visuelle (M-ID)\n${JSON.stringify(params.mId, null, 2)}` : ''}
-
-${params.mBa ? `## Base artistique (M-BA)\n${JSON.stringify(params.mBa, null, 2)}` : ''}
+${promptText}
 
 ## Résultat Planner Agent
 ${JSON.stringify(params.plannerResult, null, 2)}
@@ -571,8 +552,8 @@ Génère le prompt final M-PROMPT1 professionnel pour cette affiche.
 
   try {
     result = await callTextAI({
-      provider: params.provider,
-      model: params.model,
+      provider: params.provider || agentProvider,
+      model: params.model || agentModel,
       systemPrompt: PROMPT_ARCHITECT_SYSTEM_PROMPT,
       userPrompt,
       temperature: 0.6,
@@ -590,7 +571,8 @@ Génère le prompt final M-PROMPT1 professionnel pour cette affiche.
     model: result?.model ?? params.model ?? 'mock-text',
     input: {
       posterType: params.plannerResult.poster_type,
-      brandName: params.brandAgentResult.brand_identity?.brand_name ?? ''
+      brandName: params.brandAgentResult.brand_identity?.brand_name ?? '',
+      dynamicContext: true
     } as unknown as Prisma.InputJsonValue,
     output: (result?.parsed ?? null) as unknown as Prisma.InputJsonValue,
     status: agentRunStatus,
@@ -600,6 +582,10 @@ Génère le prompt final M-PROMPT1 professionnel pour cette affiche.
 
   if (agentRunStatus === 'FAILED') throw new Error(`PromptArchitectAgent failed: ${agentError}`);
 
+  if (result && result.parsed) {
+    await saveAgentOutputs('PROMPT_ARCHITECT', params.projectId, result.parsed);
+  }
+
   return result!.parsed as PromptArchitectOutput;
 }
 
@@ -608,18 +594,17 @@ Génère le prompt final M-PROMPT1 professionnel pour cette affiche.
 export interface RunQualityAgentParams {
   projectId: string;
   mPrompt1: PromptArchitectOutput;
-  allMemories: Record<string, unknown>;
   provider?: AIProvider;
   model?: string;
 }
 
 export async function runQualityAgent(params: RunQualityAgentParams): Promise<QualityAgentOutput> {
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('QUALITY_AGENT', params.projectId);
   const userPrompt = `
+${promptText}
+
 ## Prompt final M-PROMPT1 à évaluer
 ${JSON.stringify(params.mPrompt1, null, 2)}
-
-## Contexte des mémoires du projet
-${JSON.stringify(params.allMemories, null, 2)}
 
 Évalue la qualité de ce prompt et retourne le JSON de validation demandé.
   `.trim();
@@ -630,8 +615,8 @@ ${JSON.stringify(params.allMemories, null, 2)}
 
   try {
     result = await callTextAI({
-      provider: params.provider,
-      model: params.model,
+      provider: params.provider || agentProvider,
+      model: params.model || agentModel,
       systemPrompt: QUALITY_AGENT_SYSTEM_PROMPT,
       userPrompt,
       temperature: 0.3,
@@ -647,7 +632,7 @@ ${JSON.stringify(params.allMemories, null, 2)}
     agentName: 'QualityAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
-    input: { promptReady: params.mPrompt1.ready_for_generation } as unknown as Prisma.InputJsonValue,
+    input: { promptReady: params.mPrompt1.ready_for_generation, dynamicContext: true } as unknown as Prisma.InputJsonValue,
     output: (result?.parsed ?? null) as unknown as Prisma.InputJsonValue,
     status: agentRunStatus,
     error: agentError,
@@ -655,6 +640,10 @@ ${JSON.stringify(params.allMemories, null, 2)}
   });
 
   if (agentRunStatus === 'FAILED') throw new Error(`QualityAgent failed: ${agentError}`);
+
+  if (result && result.parsed) {
+    await saveAgentOutputs('QUALITY_AGENT', params.projectId, result.parsed);
+  }
 
   return result!.parsed as QualityAgentOutput;
 }

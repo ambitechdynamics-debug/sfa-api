@@ -39,7 +39,7 @@ export function ProjectCard({ project }: { project: Project }) {
   }
 
   return (
-    <Link href={`/projects/${project.id}`}>
+    <Link href={`/dashboard/projects/${project.id}`}>
       <Card hover style={{ overflow: "hidden", padding: 0, display: "flex", flexDirection: "column", gap: 0 }}>
         <div style={{ padding: 14, background: "var(--bg-3)" }}>
           <Poster kind={kind} brief={brief} ratio="3/4" />

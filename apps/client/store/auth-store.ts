@@ -2,44 +2,46 @@
 
 import { create } from "zustand"
 import type { User } from "@/types/user"
-import { apiFetch } from "@/lib/api"
-import { authClient } from "@/lib/authClient"
+import { getCurrentUser } from "@/services/user.service"
+import { signOutSession } from "@/services/auth.service"
 
-/**
- * Local profile cache.
- *
- * Authentication itself is owned by Better Auth (`authClient.useSession()`).
- * This store holds the **business profile** retrieved from our backend
- * (`GET /api/users/me`) — fields like `role`, `credits`, `fullName` that live
- * in our `User` Postgres table, not in Neon Auth.
- */
 interface ProfileState {
   user: User | null
   isLoading: boolean
+  error: string
   setUser: (user: User | null) => void
-  fetchProfile: () => Promise<void>
+  setLoading: (isLoading: boolean) => void
+  setError: (error: string) => void
+  fetchProfile: () => Promise<User | null>
+  clearProfile: () => void
   logout: () => Promise<void>
 }
 
 export const useAuthStore = create<ProfileState>((set) => ({
   user: null,
   isLoading: false,
-  setUser: (user) => set({ user, isLoading: false }),
+  error: "",
+
+  setUser: (user) => set({ user, isLoading: false, error: "" }),
+  setLoading: (isLoading) => set({ isLoading }),
+  setError: (error) => set({ error, isLoading: false }),
+  clearProfile: () => set({ user: null, isLoading: false, error: "" }),
+
   fetchProfile: async () => {
-    set({ isLoading: true })
+    set({ isLoading: true, error: "" })
     try {
-      const user = await apiFetch<User>("/api/users/me")
-      set({ user, isLoading: false })
-    } catch {
-      set({ user: null, isLoading: false })
+      const user = await getCurrentUser()
+      set({ user, isLoading: false, error: "" })
+      return user
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Impossible de charger le profil utilisateur."
+      set({ user: null, isLoading: false, error: message })
+      return null
     }
   },
+
   logout: async () => {
-    try {
-      await authClient.signOut()
-    } catch {
-      /* noop */
-    }
-    set({ user: null })
+    await signOutSession()
+    set({ user: null, isLoading: false, error: "" })
   },
 }))

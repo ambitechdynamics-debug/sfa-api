@@ -13,8 +13,19 @@ export const NEON_AUTH_URL =
   process.env.NEXT_PUBLIC_NEON_AUTH_URL ||
   'https://ep-blue-night-akk7bv95.neonauth.c-3.us-west-2.aws.neon.tech/neondb/auth'
 
+const getBaseURL = () => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api/auth`
+  }
+  return process.env.NEXT_PUBLIC_APP_URL
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/api/auth`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}/api/auth`
+      : 'http://localhost:3000/api/auth'
+}
+
 export const authClient = createAuthClient({
-  baseURL: NEON_AUTH_URL,
+  baseURL: getBaseURL(),
 })
 
 export const { signIn, signUp, signOut, useSession, getSession } = authClient

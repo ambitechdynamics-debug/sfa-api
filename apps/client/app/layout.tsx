@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/context/AuthProvider";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -42,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" data-theme="dark" data-density="regular">
       <body className={`${bricolage.variable} ${geist.variable} ${geistMono.variable} ${instrument.variable}`}>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
         <Toaster
           position="bottom-center"
           theme="dark"

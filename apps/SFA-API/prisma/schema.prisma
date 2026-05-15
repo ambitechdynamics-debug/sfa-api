@@ -402,19 +402,27 @@ enum ForbiddenRuleScope {
 }
 
 model Conversation {
-  id        String    @id @default(cuid())
-  userId    String
-  projectId String?
-  title     String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String             @id @default(cuid())
+  userId        String
+  projectId     String?
+  title         String
+  status        ConversationStatus @default(ACTIVE)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  lastMessageAt DateTime           @default(now())
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  messages  Message[]
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project       Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  messages      Message[]
 
   @@index([userId])
   @@index([projectId])
+  @@index([status])
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
 }
 
 model Message {

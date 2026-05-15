@@ -61,6 +61,21 @@ async function getPrompt1Entry(projectId: string, definitionId: string) {
   return { finalPrompt, negativePrompt };
 }
 
+async function getArtisticBaseContent(projectId: string): Promise<{ layoutUrl?: string; styleUrl?: string }> {
+  const def = await prisma.memoryDefinition.findUnique({ where: { key: 'M-BA' } });
+  if (!def) return {};
+  const entry = await prisma.memoryEntry.findUnique({
+    where: { projectId_memoryDefinitionId: { projectId, memoryDefinitionId: def.id } },
+  });
+  if (!entry) return {};
+  
+  const content = entry.content as Record<string, unknown>;
+  return {
+    layoutUrl: (content.selected_model_url as string) || undefined,
+    styleUrl: (content.selected_style_url as string) || undefined,
+  };
+}
+
 async function ensureProjectAccess(projectId: string, userId: string, userRole: string) {
   const where: Prisma.ProjectWhereInput = userRole === 'ADMIN' ? { id: projectId } : { id: projectId, userId };
   const project = await prisma.project.findFirst({ where });
@@ -91,6 +106,7 @@ export const imageGenService = {
     const start = Date.now();
     const project = await ensureProjectAccess(input.projectId, input.userId, input.userRole);
     const { finalPrompt, negativePrompt } = await getPrompt1Content(project.id);
+    const { layoutUrl, styleUrl } = await getArtisticBaseContent(project.id);
     const variations = Math.min(8, Math.max(1, input.variations ?? 4));
     const ratio = ratioFromFormat(project.format);
 
@@ -112,6 +128,8 @@ export const imageGenService = {
           aspectRatio: ratio,
           variationNumber,
           styleSeed: project.style ?? project.id,
+          layoutReferenceUrl: layoutUrl,
+          styleReferenceUrl: styleUrl,
         });
 
         // 2) Upload to Cloudinary

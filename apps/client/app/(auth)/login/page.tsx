@@ -2,46 +2,40 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { AuthShell, AuthLeftPitch } from "@/components/auth/AuthShell"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Icon } from "@/components/ui/Icon"
-import { authClient } from "@/lib/authClient"
+import { useAuth } from "@/hooks/useAuth"
+import { SESSION_EXPIRED_MESSAGE } from "@/lib/session-token"
 
 export default function LoginPage() {
-  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { loginWithEmail, loginWithGoogle } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const nextPath = searchParams.get("next")
+  const reason = searchParams.get("reason")
+  const verified = searchParams.get("verified")
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
     try {
-      const { error: authError } = await authClient.signIn.email({
-        email,
-        password,
-      })
-
-      if (authError) {
-        // Map known errors to user-friendly French messages without leaking details
-        const msg = authError.code === "INVALID_EMAIL_OR_PASSWORD"
-          ? "Email ou mot de passe incorrect."
-          : authError.code === "EMAIL_NOT_VERIFIED"
-            ? "Veuillez vérifier votre adresse email avant de vous connecter."
-            : "Connexion impossible. Veuillez réessayer."
-        setError(msg)
+      const result = await loginWithEmail({ email, password, nextPath })
+      if (!result.success) {
+        setError(result.message)
         return
       }
 
-      toast.success("Connexion réussie 👋")
-      router.push("/dashboard")
+      toast.success("Connexion réussie")
     } catch {
       setError("Erreur de connexion au service d'authentification.")
     } finally {
@@ -51,17 +45,15 @@ export default function LoginPage() {
 
   async function signInWithGoogle() {
     setLoadingGoogle(true)
+    setError(null)
     try {
-      const { error: authError } = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: `${window.location.origin}/dashboard`,
-      })
-      if (authError) {
-        setError(`Erreur Auth: ${authError.message || JSON.stringify(authError)}`)
+      const result = await loginWithGoogle(nextPath)
+      if (!result.success) {
+        setError(result.message)
         setLoadingGoogle(false)
       }
-    } catch (e: any) {
-      setError(`Erreur Catch: ${e.message || String(e)}`)
+    } catch {
+      setError("Connexion Google impossible. Veuillez réessayer.")
       setLoadingGoogle(false)
     }
   }
@@ -75,6 +67,23 @@ export default function LoginPage() {
           <p style={{ color: "var(--ink-2)", fontSize: 14, marginBottom: 32 }}>
             Connectez-vous pour accéder à vos projets et continuer à créer.
           </p>
+
+          {(reason === "expired" || verified === "1") && (
+            <div
+              role="status"
+              style={{
+                padding: "10px 12px",
+                background: reason === "expired" ? "var(--gold-soft)" : "var(--sage-soft)",
+                border: `1px solid ${reason === "expired" ? "rgba(216,168,90,0.3)" : "rgba(138,165,122,0.3)"}`,
+                borderRadius: "var(--r-2)",
+                fontSize: 13,
+                color: reason === "expired" ? "var(--gold)" : "var(--sage)",
+                marginBottom: 18,
+              }}
+            >
+              {reason === "expired" ? SESSION_EXPIRED_MESSAGE : "Adresse e-mail confirmée. Vous pouvez vous connecter."}
+            </div>
+          )}
 
           {/* ── Google OAuth ── */}
           <button

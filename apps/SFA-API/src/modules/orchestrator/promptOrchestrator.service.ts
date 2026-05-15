@@ -59,6 +59,8 @@ export interface OrchestrationResult {
     missing_information?: string[];
     final_prompt?: string;
     negative_prompt?: string;
+    layout_reference_url?: string | null;
+    style_reference_url?: string | null;
     quality?: QualityAgentOutput;
     ready_for_generation: boolean;
     agents_executed: string[];
@@ -90,27 +92,6 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     throw new AppError('Project not found or access denied', 404);
   }
 
-  // ─── 2. Récupération des mémoires ────────────────────
-
-  const getMemory = (memoryKey: string) => {
-    const mem = project.memoryEntries.find(m => m.memoryDefinition.key === memoryKey);
-    return mem ? (mem.content as Record<string, unknown>) : null;
-  };
-
-  const mSms = getMemory('M_SMS');
-
-  if (!mSms) {
-    throw new AppError(
-      'M-SMS (demande client) est requis. Créez d\'abord une mémoire M-SMS via POST /api/projects/:id/memories.',
-      400
-    );
-  }
-
-  const mQt2 = getMemory('M_QT2');
-  let mMd = getMemory('M_MD');
-  let mId = getMemory('M_ID');
-  let mBa = getMemory('M_BA');
-
   // ─── 3. Image Analyst (si fichiers présents) ─────────
 
   let imageAnalystResults: ImageAnalystOutput[] = [];
@@ -126,7 +107,6 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
           originalName: f.originalName,
           usageType: f.usageType
         })),
-        mSms,
         provider: options.visionProvider,
         model: options.visionModel
       });
@@ -139,8 +119,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
         file_count: imageAnalystResults.length,
         generated_at: new Date().toISOString()
       };
-      await upsertMemory(options.projectId, 'M_MD', mdContent as unknown as Prisma.InputJsonValue);
-      mMd = mdContent as Record<string, unknown>;
+      await upsertMemory(options.projectId, 'M-MD', mdContent as unknown as Prisma.InputJsonValue);
     } catch (err) {
       // Non bloquant : continuer même si l'analyse image échoue
       console.warn('ImageAnalystAgent warning:', err instanceof Error ? err.message : err);
@@ -154,10 +133,6 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   try {
     plannerResult = await runPlannerAgent({
       projectId: options.projectId,
-      mSms,
-      mQt2,
-      mMd,
-      mId,
       provider: options.provider,
       model: options.model
     });
@@ -167,7 +142,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   }
 
   // Sauvegarder M-QT1
-  await upsertMemory(options.projectId, 'M_QT1', {
+  await upsertMemory(options.projectId, 'M-QT1', {
     questions_to_user: plannerResult.questions_to_user,
     missing_information: plannerResult.missing_information,
     generated_at: new Date().toISOString()
@@ -218,8 +193,6 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   try {
     textAnalystResult = await runTextAnalystAgent({
       projectId: options.projectId,
-      mSms,
-      mQt2,
       plannerResult,
       provider: options.provider,
       model: options.model
@@ -238,10 +211,6 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   try {
     brandAgentResult = await runBrandAgent({
       projectId: options.projectId,
-      mSms,
-      mQt2,
-      mMd,
-      mId,
       logoFile: logoFile
         ? {
             id: logoFile.id,
@@ -261,8 +230,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   }
 
   // Sauvegarder M-ID
-  await upsertMemory(options.projectId, 'M_ID', brandAgentResult as unknown as unknown as Prisma.InputJsonValue);
-  mId = brandAgentResult as unknown as Record<string, unknown>;
+  await upsertMemory(options.projectId, 'M-ID', brandAgentResult as unknown as unknown as Prisma.InputJsonValue);
 
   // ─── 8. Artistic Base Agent → M-BA ──────────────────
 
@@ -292,7 +260,6 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
         content: r.content,
         url: r.url
       })),
-      mBa,
       provider: options.provider,
       model: options.model
     });
@@ -302,8 +269,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   }
 
   // Sauvegarder M-BA
-  await upsertMemory(options.projectId, 'M_BA', artisticBaseResult as unknown as unknown as Prisma.InputJsonValue);
-  mBa = artisticBaseResult as unknown as Record<string, unknown>;
+  await upsertMemory(options.projectId, 'M-BA', artisticBaseResult as unknown as unknown as Prisma.InputJsonValue);
 
   // ─── 9. Prompt Architect → M-PROMPT1 ────────────────
 
@@ -313,18 +279,11 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     data: { status: 'READY_FOR_PROMPT' }
   });
 
-  const mQt1 = getMemory('M_QT1');
   let promptArchitectResult: PromptArchitectOutput;
 
   try {
     promptArchitectResult = await runPromptArchitectAgent({
       projectId: options.projectId,
-      mSms,
-      mQt1,
-      mQt2,
-      mMd,
-      mId,
-      mBa,
       plannerResult,
       textAnalystResult,
       brandAgentResult,
@@ -338,17 +297,9 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   }
 
   // Sauvegarder M-PROMPT1
-  await upsertMemory(options.projectId, 'M_PROMPT1', promptArchitectResult as unknown as unknown as Prisma.InputJsonValue);
+  await upsertMemory(options.projectId, 'M-PROMPT1', promptArchitectResult as unknown as unknown as Prisma.InputJsonValue);
 
   // ─── 10. Quality Agent ────────────────────────────────
-
-  const allMemoriesForQuality: Record<string, unknown> = {
-    M_SMS: mSms,
-    M_QT2: mQt2,
-    M_MD: mMd,
-    M_ID: mId,
-    M_BA: mBa
-  };
 
   let qualityResult: QualityAgentOutput;
 
@@ -356,7 +307,6 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     qualityResult = await runQualityAgent({
       projectId: options.projectId,
       mPrompt1: promptArchitectResult,
-      allMemories: allMemoriesForQuality,
       provider: options.provider,
       model: options.model
     });
@@ -397,6 +347,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       missing_information: promptArchitectResult.missing_information.length > 0 ? promptArchitectResult.missing_information : undefined,
       final_prompt: promptArchitectResult.final_prompt,
       negative_prompt: promptArchitectResult.negative_prompt,
+      layout_reference_url: artisticBaseResult.selected_model_url || null,
+      style_reference_url: artisticBaseResult.selected_style_url || null,
       quality: qualityResult,
       ready_for_generation: qualityResult.is_valid && promptArchitectResult.ready_for_generation,
       agents_executed: agentsExecuted,

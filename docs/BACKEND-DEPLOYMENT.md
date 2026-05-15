@@ -111,28 +111,28 @@ IMAGE_GEN_MODEL=gemini-2.5-flash-image-preview
 
 ## Vérification post-déploiement
 
-Une fois le backend en ligne (récupère son URL) :
+Backend actuel : `https://sfa-api.onrender.com`.
 
 ```bash
 # 1. Ping santé
-curl https://YOUR-BACKEND.onrender.com/api/health
+curl https://sfa-api.onrender.com/api/health
 # → { success: true, message: "STUDIO FLYER AI backend is running" }
 
 # 2. Vérifier auth Neon (sans token → 401)
-curl -X POST https://YOUR-BACKEND.onrender.com/api/users/me
+curl -X POST https://sfa-api.onrender.com/api/users/me
 # → 401 Unauthorized
 
 # 3. Mettre à jour les frontends Vercel :
 # Dashboard Vercel → admin-dashboard → Settings → Environment Variables :
-#   NEXT_PUBLIC_API_URL = https://YOUR-BACKEND.onrender.com
+#   NEXT_PUBLIC_API_URL = https://sfa-api.onrender.com
 # Idem pour frontend-client.
 # Puis redeploy chaque frontend (Deployments → Redeploy).
 
 # 4. Première utilisation — déclencher les seeds manuellement
 # Connecté en admin (Neon Auth signup avec un email puis SET role='ADMIN' en DB) :
-curl -X POST https://YOUR-BACKEND.onrender.com/api/admin/forbidden-rules/seed \
+curl -X POST https://sfa-api.onrender.com/api/admin/forbidden-rules/seed \
   -H "Authorization: Bearer <stack-jwt>"
-curl -X POST https://YOUR-BACKEND.onrender.com/api/admin/settings/seed \
+curl -X POST https://sfa-api.onrender.com/api/admin/settings/seed \
   -H "Authorization: Bearer <stack-jwt>"
 ```
 

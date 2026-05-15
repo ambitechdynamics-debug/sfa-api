@@ -1,15 +1,65 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bot, Plus, Pencil, Trash2, Brain, Zap, ZapOff } from 'lucide-react'
-import { StatusBadge, ProviderBadge } from '@/components/admin/StatusBadge'
+import { Bot, Plus, Pencil, Trash2, Brain, MessageSquare, Save, RefreshCw } from 'lucide-react'
+import { ProviderBadge } from '@/components/admin/StatusBadge'
 import { Drawer } from '@/components/admin/Drawer'
 import { AgentForm } from '@/components/admin/Forms'
 import { ConfirmDeleteModal } from '@/components/admin/Modals'
-import { fetchAgents, createAgent, updateAgent, deleteAgent } from '@/lib/admin-api'
+import { fetchAgents, createAgent, updateAgent, deleteAgent, fetchSettings, saveSettings, SettingsByCategory } from '@/lib/admin-api'
 import { AgentDefinition } from '@/types/agent'
 import { toastSuccess, toastError, toastLoadError } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+
+type ChatProvider = 'auto' | 'openai' | 'anthropic' | 'gemini' | 'mock'
+
+type ChatAgentSettings = {
+  chat_agent_name: string
+  text_ai_provider: ChatProvider
+  openai_model: string
+  anthropic_model: string
+  gemini_model: string
+  chat_agent_system_prompt: string
+}
+
+const DEFAULT_CHAT_AGENT_SETTINGS: ChatAgentSettings = {
+  chat_agent_name: 'Studio Flyer AI',
+  text_ai_provider: 'auto',
+  openai_model: 'gpt-4o',
+  anthropic_model: 'claude-3-5-sonnet-20241022',
+  gemini_model: 'gemini-1.5-pro',
+  chat_agent_system_prompt:
+    "Tu es l’assistant IA de Flyer Studio. Ton rôle est d’aider l’utilisateur à créer des flyers, affiches, posters, visuels publicitaires, publications réseaux sociaux et supports de communication professionnels. Tu dois poser des questions utiles si le brief est incomplet, proposer des idées de contenu, structurer les textes, conseiller le style visuel, les couleurs, la composition et préparer un prompt exploitable pour générer le visuel.",
+}
+
+const CHAT_PROVIDER_OPTIONS: Array<{ value: ChatProvider; label: string; hint: string }> = [
+  { value: 'auto', label: 'Auto', hint: 'Utilise la première clé API disponible en base' },
+  { value: 'openai', label: 'OpenAI', hint: 'openai_api_key + openai_model' },
+  { value: 'anthropic', label: 'Anthropic', hint: 'anthropic_api_key + anthropic_model' },
+  { value: 'gemini', label: 'Gemini', hint: 'gemini_api_key + gemini_model' },
+  { value: 'mock', label: 'Mock', hint: 'Réponse locale de secours' },
+]
+
+function flattenSettings(data: SettingsByCategory) {
+  const flat: Record<string, string> = {}
+  for (const items of Object.values(data)) {
+    for (const setting of items) flat[setting.key] = setting.value
+  }
+  return flat
+}
+
+function normalizeProvider(value: string): ChatProvider {
+  return CHAT_PROVIDER_OPTIONS.some((option) => option.value === value)
+    ? (value as ChatProvider)
+    : 'auto'
+}
+
+function modelKeyForProvider(provider: ChatProvider) {
+  if (provider === 'openai') return 'openai_model'
+  if (provider === 'anthropic') return 'anthropic_model'
+  if (provider === 'gemini') return 'gemini_model'
+  return 'openai_model'
+}
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<AgentDefinition[]>([])
@@ -18,8 +68,34 @@ export default function AgentsPage() {
   const [editAgent, setEditAgent] = useState<AgentDefinition | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [chatSettings, setChatSettings] = useState<ChatAgentSettings>(DEFAULT_CHAT_AGENT_SETTINGS)
+  const [settingsLoading, setSettingsLoading] = useState(true)
+  const [settingsSaving, setSettingsSaving] = useState(false)
 
-  useEffect(() => { fetchAgents().then(setAgents).catch((error) => toastLoadError(error, 'Impossible de charger les agents')).finally(() => setIsLoading(false)) }, [])
+  async function loadChatSettings() {
+    setSettingsLoading(true)
+    try {
+      const flat = flattenSettings(await fetchSettings())
+      setChatSettings({
+        ...DEFAULT_CHAT_AGENT_SETTINGS,
+        chat_agent_name: flat.chat_agent_name || DEFAULT_CHAT_AGENT_SETTINGS.chat_agent_name,
+        text_ai_provider: normalizeProvider(flat.text_ai_provider || DEFAULT_CHAT_AGENT_SETTINGS.text_ai_provider),
+        openai_model: flat.openai_model || DEFAULT_CHAT_AGENT_SETTINGS.openai_model,
+        anthropic_model: flat.anthropic_model || DEFAULT_CHAT_AGENT_SETTINGS.anthropic_model,
+        gemini_model: flat.gemini_model || DEFAULT_CHAT_AGENT_SETTINGS.gemini_model,
+        chat_agent_system_prompt: flat.chat_agent_system_prompt || DEFAULT_CHAT_AGENT_SETTINGS.chat_agent_system_prompt,
+      })
+    } catch (error) {
+      toastLoadError(error, "Impossible de charger l'agent conversationnel")
+    } finally {
+      setSettingsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchAgents().then(setAgents).catch((error) => toastLoadError(error, 'Impossible de charger les agents')).finally(() => setIsLoading(false))
+    void loadChatSettings()
+  }, [])
 
   const activeCount = agents.filter((a) => a.isActive).length
 
@@ -53,6 +129,33 @@ export default function AgentsPage() {
     MOCK: 'bg-gray-400',
   }
 
+  const selectedModelKey = modelKeyForProvider(chatSettings.text_ai_provider)
+  const selectedProvider = CHAT_PROVIDER_OPTIONS.find((option) => option.value === chatSettings.text_ai_provider)
+
+  function setChatSetting<K extends keyof ChatAgentSettings>(key: K, value: ChatAgentSettings[K]) {
+    setChatSettings((current) => ({ ...current, [key]: value }))
+  }
+
+  async function handleSaveChatAgent() {
+    setSettingsSaving(true)
+    try {
+      await saveSettings([
+        { key: 'chat_agent_name', value: chatSettings.chat_agent_name.trim() || DEFAULT_CHAT_AGENT_SETTINGS.chat_agent_name },
+        { key: 'text_ai_provider', value: chatSettings.text_ai_provider },
+        { key: 'openai_model', value: chatSettings.openai_model.trim() || DEFAULT_CHAT_AGENT_SETTINGS.openai_model },
+        { key: 'anthropic_model', value: chatSettings.anthropic_model.trim() || DEFAULT_CHAT_AGENT_SETTINGS.anthropic_model },
+        { key: 'gemini_model', value: chatSettings.gemini_model.trim() || DEFAULT_CHAT_AGENT_SETTINGS.gemini_model },
+        { key: 'chat_agent_system_prompt', value: chatSettings.chat_agent_system_prompt.trim() || DEFAULT_CHAT_AGENT_SETTINGS.chat_agent_system_prompt },
+      ])
+      toastSuccess('Agent conversationnel mis à jour')
+      await loadChatSettings()
+    } catch (error) {
+      toastError(error instanceof Error ? error.message : "Erreur lors de la sauvegarde de l'agent conversationnel")
+    } finally {
+      setSettingsSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-5 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between">
@@ -67,6 +170,106 @@ export default function AgentsPage() {
           <Plus className="w-4 h-4" /> Nouvel Agent
         </button>
       </div>
+
+      <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <div className="flex flex-col gap-4 border-b border-[var(--border)] p-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/12 text-[var(--accent)]">
+              <MessageSquare className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--text)]">Agent conversationnel du dashboard client</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-5 text-[var(--text-muted)]">
+                Ces réglages pilotent directement le champ de chat de <span className="font-mono">/dashboard</span> via l’API <span className="font-mono">/api/chat</span>.
+                Le prompt système est lu depuis la base de données à chaque génération.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={loadChatSettings}
+              disabled={settingsLoading || settingsSaving}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text)] disabled:opacity-50"
+            >
+              <RefreshCw className={cn('h-3.5 w-3.5', settingsLoading && 'animate-spin')} />
+              Recharger
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveChatAgent}
+              disabled={settingsLoading || settingsSaving}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-60"
+            >
+              {settingsSaving ? <span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Enregistrer
+            </button>
+          </div>
+        </div>
+
+        {settingsLoading ? (
+          <div className="grid gap-4 p-5 lg:grid-cols-[320px_1fr]">
+            <div className="h-40 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
+            <div className="h-40 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
+          </div>
+        ) : (
+          <div className="grid gap-5 p-5 lg:grid-cols-[340px_1fr]">
+            <div className="space-y-4">
+              <label className="block space-y-1.5">
+                <span className="text-xs font-medium text-[var(--text-muted)]">Nom de l’agent</span>
+                <input
+                  value={chatSettings.chat_agent_name}
+                  onChange={(event) => setChatSetting('chat_agent_name', event.target.value)}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--accent)]"
+                />
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-xs font-medium text-[var(--text-muted)]">Provider conversationnel</span>
+                <select
+                  value={chatSettings.text_ai_provider}
+                  onChange={(event) => setChatSetting('text_ai_provider', event.target.value as ChatProvider)}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--accent)]"
+                >
+                  {CHAT_PROVIDER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                <p className="text-[11px] leading-4 text-[var(--text-subtle)]">{selectedProvider?.hint}</p>
+              </label>
+
+              {chatSettings.text_ai_provider !== 'mock' && (
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-[var(--text-muted)]">
+                    Modèle {chatSettings.text_ai_provider === 'auto' ? 'OpenAI par défaut' : selectedProvider?.label}
+                  </span>
+                  <input
+                    value={chatSettings[selectedModelKey]}
+                    onChange={(event) => setChatSetting(selectedModelKey, event.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-xs text-[var(--text)] outline-none transition-colors focus:border-[var(--accent)]"
+                  />
+                  {chatSettings.text_ai_provider === 'auto' && (
+                    <p className="text-[11px] leading-4 text-[var(--text-subtle)]">En auto, le backend choisit le provider selon les clés configurées en base.</p>
+                  )}
+                </label>
+              )}
+            </div>
+
+            <label className="block space-y-1.5">
+              <span className="text-xs font-medium text-[var(--text-muted)]">Prompt système envoyé au modèle</span>
+              <textarea
+                value={chatSettings.chat_agent_system_prompt}
+                onChange={(event) => setChatSetting('chat_agent_system_prompt', event.target.value)}
+                rows={10}
+                className="min-h-[220px] w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm leading-6 text-[var(--text)] outline-none transition-colors focus:border-[var(--accent)]"
+              />
+              <p className="text-[11px] leading-4 text-[var(--text-subtle)]">
+                Ce texte définit le comportement réel de l’agent du dashboard client : ton, rôle, questions à poser, limites et livrables attendus.
+              </p>
+            </label>
+          </div>
+        )}
+      </section>
 
       {/* Stats bar */}
       <div className="flex items-center gap-4 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-xl">

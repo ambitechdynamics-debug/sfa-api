@@ -48,9 +48,9 @@ export function AuthShell({ left, right }: AuthShellProps) {
             fontFamily: "var(--font-mono)",
           }}
         >
-          <span>© 2025 Studio Flyer AI</span>
+          <span>© 2025 Studio Flyer</span>
           <span>·</span>
-          <span>Paris</span>
+          <span>Canada</span>
         </div>
       </div>
 
@@ -74,10 +74,10 @@ export function AuthLeftPitch() {
   return (
     <div>
       <p className="serif" style={{ fontSize: 32, lineHeight: 1.15, color: "#f4ecd8", maxWidth: 420 }}>
-        « En 3 minutes, j&apos;ai eu 4 visuels prêts à publier — du même niveau que mon graphiste. »
+        « En 3 minutes, j'ai eu 4 visuels professionnel prêts à publier — du même niveau que mon graphiste. »
       </p>
       <p style={{ marginTop: 24, fontSize: 13, color: "rgba(244,236,216,0.7)", fontFamily: "var(--font-mono)", letterSpacing: "0.03em" }}>
-        Amélie B. · Studio Rond, Paris
+        Emmanuel Francis, Toronto
       </p>
     </div>
   )

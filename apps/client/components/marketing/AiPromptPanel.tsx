@@ -32,7 +32,7 @@ export function AiPromptPanel() {
     <div className="anim-fade-up" style={{
       width: "100%",
       maxWidth: 960,
-      margin: "40px auto 20px",
+      margin: "40px auto 60px",
       padding: "0 20px",
       position: "relative",
       zIndex: 20,
@@ -47,7 +47,7 @@ export function AiPromptPanel() {
           borderRadius: 32,
           display: "flex",
           flexDirection: "column",
-          minHeight: 190,
+          minHeight: 100, // Reduced from 140
           overflow: "hidden"
         }}
       >
@@ -59,7 +59,7 @@ export function AiPromptPanel() {
               display: "flex",
               alignItems: "center",
               gap: 8,
-              padding: "16px 24px",
+              padding: "12px 20px", // Reduced from 16px 24px
               background: "var(--bg-2)",
               border: "none",
               color: "var(--ink-0)",
@@ -78,7 +78,7 @@ export function AiPromptPanel() {
               display: "flex",
               alignItems: "center",
               gap: 8,
-              padding: "16px 24px",
+              padding: "12px 20px", // Reduced from 16px 24px
               background: "transparent",
               border: "none",
               color: "var(--ink-2)",
@@ -96,7 +96,7 @@ export function AiPromptPanel() {
         </div>
 
         {/* Input Area */}
-        <div style={{ flex: 1, padding: "20px 24px" }}>
+        <div style={{ flex: 1, padding: "8px 20px" }}>
           <textarea 
             placeholder={placeholder}
             style={{
@@ -115,7 +115,7 @@ export function AiPromptPanel() {
 
         {/* Bottom Bar */}
         <div style={{ 
-          padding: "16px 24px", 
+          padding: "12px 20px", // Reduced from 16px 24px
           display: "flex", 
           justifyContent: "space-between",
           alignItems: "center",

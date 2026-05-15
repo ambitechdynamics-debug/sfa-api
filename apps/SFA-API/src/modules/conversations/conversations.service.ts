@@ -4,14 +4,16 @@ import { AppError } from '../../utils/appError';
 export const conversationsService = {
   async getConversations(userId: string) {
     return prisma.conversation.findMany({
-      where: { userId },
-      orderBy: { updatedAt: 'desc' },
+      where: { userId, status: 'ACTIVE' },
+      orderBy: { lastMessageAt: 'desc' },
       select: {
         id: true,
         title: true,
         projectId: true,
+        status: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
+        lastMessageAt: true
       }
     });
   },
@@ -49,13 +51,13 @@ export const conversationsService = {
     });
   },
 
-  async updateConversationTitle(id: string, userId: string, title: string) {
+  async updateConversation(id: string, userId: string, data: { title?: string; status?: 'ACTIVE' | 'ARCHIVED' }) {
     const conversation = await prisma.conversation.findFirst({ where: { id, userId } });
     if (!conversation) throw new AppError('Conversation not found', 404);
 
     return prisma.conversation.update({
       where: { id },
-      data: { title }
+      data
     });
   },
 
