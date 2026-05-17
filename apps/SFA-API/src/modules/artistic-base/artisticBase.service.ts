@@ -6,8 +6,11 @@ import {
   CreateArtisticResourceInput,
   ListArtisticResourcesQuery,
   SearchArtisticResourcesQuery,
-  UpdateArtisticResourceInput
+  UpdateArtisticResourceInput,
+  AnalyzeImageInput
 } from './artisticBase.validation';
+import { callVisionAI } from '../ai/ai.service';
+import { AIProvider } from '../ai/ai.types';
 
 const buildPagination = (page: number, limit: number) => ({
   skip: (page - 1) * limit,
@@ -148,5 +151,79 @@ export const artisticBaseService = {
       usageType:    'ARTISTIC_RESOURCE',
     });
     return { url: result.fileUrl, publicId: result.publicId };
+  },
+
+  /**
+   * Analyze an uploaded image using Vision AI and extract metadata.
+   */
+  analyzeImage: async (input: AnalyzeImageInput) => {
+    const systemPrompt = `Tu es un expert en direction artistique et analyse visuelle pour le design graphique.
+Analyse l'image fournie et extrais les informations pour remplir la base de ressources artistiques.
+Tu dois répondre UNIQUEMENT avec un objet JSON valide suivant ce format strict :
+{
+  "title": "Un titre court et descriptif",
+  "category": "Une catégorie appropriée (ex: Événement, Promotion, Corporate, etc. - invente si nécessaire)",
+  "resourceType": "STYLE", // Doit être parmi: MODEL, TEXTURE, FONT, PALETTE, STYLE, REFERENCE
+  "description": "Une description textuelle de l'image (composition, ambiance, usage)",
+  "tags": ["tag1", "tag2", "tag3"],
+  "content": {
+    "colors": {
+      "color_mood": "...",
+      "contrast_notes": "...",
+      "dominant_colors": ["..."],
+      "recommended_color_codes": ["#..."]
+    },
+    "style_key": "...",
+    "style_name": "...",
+    "typography": {
+      "title_style": "...",
+      "badge_text_style": "...",
+      "typography_rules": ["..."],
+      "recommended_fonts": ["..."],
+      "secondary_text_style": "..."
+    },
+    "composition": {
+      "main_subject": "...",
+      "title_position": "...",
+      "background_style": "...",
+      "layout_structure": "...",
+      "visual_hierarchy": ["..."],
+      "secondary_subjects": "...",
+      "year_badge_position": "...",
+      "description_position": "..."
+    },
+    "quality_rules": ["..."],
+    "graphic_elements": {
+      "elements_to_avoid": ["..."],
+      "optional_elements": ["..."],
+      "recommended_elements": ["..."]
+    },
+    "visual_description": {
+      "mood": "...",
+      "main_style": "...",
+      "target_usage": ["..."],
+      "visual_level": "premium"
+    },
+    "negative_prompt_rules": ["..."],
+    "prompt_usage_instruction": "..."
+  }
+}
+
+Assure-toi de respecter scrupuleusement cette structure JSON, en particulier pour le champ 'content'. Si un élément n'est pas applicable, mets une chaîne vide ou omet le, mais garde la structure globale.`;
+
+    const aiResponse = await callVisionAI({
+      provider: (input.provider as AIProvider) || 'gemini',
+      systemPrompt,
+      userPrompt: 'Analyse cette image et extrais les métadonnées requises au format JSON.',
+      imageUrls: [input.url],
+      responseFormat: 'json',
+      temperature: 0.2
+    });
+
+    if (aiResponse.parsed && !(aiResponse.parsed as any)._parseError) {
+      return aiResponse.parsed;
+    } else {
+      throw new AppError("L'IA n'a pas pu analyser l'image correctement.", 500);
+    }
   },
 };

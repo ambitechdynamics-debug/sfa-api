@@ -52,3 +52,10 @@ export type CreateArtisticResourceInput = z.infer<typeof createArtisticResourceS
 export type UpdateArtisticResourceInput = z.infer<typeof updateArtisticResourceSchema>;
 export type ListArtisticResourcesQuery = z.infer<typeof listArtisticResourcesQuerySchema>;
 export type SearchArtisticResourcesQuery = z.infer<typeof searchArtisticResourcesQuerySchema>;
+
+export const analyzeImageSchema = z.object({
+  url: z.string().trim().url('url must be valid'),
+  provider: z.string().trim().min(1).optional()
+}).strict();
+
+export type AnalyzeImageInput = z.infer<typeof analyzeImageSchema>;

@@ -42,4 +42,10 @@ export const artisticBaseController = {
     const result = await artisticBaseService.uploadImage(req.file);
     return sendSuccess(res, 'Image uploadée avec succès.', result, 201);
   },
+
+  analyzeImage: async (req: Request, res: Response) => {
+    const input = req.body;
+    const result = await artisticBaseService.analyzeImage(input);
+    return sendSuccess(res, 'Image analysée avec succès', result);
+  },
 };

@@ -9,7 +9,8 @@ import {
   createArtisticResourceSchema,
   listArtisticResourcesQuerySchema,
   searchArtisticResourcesQuerySchema,
-  updateArtisticResourceSchema
+  updateArtisticResourceSchema,
+  analyzeImageSchema
 } from './artisticBase.validation';
 
 const router = Router();
@@ -21,6 +22,14 @@ router.post(
   requireAdmin,
   uploadSingle('file'),
   asyncHandler(artisticBaseController.uploadImage)
+);
+
+router.post(
+  '/admin/artistic-resources/analyze-image',
+  authMiddleware,
+  requireAdmin,
+  validate({ body: analyzeImageSchema }),
+  asyncHandler(artisticBaseController.analyzeImage)
 );
 
 router.post(
