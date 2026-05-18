@@ -59,8 +59,8 @@ const envSchema = z.object({
   GEMINI_API_KEY: emptyToUndefined,
   AI_DEFAULT_TEXT_PROVIDER: z.string().default('mock'),
   AI_DEFAULT_VISION_PROVIDER: z.string().default('mock'),
-  AI_DEFAULT_TEXT_MODEL: z.string().default('gpt-4o'),
-  AI_DEFAULT_VISION_MODEL: z.string().default('gpt-4o'),
+  AI_DEFAULT_TEXT_MODEL: emptyToUndefined,
+  AI_DEFAULT_VISION_MODEL: emptyToUndefined,
 
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),

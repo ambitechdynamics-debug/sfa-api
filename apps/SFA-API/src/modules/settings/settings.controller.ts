@@ -32,4 +32,11 @@ export const settingsController = {
     const data = await settingsService.seed();
     return sendSuccess(res, `Settings seeded (${data.created} new keys)`, data);
   },
+
+  /** POST /admin/settings/delete  →  bulk delete */
+  deleteMany: async (req: Request, res: Response) => {
+    const { keys } = req.body;
+    await settingsService.deleteMany(keys);
+    return sendSuccess(res, 'Settings deleted successfully', {});
+  },
 };

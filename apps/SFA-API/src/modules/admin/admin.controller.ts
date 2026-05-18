@@ -157,4 +157,18 @@ export const adminController = {
     const poster = await adminService.updatePoster(req.params.id, req.body);
     sendSuccess(res, 'Poster updated', poster);
   }),
+
+  getLlmProviders: asyncHandler(async (_req: Request, res: Response) => {
+    const providers = await adminService.getLlmProviders();
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    return res.status(200).json({
+      success: true,
+      providers,
+      data: {
+        providers
+      }
+    });
+  }),
 };

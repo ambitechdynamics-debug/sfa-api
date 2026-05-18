@@ -375,4 +375,117 @@ export const adminService = {
       generatedAt: new Date().toISOString()
     };
   },
+
+  getLlmProviders: async () => {
+    const allSettings = await prisma.appSetting.findMany({
+      where: { category: 'providers' }
+    });
+
+    const findVal = (key: string) => allSettings.find(s => s.key === key)?.value ?? '';
+
+    // Standard key existence checks (DB + ENV)
+    const openaiKey = findVal('openai_api_key') || process.env.OPENAI_API_KEY || '';
+    const anthropicKey = findVal('anthropic_api_key') || process.env.ANTHROPIC_API_KEY || '';
+    const geminiKey = findVal('gemini_api_key') || process.env.GEMINI_API_KEY || '';
+
+    const standardProviders = [
+      {
+        id: 'openai',
+        name: 'OpenAI',
+        slug: 'openai',
+        type: 'openai',
+        baseUrl: 'https://api.openai.com/v1',
+        defaultModel: findVal('openai_model') || 'gpt-4o',
+        enabled: openaiKey.trim() !== '',
+        supportsText: true,
+        supportsVision: true,
+        supportsReasoning: true,
+        supportsImageGeneration: true
+      },
+      {
+        id: 'anthropic',
+        name: 'Anthropic',
+        slug: 'anthropic',
+        type: 'anthropic',
+        baseUrl: 'https://api.anthropic.com',
+        defaultModel: findVal('anthropic_model') || 'claude-3-5-sonnet-20241022',
+        enabled: anthropicKey.trim() !== '',
+        supportsText: true,
+        supportsVision: true,
+        supportsReasoning: false,
+        supportsImageGeneration: false
+      },
+      {
+        id: 'gemini',
+        name: 'Google Gemini',
+        slug: 'gemini',
+        type: 'gemini',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+        defaultModel: findVal('gemini_model') || 'gemini-2.0-flash',
+        enabled: geminiKey.trim() !== '',
+        supportsText: true,
+        supportsVision: true,
+        supportsReasoning: false,
+        supportsImageGeneration: false
+      },
+      {
+        id: 'mock',
+        name: 'Mock (simulation)',
+        slug: 'mock',
+        type: 'mock',
+        baseUrl: '',
+        defaultModel: 'mock-model',
+        enabled: true,
+        supportsText: true,
+        supportsVision: true,
+        supportsReasoning: false,
+        supportsImageGeneration: false
+      }
+    ];
+
+    const customList = [];
+    for (const s of allSettings) {
+      const match = s.key.match(/^custom_(.+)_name$/);
+      if (!match) continue;
+      const slug = match[1];
+
+      const name = s.value;
+      const type = findVal(`custom_${slug}_type`) || 'openai-compatible';
+      const baseUrl = findVal(`custom_${slug}_base_url`);
+      const defaultModel = findVal(`custom_${slug}_default_model`);
+      const enabled = findVal(`custom_${slug}_is_active`) === 'true';
+
+      const supportsTextVal = findVal(`custom_${slug}_supports_text`);
+      let supportsText = supportsTextVal === 'true' || supportsTextVal === ''; // default true
+      let supportsVision = findVal(`custom_${slug}_supports_vision`) === 'true';
+      let supportsReasoning = findVal(`custom_${slug}_supports_reasoning`) === 'true';
+      let supportsImageGeneration = findVal(`custom_${slug}_supports_image_generation`) === 'true';
+
+      // DeepSeek dynamic capabilities override
+      if (slug.toLowerCase().includes('deepseek') || (defaultModel && defaultModel.toLowerCase().includes('deepseek'))) {
+        supportsText = true;
+        supportsVision = false;
+        supportsImageGeneration = false;
+        if (defaultModel && defaultModel.toLowerCase().includes('reasoner')) {
+          supportsReasoning = true;
+        }
+      }
+
+      customList.push({
+        id: slug,
+        name,
+        slug,
+        type,
+        baseUrl,
+        defaultModel,
+        enabled,
+        supportsText,
+        supportsVision,
+        supportsReasoning,
+        supportsImageGeneration,
+      });
+    }
+
+    return [...standardProviders, ...customList];
+  }
 };

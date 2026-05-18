@@ -153,10 +153,14 @@ export const artisticBaseService = {
     return { url: result.fileUrl, publicId: result.publicId };
   },
 
-  /**
-   * Analyze an uploaded image using Vision AI and extract metadata.
-   */
   analyzeImage: async (input: AnalyzeImageInput) => {
+    const imageUrl = input.resourceImage || input.url;
+    if (!imageUrl) {
+      throw new AppError("L'URL de l'image est obligatoire.", 400);
+    }
+    const providerId = input.providerId || input.provider || 'gemini';
+    const model = input.model || undefined;
+
     const systemPrompt = `Tu es un expert en direction artistique et analyse visuelle pour le design graphique.
 Analyse l'image fournie et extrais les informations pour remplir la base de ressources artistiques.
 Tu dois répondre UNIQUEMENT avec un objet JSON valide suivant ce format strict :
@@ -212,10 +216,11 @@ Tu dois répondre UNIQUEMENT avec un objet JSON valide suivant ce format strict 
 Assure-toi de respecter scrupuleusement cette structure JSON, en particulier pour le champ 'content'. Si un élément n'est pas applicable, mets une chaîne vide ou omet le, mais garde la structure globale.`;
 
     const aiResponse = await callVisionAI({
-      provider: (input.provider as AIProvider) || 'gemini',
+      provider: providerId as any,
+      model,
       systemPrompt,
       userPrompt: 'Analyse cette image et extrais les métadonnées requises au format JSON.',
-      imageUrls: [input.url],
+      imageUrls: [imageUrl],
       responseFormat: 'json',
       temperature: 0.2
     });

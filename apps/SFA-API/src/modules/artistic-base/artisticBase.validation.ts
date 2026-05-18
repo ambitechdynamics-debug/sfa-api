@@ -54,8 +54,15 @@ export type ListArtisticResourcesQuery = z.infer<typeof listArtisticResourcesQue
 export type SearchArtisticResourcesQuery = z.infer<typeof searchArtisticResourcesQuerySchema>;
 
 export const analyzeImageSchema = z.object({
-  url: z.string().trim().url('url must be valid'),
-  provider: z.string().trim().min(1).optional()
-}).strict();
+  url: z.string().trim().url('url must be valid').optional(),
+  provider: z.string().trim().min(1).optional(),
+  providerId: z.string().trim().min(1).optional(),
+  model: z.string().trim().min(1).optional(),
+  resourceImage: z.string().trim().url('resourceImage must be valid').optional(),
+  context: z.object({
+    module: z.string().optional(),
+    action: z.string().optional()
+  }).optional()
+});
 
 export type AnalyzeImageInput = z.infer<typeof analyzeImageSchema>;

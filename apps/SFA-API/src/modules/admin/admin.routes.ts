@@ -24,6 +24,9 @@ const router = Router();
 router.use(authMiddleware);
 router.use(requireAdmin);
 
+// ─── LLM Providers ──────────────────────────────────────────────────────────
+router.get('/llm-providers', adminController.getLlmProviders);
+
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 router.get('/stats', adminController.getStats);
 router.get('/chart-data', adminController.getChartData);

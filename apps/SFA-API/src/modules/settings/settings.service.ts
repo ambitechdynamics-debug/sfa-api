@@ -20,13 +20,12 @@ export const DEFAULT_SETTINGS = [
   { key: 'anthropic_api_key',             value: '',      category: 'providers',   isSecret: true,  description: 'Clé API Anthropic' },
   { key: 'anthropic_model',               value: 'claude-3-5-sonnet-20241022', category: 'providers', isSecret: false, description: 'Modèle Anthropic par défaut' },
   { key: 'gemini_api_key',                value: '',      category: 'providers',   isSecret: true,  description: 'Clé API Google Gemini' },
-  { key: 'gemini_model',                  value: 'gemini-1.5-pro', category: 'providers', isSecret: false, description: 'Modèle Gemini par défaut' },
+  { key: 'gemini_model',                  value: 'gemini-2.0-flash', category: 'providers', isSecret: false, description: 'Modèle Gemini par défaut' },
   { key: 'text_ai_provider',              value: 'auto',  category: 'providers',   isSecret: false, description: 'Provider IA conversationnel (auto | openai | anthropic | gemini | mock)' },
   { key: 'chat_agent_name',               value: 'Studio Flyer AI', category: 'providers', isSecret: false, description: 'Nom affiché de l’agent conversationnel du dashboard client' },
   { key: 'chat_agent_system_prompt',      value: "Tu es l’assistant IA de Flyer Studio. Ton rôle est d’aider l’utilisateur à créer des flyers, affiches, posters, visuels publicitaires, publications réseaux sociaux et supports de communication professionnels. Tu dois poser des questions utiles si le brief est incomplet, proposer des idées de contenu, structurer les textes, conseiller le style visuel, les couleurs, la composition et préparer un prompt exploitable pour générer le visuel.", category: 'providers', isSecret: false, description: 'Prompt système de l’agent conversationnel du dashboard client' },
   { key: 'image_gen_provider',            value: 'mock',  category: 'providers',   isSecret: false, description: 'Provider de génération d\'image (mock | gemini | openai-image)' },
   { key: 'image_gen_model',               value: 'gemini-2.5-flash-image-preview', category: 'providers', isSecret: false, description: 'Modèle de génération d\'image (Nano Banana / Gemini Image)' },
-
   // Storage
   { key: 'storage_provider',              value: 'cloudinary', category: 'storage', isSecret: false, description: 'Provider de stockage fichiers' },
   { key: 'max_file_size_mb',              value: '10',    category: 'storage',     isSecret: false, description: 'Taille max par fichier (MB)' },
@@ -122,7 +121,7 @@ export const settingsService = {
   upsertMany: async (input: UpsertSettingsInput) => {
     const results = [];
 
-    for (const { key, value } of input.settings) {
+    for (const { key, value, category: inputCategory, isSecret: inputIsSecret } of input.settings) {
       // Skip if the client sent back the masked placeholder
       if (value.includes('••')) continue;
 
@@ -130,8 +129,8 @@ export const settingsService = {
       const existing = await prisma.appSetting.findUnique({ where: { key } });
       const defaults = DEFAULT_SETTINGS.find((d) => d.key === key);
 
-      const isSecret     = existing?.isSecret     ?? defaults?.isSecret     ?? false;
-      const category     = existing?.category     ?? defaults?.category     ?? 'general';
+      const isSecret     = inputIsSecret    ?? existing?.isSecret    ?? defaults?.isSecret     ?? false;
+      const category     = inputCategory    ?? existing?.category    ?? defaults?.category     ?? 'general';
       const description  = existing?.description  ?? defaults?.description  ?? null;
 
       const row = await prisma.appSetting.upsert({
@@ -144,6 +143,15 @@ export const settingsService = {
     }
 
     return results;
+  },
+
+  /**
+   * Bulk delete settings by key.
+   */
+  deleteMany: async (keys: string[]) => {
+    await prisma.appSetting.deleteMany({
+      where: { key: { in: keys } },
+    });
   },
 
   /**

@@ -4,7 +4,7 @@
  * En mode mock, des réponses JSON simulées sont retournées pour le développement.
  */
 
-import { AIProviderAdapter, CallTextAIOptions, CallVisionAIOptions } from './ai.types';
+import { AIProviderAdapter, CallTextAIOptions, CallVisionAIOptions, AIProviderCapabilities } from './ai.types';
 import { settingsService } from '../settings/settings.service';
 
 // ─────────────────────────────────────────────────────────
@@ -174,6 +174,13 @@ const MOCK_QUALITY_AGENT = JSON.stringify({
 });
 
 class MockProvider implements AIProviderAdapter {
+  capabilities = {
+    supportsText: true,
+    supportsVision: true,
+    supportsReasoning: false,
+    supportsImageGeneration: false
+  };
+
   async callText(options: CallTextAIOptions): Promise<string> {
     const prompt = options.userPrompt.toLowerCase();
     await new Promise(r => setTimeout(r, 100)); // Simuler latence
@@ -200,6 +207,12 @@ class MockProvider implements AIProviderAdapter {
 
 class OpenAIProvider implements AIProviderAdapter {
   private apiKey: string;
+  capabilities = {
+    supportsText: true,
+    supportsVision: true,
+    supportsReasoning: true,
+    supportsImageGeneration: true
+  };
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -265,6 +278,12 @@ class OpenAIProvider implements AIProviderAdapter {
 
 class AnthropicProvider implements AIProviderAdapter {
   private apiKey: string;
+  capabilities = {
+    supportsText: true,
+    supportsVision: true,
+    supportsReasoning: false,
+    supportsImageGeneration: false
+  };
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -328,6 +347,12 @@ class AnthropicProvider implements AIProviderAdapter {
 
 class GeminiProvider implements AIProviderAdapter {
   private apiKey: string;
+  capabilities = {
+    supportsText: true,
+    supportsVision: true,
+    supportsReasoning: false,
+    supportsImageGeneration: false
+  };
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -353,7 +378,7 @@ class GeminiProvider implements AIProviderAdapter {
   }
 
   async callText(options: CallTextAIOptions): Promise<string> {
-    const model = options.model ?? 'gemini-1.5-flash';
+    const model = options.model ?? 'gemini-2.0-flash';
     return this.fetchGemini(model, {
       systemInstruction: { parts: [{ text: options.systemPrompt }] },
       contents: [{ parts: [{ text: options.userPrompt }], role: 'user' }],
@@ -365,12 +390,208 @@ class GeminiProvider implements AIProviderAdapter {
   }
 
   async callVision(options: CallVisionAIOptions): Promise<string> {
-    const model = options.model ?? 'gemini-1.5-pro';
+    const model = options.model ?? 'gemini-2.0-flash';
     const imageParts = options.imageUrls.map(url => ({
       fileData: { mimeType: 'image/jpeg', fileUri: url }
     }));
 
     // Pour les URLs directes (non Google Cloud), utiliser inlineData approche
+    const parts = [
+      { text: options.userPrompt },
+      ...imageParts
+    ];
+
+    return this.fetchGemini(model, {
+      systemInstruction: { parts: [{ text: options.systemPrompt }] },
+      contents: [{ parts, role: 'user' }],
+      generationConfig: {
+        temperature: options.temperature ?? 0.3,
+        responseMimeType: options.responseFormat === 'json' ? 'application/json' : 'text/plain'
+      }
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  DYNAMIC / CUSTOM PROVIDERS
+// ─────────────────────────────────────────────────────────
+
+class OpenAICompatibleProvider implements AIProviderAdapter {
+  private apiKey: string;
+  private baseUrl: string;
+  capabilities: AIProviderCapabilities;
+
+  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities) {
+    this.apiKey = apiKey;
+    this.baseUrl = baseUrl.replace(/\/+$/, '');
+    this.capabilities = capabilities;
+  }
+
+  private async fetchOpenAI(body: object): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`OpenAI-compatible API error ${response.status}: ${err}`);
+    }
+
+    const data = (await response.json()) as {
+      choices: Array<{ message: { content: string } }>;
+    };
+    return data.choices[0]?.message?.content ?? '';
+  }
+
+  async callText(options: CallTextAIOptions): Promise<string> {
+    return this.fetchOpenAI({
+      model: options.model ?? 'gpt-4o',
+      temperature: options.temperature ?? 0.7,
+      response_format: options.responseFormat === 'json' ? { type: 'json_object' } : undefined,
+      messages: [
+        { role: 'system', content: options.systemPrompt },
+        { role: 'user', content: options.userPrompt }
+      ]
+    });
+  }
+
+  async callVision(options: CallVisionAIOptions): Promise<string> {
+    const imageContent = options.imageUrls.map(url => ({
+      type: 'image_url',
+      image_url: { url, detail: 'high' }
+    }));
+
+    return this.fetchOpenAI({
+      model: options.model ?? 'gpt-4o',
+      temperature: options.temperature ?? 0.3,
+      response_format: options.responseFormat === 'json' ? { type: 'json_object' } : undefined,
+      messages: [
+        { role: 'system', content: options.systemPrompt },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: options.userPrompt }, ...imageContent]
+        }
+      ]
+    });
+  }
+}
+
+class AnthropicCompatibleProvider implements AIProviderAdapter {
+  private apiKey: string;
+  private baseUrl: string;
+  capabilities: AIProviderCapabilities;
+
+  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities) {
+    this.apiKey = apiKey;
+    this.baseUrl = baseUrl.replace(/\/+$/, '');
+    this.capabilities = capabilities;
+  }
+
+  private async fetchClaude(body: object): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/v1/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Anthropic-compatible API error ${response.status}: ${err}`);
+    }
+
+    const data = (await response.json()) as {
+      content: Array<{ text: string }>;
+    };
+    return data.content[0]?.text ?? '';
+  }
+
+  async callText(options: CallTextAIOptions): Promise<string> {
+    return this.fetchClaude({
+      model: options.model ?? 'claude-3-5-sonnet-20241022',
+      max_tokens: 4096,
+      temperature: options.temperature ?? 0.7,
+      system: options.systemPrompt,
+      messages: [{ role: 'user', content: options.userPrompt }]
+    });
+  }
+
+  async callVision(options: CallVisionAIOptions): Promise<string> {
+    const imageContent = options.imageUrls.map(url => ({
+      type: 'image',
+      source: { type: 'url', url }
+    }));
+
+    return this.fetchClaude({
+      model: options.model ?? 'claude-3-5-sonnet-20241022',
+      max_tokens: 4096,
+      system: options.systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: [...imageContent, { type: 'text', text: options.userPrompt }]
+        }
+      ]
+    });
+  }
+}
+
+class GeminiCompatibleProvider implements AIProviderAdapter {
+  private apiKey: string;
+  private baseUrl: string;
+  capabilities: AIProviderCapabilities;
+
+  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities) {
+    this.apiKey = apiKey;
+    this.baseUrl = baseUrl.replace(/\/+$/, '');
+    this.capabilities = capabilities;
+  }
+
+  private async fetchGemini(model: string, body: object): Promise<string> {
+    const url = `${this.baseUrl}/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Gemini-compatible API error ${response.status}: ${err}`);
+    }
+
+    const data = (await response.json()) as {
+      candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
+    };
+    return data.candidates[0]?.content?.parts[0]?.text ?? '';
+  }
+
+  async callText(options: CallTextAIOptions): Promise<string> {
+    const model = options.model ?? 'gemini-2.0-flash';
+    return this.fetchGemini(model, {
+      systemInstruction: { parts: [{ text: options.systemPrompt }] },
+      contents: [{ parts: [{ text: options.userPrompt }], role: 'user' }],
+      generationConfig: {
+        temperature: options.temperature ?? 0.7,
+        responseMimeType: options.responseFormat === 'json' ? 'application/json' : 'text/plain'
+      }
+    });
+  }
+
+  async callVision(options: CallVisionAIOptions): Promise<string> {
+    const model = options.model ?? 'gemini-2.0-flash';
+    const imageParts = options.imageUrls.map(url => ({
+      fileData: { mimeType: 'image/jpeg', fileUri: url }
+    }));
+
     const parts = [
       { text: options.userPrompt },
       ...imageParts
@@ -416,7 +637,64 @@ export async function createProvider(provider: string): Promise<AIProviderAdapte
       return new GeminiProvider(key);
     }
     case 'mock':
-    default:
       return new MockProvider();
+    default: {
+      const slug = provider.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      const prefix = `custom_${slug}_`;
+
+      const [
+        name, type, apiKey, baseUrl, defaultModel, isActive,
+        supportsTextSetting, supportsVisionSetting, supportsReasoningSetting, supportsImageGenSetting
+      ] = await Promise.all([
+        settingsService.getRaw(`${prefix}name`),
+        settingsService.getRaw(`${prefix}type`),
+        settingsService.getRaw(`${prefix}api_key`),
+        settingsService.getRaw(`${prefix}base_url`),
+        settingsService.getRaw(`${prefix}default_model`),
+        settingsService.getRaw(`${prefix}is_active`),
+        settingsService.getRaw(`${prefix}supports_text`),
+        settingsService.getRaw(`${prefix}supports_vision`),
+        settingsService.getRaw(`${prefix}supports_reasoning`),
+        settingsService.getRaw(`${prefix}supports_image_generation`),
+      ]);
+
+      if (!name) throw new Error(`Provider "${provider}" introuvable.`);
+      if (isActive !== 'true') throw new Error(`Provider "${provider}" est désactivé.`);
+
+      // Default values: supportsText is true if not explicitly set to 'false'
+      let supportsText = supportsTextSetting === 'true' || supportsTextSetting === null;
+      let supportsVision = supportsVisionSetting === 'true';
+      let supportsReasoning = supportsReasoningSetting === 'true';
+      let supportsImageGeneration = supportsImageGenSetting === 'true';
+
+      // Special DeepSeek config override
+      if (slug.includes('deepseek') || (defaultModel && defaultModel.toLowerCase().includes('deepseek'))) {
+        supportsText = true;
+        supportsVision = false;
+        supportsImageGeneration = false;
+        // supportsReasoning is true for deepseek-reasoner or if explicitly configured
+        supportsReasoning = (defaultModel && defaultModel.toLowerCase().includes('reasoner')) || supportsReasoningSetting === 'true';
+      }
+
+      const capabilities: AIProviderCapabilities = {
+        supportsText,
+        supportsVision,
+        supportsReasoning,
+        supportsImageGeneration,
+      };
+
+      switch (type) {
+        case 'openai-compatible':
+          return new OpenAICompatibleProvider(apiKey!, baseUrl!, capabilities);
+        case 'anthropic-compatible':
+          return new AnthropicCompatibleProvider(apiKey!, baseUrl!, capabilities);
+        case 'gemini-compatible':
+          return new GeminiCompatibleProvider(apiKey!, baseUrl!, capabilities);
+        default:
+          throw new Error(`Type de provider "${type}" non supporté.`);
+      }
+    }
   }
 }
