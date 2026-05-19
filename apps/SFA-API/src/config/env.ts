@@ -94,6 +94,16 @@ const envSchema = z.object({
     .default(DEFAULT_NEON_AUTH_JWKS_URL),
   /** Optional `aud` claim to enforce. */
   NEON_AUTH_AUDIENCE: emptyToUndefined,
+
+  // Stripe configurations
+  STRIPE_SECRET_KEY: emptyToUndefined,
+  STRIPE_WEBHOOK_SECRET: emptyToUndefined,
+  STRIPE_PRICE_STARTER_MONTHLY: emptyToUndefined,
+  STRIPE_PRICE_STARTER_YEARLY: emptyToUndefined,
+  STRIPE_PRICE_PRO_MONTHLY: emptyToUndefined,
+  STRIPE_PRICE_PRO_YEARLY: emptyToUndefined,
+  STRIPE_PRICE_BUSINESS_MONTHLY: emptyToUndefined,
+  STRIPE_PRICE_BUSINESS_YEARLY: emptyToUndefined,
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

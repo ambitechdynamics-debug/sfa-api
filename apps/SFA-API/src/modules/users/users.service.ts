@@ -10,7 +10,12 @@ const publicUserSelect = {
   role: true,
   credits: true,
   createdAt: true,
-  updatedAt: true
+  updatedAt: true,
+  stripeCustomerId: true,
+  stripeSubscriptionId: true,
+  subscriptionPlan: true,
+  subscriptionStatus: true,
+  subscriptionCurrentPeriodEnd: true
 };
 
 export const usersService = {

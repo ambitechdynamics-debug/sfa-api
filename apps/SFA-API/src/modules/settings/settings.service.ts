@@ -23,7 +23,7 @@ export const DEFAULT_SETTINGS = [
   { key: 'gemini_model',                  value: 'gemini-2.0-flash', category: 'providers', isSecret: false, description: 'Modèle Gemini par défaut' },
   { key: 'text_ai_provider',              value: 'auto',  category: 'providers',   isSecret: false, description: 'Provider IA conversationnel (auto | openai | anthropic | gemini | mock)' },
   { key: 'chat_agent_name',               value: 'Studio Flyer AI', category: 'providers', isSecret: false, description: 'Nom affiché de l’agent conversationnel du dashboard client' },
-  { key: 'chat_agent_system_prompt',      value: "Tu es l’assistant IA de Flyer Studio. Ton rôle est d’aider l’utilisateur à créer des flyers, affiches, posters, visuels publicitaires, publications réseaux sociaux et supports de communication professionnels. Tu dois poser des questions utiles si le brief est incomplet, proposer des idées de contenu, structurer les textes, conseiller le style visuel, les couleurs, la composition et préparer un prompt exploitable pour générer le visuel.", category: 'providers', isSecret: false, description: 'Prompt système de l’agent conversationnel du dashboard client' },
+  { key: 'chat_agent_system_prompt',      value: "Tu es l'assistant de chat interactif et intelligent de Studio Flyer AI. Ton but unique est d'aider l'utilisateur à concevoir son flyer étape par étape à travers une conversation fluide. Pose une seule question simple à la fois et propose des choix si approprié.", category: 'providers', isSecret: false, description: 'Prompt système de l’agent conversationnel du dashboard client' },
   { key: 'image_gen_provider',            value: 'mock',  category: 'providers',   isSecret: false, description: 'Provider de génération d\'image (mock | gemini | openai-image)' },
   { key: 'image_gen_model',               value: 'gemini-2.5-flash-image-preview', category: 'providers', isSecret: false, description: 'Modèle de génération d\'image (Nano Banana / Gemini Image)' },
   // Storage
@@ -173,7 +173,13 @@ export const settingsService = {
    */
   resolve: async (dbKey: string, envFallback?: string): Promise<string | null> => {
     const fromDb = await settingsService.getRaw(dbKey);
-    if (fromDb && fromDb.trim().length > 0) return fromDb;
+    if (fromDb && fromDb.trim().length > 0) {
+      // Ignorer l'ancien prompt système par défaut pour forcer le nouveau prompt interactif pas-à-pas
+      if (dbKey === 'chat_agent_system_prompt' && fromDb.includes('Tu es l’assistant IA de Flyer Studio.')) {
+        return null;
+      }
+      return fromDb;
+    }
     if (envFallback) {
       const fromEnv = process.env[envFallback];
       if (fromEnv && fromEnv.trim().length > 0) return fromEnv;

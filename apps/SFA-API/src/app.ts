@@ -23,18 +23,20 @@ import uxMetricsRoutes from './modules/ux-metrics/uxMetrics.routes';
 import metricsRoutes from './modules/metrics/metrics.routes';
 import chatRoutes from './modules/chat/chat.routes';
 import conversationsRoutes from './modules/conversations/conversations.routes';
+import stripeRoutes from './modules/stripe/stripe.routes';
 const app = express();
 
 app.use(helmet());
-// CORS — APP_URL accepts a comma-separated list of allowed origins, so we can
-// expose the same backend to both the public client (port 3001 / Vercel) and
-// the admin dashboard (port 3000 / Vercel) without code changes.
+
 const ALLOWED_ORIGINS = new Set([
   ...env.APP_URL.split(',').map((o) => o.trim()).filter(Boolean),
   'http://localhost:3000',
   'http://localhost:3001',
   'https://studio-flyer.vercel.app',
   'https://admin-seven-teal-10.vercel.app',
+  'https://studio-flyer-ai-admin.vercel.app',
+  'https://studio-flyer-ai-client.vercel.app',
+  'https://studio-flyer-ai.vercel.app',
 ]);
 
 function isAllowedOrigin(origin: string) {
@@ -42,7 +44,11 @@ function isAllowedOrigin(origin: string) {
 
   try {
     const { hostname, protocol } = new URL(origin);
-    return protocol === 'https:' && hostname.endsWith('-ambitechdynamics-debugs-projects.vercel.app');
+    if (protocol !== 'https:') return false;
+    return (
+      hostname.endsWith('-ambitechdynamics-debugs-projects.vercel.app') ||
+      (hostname.includes('studio-flyer-ai') && hostname.endsWith('.vercel.app'))
+    );
   } catch {
     return false;
   }
@@ -59,6 +65,7 @@ app.use(
     credentials: true,
   })
 );
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
@@ -141,6 +148,7 @@ app.use('/api/ux-metrics', uxMetricsRoutes);
 app.use('/api/metrics', metricsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/conversations', conversationsRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);

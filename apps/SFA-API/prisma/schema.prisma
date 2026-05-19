@@ -20,7 +20,12 @@ model User {
   updatedAt          DateTime            @updatedAt
   /// Lien vers le compte Stack Auth (neon_auth.users_sync.id). Null pour les
   /// utilisateurs hérités pas encore migrés.
-  stackUserId        String?             @unique
+  stackUserId                  String?             @unique
+  stripeCustomerId             String?             @unique
+  stripeSubscriptionId         String?             @unique
+  subscriptionPlan             String              @default("free")
+  subscriptionStatus           String              @default("free")
+  subscriptionCurrentPeriodEnd DateTime?
   creditTransactions CreditTransaction[]
   files              FileAsset[]
   forbiddenRules     ForbiddenRule[]
