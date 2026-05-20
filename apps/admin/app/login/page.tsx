@@ -46,8 +46,13 @@ export default function LoginPage() {
       if (authError) {
         try {
           await completeLoginWithLegacy()
-        } catch {
-          setError('Email ou mot de passe incorrect.')
+        } catch (legacyError) {
+          const msg = getErrorMessage(legacyError)
+          setError(
+            msg === 'Invalid email or password' || msg === 'Invalid credentials'
+              ? 'Email ou mot de passe incorrect.'
+              : msg
+          )
           setIsLoading(false)
         }
         return
@@ -67,7 +72,12 @@ export default function LoginPage() {
           await completeLoginWithLegacy()
           return
         } catch (legacyError) {
-          setError(`Erreur getMe: ${getErrorMessage(legacyError)}`)
+          const msg = getErrorMessage(legacyError)
+          setError(
+            msg === 'Invalid email or password' || msg === 'Invalid credentials'
+              ? 'Email ou mot de passe incorrect.'
+              : msg
+          )
           setIsLoading(false)
           return
         }

@@ -86,7 +86,7 @@ function rewriteLocation(location: string | null, request: NextRequest): string 
   }
 }
 
-async function proxyAuth(request: NextRequest, context: RouteContext) {
+async function proxyAuth(request: NextRequest, context: RouteContext): Promise<Response> {
   const params = await context.params
   const target = buildTargetUrl(params.path ?? [], request.nextUrl.search)
   const body = request.method === 'GET' || request.method === 'HEAD'

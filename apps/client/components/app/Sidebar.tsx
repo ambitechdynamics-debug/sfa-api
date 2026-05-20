@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from "react"
+import { createPortal } from "react-dom"
 import { Avatar } from "@/components/ui/Avatar"
 import { BrandMark } from "@/components/ui/BrandMark"
 import { Icon } from "@/components/ui/Icon"
@@ -112,10 +113,12 @@ function SidebarMessage({ children }: { children: ReactNode }) {
 }
 
 function ConversationActionsMenu({
+  position,
   onArchive,
   onDelete,
   onRename,
 }: {
+  position: { top: number; left: number }
   onArchive: () => void
   onDelete: () => void
   onRename: () => void
@@ -140,10 +143,10 @@ function ConversationActionsMenu({
     <div
       onClick={(event) => event.stopPropagation()}
       style={{
-        position: "absolute",
-        right: 0,
-        top: 34,
-        zIndex: 80,
+        position: "fixed",
+        left: position.left,
+        top: position.top,
+        zIndex: 9999,
         width: 164,
         padding: 6,
         display: "grid",
@@ -197,10 +200,17 @@ function RecentConversationItem({
 }) {
   const [draftTitle, setDraftTitle] = useState(conversation.title)
   const [hovered, setHovered] = useState(false)
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null)
 
   useEffect(() => {
     if (editing) setDraftTitle(conversation.title)
   }, [conversation.title, editing])
+
+  useEffect(() => {
+    if (!menuOpen) {
+      setMenuPosition(null)
+    }
+  }, [menuOpen])
 
   function submitRename(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -209,23 +219,9 @@ function RecentConversationItem({
     onRenameSubmit(clean)
   }
 
-  const rowStyle: CSSProperties = {
-    position: "relative",
-    minHeight: 36,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    width: "100%",
-    borderRadius: 8,
-    background: active ? "var(--bg-2)" : hovered ? "rgba(255,255,255,0.06)" : "transparent",
-    color: active || hovered ? "var(--ink-0)" : "var(--ink-2)",
-    transition: "background-color 200ms ease, color 200ms ease",
-  }
-
   if (editing) {
     return (
-      <form onSubmit={submitRename} style={{ ...rowStyle, padding: "5px 6px" }}>
-        <Icon name="message" size={16} />
+      <form onSubmit={submitRename} className="recent-chat-item active" style={{ padding: "5px 6px" }}>
         <input
           autoFocus
           value={draftTitle}
@@ -260,32 +256,22 @@ function RecentConversationItem({
 
   return (
     <div
-      style={rowStyle}
+      className={`recent-chat-item ${active ? "active" : ""}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <Link
         href={`/dashboard/c/${conversation.id}`}
         onClick={onCloseMobile}
+        className="chat-title"
         style={{
-          flex: "1 1 auto",
-          minWidth: 0,
-          maxWidth: "calc(100% - 36px)",
-          minHeight: 36,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "8px 8px 8px 10px",
           color: "inherit",
           textDecoration: "none",
           fontSize: 13,
           fontWeight: active ? 650 : 500,
         }}
       >
-        <Icon name="message" size={16} style={{ flexShrink: 0 }} />
-        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {conversation.title}
-        </span>
+        {conversation.title}
       </Link>
       <button
         type="button"
@@ -293,35 +279,35 @@ function RecentConversationItem({
         onClick={(event) => {
           event.preventDefault()
           event.stopPropagation()
-          onMenuToggle()
+          if (menuOpen) {
+            onMenuToggle()
+            setMenuPosition(null)
+          } else {
+            const rect = event.currentTarget.getBoundingClientRect()
+            setMenuPosition({
+              top: rect.bottom + 4,
+              left: rect.right - 164
+            })
+            onMenuToggle()
+          }
         }}
+        className="chat-actions-button"
         style={{
-          width: 28,
-          height: 28,
-          marginRight: 4,
-          flexShrink: 0,
-          border: 0,
-          borderRadius: 7,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: menuOpen ? "rgba(255,255,255,0.08)" : "transparent",
-          color: "var(--ink-3)",
-          cursor: "pointer",
-          opacity: hovered || menuOpen ? 1 : 0.72,
-          transition: "opacity 160ms ease, background-color 160ms ease, color 160ms ease",
+          background: menuOpen ? "rgba(255,255,255,0.08)" : undefined,
+          opacity: menuOpen ? 1 : undefined,
         }}
-        className="hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--ink-0)]"
       >
-        <Icon name="moreHorizontal" size={16} />
+        ⋮
       </button>
 
-      {menuOpen && (
+      {menuOpen && menuPosition && typeof window !== "undefined" && createPortal(
         <ConversationActionsMenu
+          position={menuPosition}
           onRename={onRenameStart}
           onArchive={onArchive}
           onDelete={onDelete}
-        />
+        />,
+        document.body
       )}
     </div>
   )
@@ -410,6 +396,65 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
 
   return (
     <aside style={asideStyle}>
+      <style>{`
+        .recent-chat-item {
+          width: 100%;
+          max-width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          overflow: hidden;
+          padding: 8px 10px;
+          border-radius: 8px;
+          position: relative;
+          background: transparent;
+          color: var(--ink-2);
+          transition: background-color 200ms ease, color 200ms ease;
+        }
+        .recent-chat-item.active {
+          background: var(--bg-2) !important;
+          color: var(--ink-0) !important;
+        }
+        .recent-chat-item:hover {
+          background: rgba(255,255,255,0.06);
+          color: var(--ink-0);
+        }
+        .chat-title {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .chat-actions-button {
+          flex-shrink: 0;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          border: 0;
+          border-radius: 7px;
+          background: transparent;
+          color: var(--ink-3);
+          cursor: pointer;
+          font-size: 16px;
+          transition: opacity 160ms ease, background-color 160ms ease, color 160ms ease;
+        }
+        .recent-chat-item:hover .chat-actions-button {
+          opacity: 1;
+        }
+        .chat-actions-button:hover {
+          background: rgba(255,255,255,0.08) !important;
+          color: var(--ink-0) !important;
+        }
+        @media (hover: none) {
+          .chat-actions-button {
+            opacity: 1;
+          }
+        }
+      `}</style>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, margin: "8px 0 16px" }}>
         <Link href="/dashboard" onClick={handleNewChat} style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0, padding: collapsed ? 0 : "4px 8px" }}>
           <BrandMark size={20} withWordmark={!collapsed} />

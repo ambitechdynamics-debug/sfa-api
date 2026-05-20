@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
-import { Upload, ImagePlus, X, Link2, CheckCircle2, Loader2 } from 'lucide-react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { Upload, ImagePlus, X, Link2, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
 import { JsonEditor } from './JsonEditor'
 import { AgentDefinition, AgentMemoryLink } from '@/types/agent'
 import { MemoryDefinition } from '@/types/memory'
@@ -12,7 +12,7 @@ import {
   FORBIDDEN_RULE_SCOPES,
   FORBIDDEN_RULE_SEVERITIES,
 } from '@/types/forbidden-rule'
-import { uploadArtisticResourceImage } from '@/lib/admin-api'
+import { uploadArtisticResourceImage, analyzeArtisticResourceImage, fetchLlmProviders, LlmProvider } from '@/lib/admin-api'
 import { cn } from '@/lib/utils'
 
 // ─── SHARED FORM COMPONENTS ───────────────────────────────────────────────────
@@ -210,7 +210,81 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
   const [showUrlInput, setShowUrlInput] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // ── AI Analysis state ──
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analyzeProviderId, setAnalyzeProviderId] = useState('gemini')
+  const [analyzeModel, setAnalyzeModel] = useState('')
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null)
+  const [providers, setProviders] = useState<LlmProvider[]>([])
+
+  useEffect(() => {
+    fetchLlmProviders().then((list) => {
+      const activeList = list.filter(p => p.enabled)
+      setProviders(activeList)
+
+      const visionList = activeList.filter(p => p.supportsVision)
+      if (visionList.some(p => p.id === 'gemini')) {
+        const geminiProv = visionList.find(p => p.id === 'gemini')!
+        setAnalyzeProviderId('gemini')
+        setAnalyzeModel(geminiProv.defaultModel || 'gemini-2.0-flash')
+      } else if (visionList.some(p => p.id === 'mock')) {
+        const mockProv = visionList.find(p => p.id === 'mock')!
+        setAnalyzeProviderId('mock')
+        setAnalyzeModel(mockProv.defaultModel || 'mock-model')
+      } else if (visionList.length > 0) {
+        setAnalyzeProviderId(visionList[0].id)
+        setAnalyzeModel(visionList[0].defaultModel || '')
+      }
+    }).catch(() => {})
+  }, [])
+
   const set = (field: keyof ArtisticResource, val: unknown) => setForm((f) => ({ ...f, [field]: val }))
+
+  async function handleAnalyze() {
+    if (!form.url) return
+    setIsAnalyzing(true)
+    setAnalyzeError(null)
+
+    const selectedProvider = providers.find(p => p.id === analyzeProviderId)
+    if (!selectedProvider) {
+      setAnalyzeError("Aucun fournisseur d'IA sélectionné.")
+      setIsAnalyzing(false)
+      return
+    }
+    if (!selectedProvider.defaultModel || selectedProvider.defaultModel.trim() === '') {
+      setAnalyzeError(`Le fournisseur "${selectedProvider.name}" n'a pas de modèle par défaut configuré dans les paramètres.`)
+      setIsAnalyzing(false)
+      return
+    }
+
+    try {
+      const result = await analyzeArtisticResourceImage(form.url, analyzeProviderId, analyzeModel || selectedProvider.defaultModel)
+      
+      setForm((prev) => ({
+        ...prev,
+        title: result.title || prev.title,
+        description: result.description || prev.description,
+        resourceType: result.resourceType || prev.resourceType,
+        tags: result.tags && result.tags.length > 0 ? result.tags : prev.tags,
+        content: result.content && Object.keys(result.content).length > 0 ? result.content : prev.content,
+      }))
+
+      if (result.category) {
+        if (!allCategories.includes(result.category)) {
+          setIsNewCategory(true)
+          setNewCategoryInput(result.category)
+          set('category', result.category)
+        } else {
+          setIsNewCategory(false)
+          set('category', result.category)
+        }
+      }
+    } catch (err: any) {
+      setAnalyzeError(err.message || "Erreur lors de l'analyse")
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
 
   async function handleFileUpload(file: File) {
     setUploading(true)
@@ -385,6 +459,63 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
               <span className="font-medium text-[var(--accent)]">Cliquez</span> ou glissez une image ici
             </p>
             <p className="text-[10px] text-[var(--text-subtle)]">JPEG, PNG, WebP — max 10 Mo</p>
+          </div>
+        )}
+
+        {/* AI Analysis trigger */}
+        {form.url && !uploading && (
+          <div className="flex flex-col gap-2 mt-3 p-3 bg-[var(--bg-subtle)] border border-[var(--accent)]/20 rounded-lg">
+            {providers.filter(p => p.supportsVision).length === 0 ? (
+              <p className="text-xs text-amber-600 text-center font-medium">
+                Aucun provider compatible vision n'est configuré ou activé. Veuillez en configurer un dans les paramètres d'administration.
+              </p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-[var(--text)] flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[var(--accent)]" /> 
+                    Auto-complétion par l'IA
+                  </span>
+                  <select
+                    className="border border-[var(--border)] rounded px-2 py-1 text-xs bg-[var(--surface)] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none max-w-[200px]"
+                    value={analyzeProviderId}
+                    onChange={(e) => {
+                      const id = e.target.value
+                      setAnalyzeProviderId(id)
+                      const matched = providers.find(p => p.id === id)
+                      if (matched) {
+                        setAnalyzeModel(matched.defaultModel || '')
+                      }
+                    }}
+                    disabled={isAnalyzing}
+                  >
+                    {providers.filter(p => p.supportsVision).map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.defaultModel ? `— ${p.defaultModel}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing}
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[var(--accent)] text-white text-xs font-medium hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-60"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyse en cours...
+                    </>
+                  ) : (
+                    'Analyser et remplir les champs'
+                  )}
+                </button>
+                {analyzeError && (
+                  <p className="text-xs text-red-500 text-center">{analyzeError}</p>
+                )}
+              </>
+            )}
           </div>
         )}
 

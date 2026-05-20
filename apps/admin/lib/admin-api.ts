@@ -211,6 +211,25 @@ export async function deleteArtisticResource(id: string): Promise<void> {
   return apiFetch(`/api/admin/artistic-resources/${id}`, { method: 'DELETE' })
 }
 
+export async function analyzeArtisticResourceImage(
+  resourceImage: string,
+  providerId: string,
+  model: string
+): Promise<Partial<ArtisticResource>> {
+  return apiFetch('/api/admin/artistic-resources/analyze-image', {
+    method: 'POST',
+    body: JSON.stringify({
+      providerId,
+      model,
+      resourceImage,
+      context: {
+        module: 'artistic-base',
+        action: 'analyze-resource-and-fill-fields',
+      },
+    }),
+  })
+}
+
 // ─── FORBIDDEN RULES ──────────────────────────────────────────────────────────
 function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
   const qs = Object.entries(params)
@@ -330,7 +349,7 @@ export async function fetchSettingsByCategory(category: string): Promise<AppSett
 }
 
 /** Bulk save settings — only sends changed keys */
-export async function saveSettings(settings: { key: string; value: string }[]): Promise<AppSetting[]> {
+export async function saveSettings(settings: { key: string; value: string; category?: string; isSecret?: boolean }[]): Promise<AppSetting[]> {
   return apiFetch('/api/admin/settings', {
     method: 'PUT',
     body: JSON.stringify({ settings }),
@@ -341,3 +360,193 @@ export async function saveSettings(settings: { key: string; value: string }[]): 
 export async function seedSettings(): Promise<{ created: number }> {
   return apiFetch('/api/admin/settings/seed', { method: 'POST', body: '{}' })
 }
+
+/** Bulk delete settings by key */
+export async function deleteSettings(keys: string[]): Promise<void> {
+  return apiFetch('/api/admin/settings/delete', {
+    method: 'POST',
+    body: JSON.stringify({ keys }),
+  })
+}
+
+// ─── CUSTOM AI PROVIDERS ───────────────────────────────────────────────────────
+
+export interface CustomAIProviderSetting {
+  id: string
+  name: string
+  type: 'openai-compatible' | 'anthropic-compatible' | 'gemini-compatible'
+  apiKey: string
+  baseUrl: string
+  defaultModel: string
+  isActive: boolean
+  supportsText: boolean
+  supportsVision: boolean
+  supportsReasoning: boolean
+  supportsImageGeneration: boolean
+}
+
+export async function fetchCustomProviders(): Promise<CustomAIProviderSetting[]> {
+  try {
+    const settings = await fetchSettingsByCategory('providers')
+    const providers: CustomAIProviderSetting[] = []
+    for (const s of settings) {
+      const match = s.key.match(/^custom_(.+)_name$/)
+      if (!match) continue
+      const slug = match[1]
+      const find = (field: string) => settings.find(x => x.key === `custom_${slug}_${field}`)?.value ?? ''
+      
+      const supportsTextVal = find('supports_text')
+      const supportsText = supportsTextVal === 'true' || supportsTextVal === ''; // default true
+
+      providers.push({
+        id: slug,
+        name: s.value,
+        type: find('type') as CustomAIProviderSetting['type'],
+        apiKey: find('api_key'),
+        baseUrl: find('base_url'),
+        defaultModel: find('default_model'),
+        isActive: find('is_active') === 'true',
+        supportsText,
+        supportsVision: find('supports_vision') === 'true',
+        supportsReasoning: find('supports_reasoning') === 'true',
+        supportsImageGeneration: find('supports_image_generation') === 'true',
+      })
+    }
+    return providers
+  } catch {
+    return []
+  }
+}
+
+export interface ActiveAIProvider {
+  id: string
+  name: string
+  isActive: boolean
+  supportsText: boolean
+  supportsVision: boolean
+  supportsReasoning: boolean
+  supportsImageGeneration: boolean
+}
+
+export async function fetchActiveProviders(): Promise<ActiveAIProvider[]> {
+  try {
+    const data = await fetchSettings()
+    const allSettings = Object.values(data).flat()
+    const providers: ActiveAIProvider[] = []
+
+    const findVal = (key: string) => allSettings.find(x => x.key === key)?.value ?? ''
+
+    // 1. Standard providers - active if API key is not empty
+    const openaiKey = findVal('openai_api_key')
+    if (openaiKey && openaiKey.trim() !== '') {
+      providers.push({
+        id: 'openai',
+        name: 'OpenAI',
+        isActive: true,
+        supportsText: true,
+        supportsVision: true,
+        supportsReasoning: true,
+        supportsImageGeneration: true
+      })
+    }
+
+    const anthropicKey = findVal('anthropic_api_key')
+    if (anthropicKey && anthropicKey.trim() !== '') {
+      providers.push({
+        id: 'anthropic',
+        name: 'Anthropic',
+        isActive: true,
+        supportsText: true,
+        supportsVision: true,
+        supportsReasoning: false,
+        supportsImageGeneration: false
+      })
+    }
+
+    const geminiKey = findVal('gemini_api_key')
+    if (geminiKey && geminiKey.trim() !== '') {
+      providers.push({
+        id: 'gemini',
+        name: 'Google Gemini',
+        isActive: true,
+        supportsText: true,
+        supportsVision: true,
+        supportsReasoning: false,
+        supportsImageGeneration: false
+      })
+    }
+
+    // Always include mock provider for local simulation / testing
+    providers.push({
+      id: 'mock',
+      name: 'Mock (simulation)',
+      isActive: true,
+      supportsText: true,
+      supportsVision: true,
+      supportsReasoning: false,
+      supportsImageGeneration: false
+    })
+
+    // 2. Custom providers - active if custom_is_active setting is true
+    for (const s of allSettings) {
+      const match = s.key.match(/^custom_(.+)_name$/)
+      if (!match) continue
+      const slug = match[1]
+      const activeVal = allSettings.find(x => x.key === `custom_${slug}_is_active`)?.value ?? 'false'
+      if (activeVal === 'true') {
+        const supportsTextVal = allSettings.find(x => x.key === `custom_${slug}_supports_text`)?.value ?? ''
+        const supportsText = supportsTextVal === 'true' || supportsTextVal === ''; // default true
+
+        providers.push({
+          id: slug,
+          name: s.value,
+          isActive: true,
+          supportsText,
+          supportsVision: allSettings.find(x => x.key === `custom_${slug}_supports_vision`)?.value === 'true',
+          supportsReasoning: allSettings.find(x => x.key === `custom_${slug}_supports_reasoning`)?.value === 'true',
+          supportsImageGeneration: allSettings.find(x => x.key === `custom_${slug}_supports_image_generation`)?.value === 'true',
+        })
+      }
+    }
+
+    return providers
+  } catch {
+    // Fallback if settings loading fails
+    return [
+      { id: 'gemini', name: 'Gemini', isActive: true, supportsText: true, supportsVision: true, supportsReasoning: false, supportsImageGeneration: false },
+      { id: 'anthropic', name: 'Anthropic', isActive: true, supportsText: true, supportsVision: true, supportsReasoning: false, supportsImageGeneration: false },
+      { id: 'openai', name: 'OpenAI', isActive: true, supportsText: true, supportsVision: true, supportsReasoning: true, supportsImageGeneration: true },
+      { id: 'mock', name: 'Mock (simulation)', isActive: true, supportsText: true, supportsVision: true, supportsReasoning: false, supportsImageGeneration: false }
+    ]
+  }
+}
+
+export interface LlmProvider {
+  id: string
+  name: string
+  slug: string
+  type: string
+  baseUrl: string
+  defaultModel: string
+  enabled: boolean
+  supportsText: boolean
+  supportsVision: boolean
+  supportsReasoning: boolean
+  supportsImageGeneration: boolean
+}
+
+export async function fetchLlmProviders(): Promise<LlmProvider[]> {
+  try {
+    const data = await apiFetch<{ providers: LlmProvider[] }>('/api/admin/llm-providers', {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
+    return data?.providers || []
+  } catch {
+    return []
+  }
+}
+

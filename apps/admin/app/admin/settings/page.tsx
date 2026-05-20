@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, Save, AlertTriangle, Check, RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { fetchSettings, saveSettings, AppSetting, SettingsByCategory } from '@/lib/admin-api'
+import { fetchSettings, saveSettings, deleteSettings, AppSetting, SettingsByCategory } from '@/lib/admin-api'
 import { toastSuccess, toastError, toastLoadError } from '@/lib/toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -114,12 +114,12 @@ export default function SettingsPage() {
   // ── Save current tab ────────────────────────────────────────────────────────
   async function handleSave() {
     const tabKeys: Record<Tab, string[]> = {
-      ia: ['credits_per_generation','credits_per_prompt','free_generations','free_prompts','default_model','timeout_ms','max_retries'],
-      providers: ['openai_api_key','openai_model','anthropic_api_key','anthropic_model','gemini_api_key','gemini_model'],
-      storage: ['storage_provider','max_file_size_mb','allowed_types','auto_compress','compression_quality'],
-      payment: ['currency','mtn_enabled','mtn_number','airtel_enabled','airtel_number','stripe_enabled','stripe_secret_key','stripe_public_key'],
-      security: ['jwt_expiry_hours','max_login_attempts','lockout_minutes','require_email_verification','allowed_origins'],
-      maintenance: ['maintenance_mode','maintenance_message'],
+      ia: ['credits_per_generation', 'credits_per_prompt', 'free_generations', 'free_prompts', 'default_model', 'timeout_ms', 'max_retries'],
+      providers: ['openai_api_key', 'openai_model', 'anthropic_api_key', 'anthropic_model', 'gemini_api_key', 'gemini_model'],
+      storage: ['storage_provider', 'max_file_size_mb', 'allowed_types', 'auto_compress', 'compression_quality'],
+      payment: ['currency', 'mtn_enabled', 'mtn_number', 'airtel_enabled', 'airtel_number', 'stripe_enabled', 'stripe_secret_key', 'stripe_public_key'],
+      security: ['jwt_expiry_hours', 'max_login_attempts', 'lockout_minutes', 'require_email_verification', 'allowed_origins'],
+      maintenance: ['maintenance_mode', 'maintenance_message'],
     }
 
     const payload = tabKeys[tab]
@@ -141,11 +141,11 @@ export default function SettingsPage() {
   }
 
   const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'ia',          label: 'IA',          icon: Brain },
-    { id: 'providers',   label: 'Providers',   icon: Key },
-    { id: 'storage',     label: 'Stockage',    icon: HardDrive },
-    { id: 'payment',     label: 'Paiement',    icon: CreditCard },
-    { id: 'security',    label: 'Sécurité',    icon: Shield },
+    { id: 'ia', label: 'IA', icon: Brain },
+    { id: 'providers', label: 'Providers', icon: Key },
+    { id: 'storage', label: 'Stockage', icon: HardDrive },
+    { id: 'payment', label: 'Paiement', icon: CreditCard },
+    { id: 'security', label: 'Sécurité', icon: Shield },
     { id: 'maintenance', label: 'Maintenance', icon: Wrench },
   ]
 
@@ -153,10 +153,125 @@ export default function SettingsPage() {
   const MONO_INPUT_CLS = `${INPUT_CLS} font-mono`
 
   const PROVIDERS = [
-    { name: 'OpenAI',        key: 'openai',    color: 'bg-emerald-500', keyField: 'openai_api_key',    modelField: 'openai_model' },
-    { name: 'Anthropic',     key: 'anthropic', color: 'bg-orange-500',  keyField: 'anthropic_api_key', modelField: 'anthropic_model' },
-    { name: 'Google Gemini', key: 'gemini',    color: 'bg-blue-500',    keyField: 'gemini_api_key',    modelField: 'gemini_model' },
+    { name: 'OpenAI', key: 'openai', color: 'bg-emerald-500', keyField: 'openai_api_key', modelField: 'openai_model' },
+    { name: 'Anthropic', key: 'anthropic', color: 'bg-orange-500', keyField: 'anthropic_api_key', modelField: 'anthropic_model' },
+    { name: 'Google Gemini', key: 'gemini', color: 'bg-blue-500', keyField: 'gemini_api_key', modelField: 'gemini_model' },
   ]
+
+  // ── Custom providers state ──────────────────────────────────────────────────
+  const [showCustomForm, setShowCustomForm] = useState(false)
+  const [editingCustomSlug, setEditingCustomSlug] = useState<string | null>(null)
+  const [customForm, setCustomForm] = useState({
+    name: '', type: 'openai-compatible' as 'openai-compatible' | 'anthropic-compatible' | 'gemini-compatible',
+    apiKey: '', baseUrl: '', defaultModel: '', isActive: true,
+    supportsText: true, supportsVision: true, supportsReasoning: false, supportsImageGeneration: false,
+  })
+
+  const toSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+  function parseCustomProviders(): Array<{
+    slug: string; name: string; type: string; apiKey: string; baseUrl: string; defaultModel: string; isActive: boolean;
+    supportsText: boolean; supportsVision: boolean; supportsReasoning: boolean; supportsImageGeneration: boolean;
+  }> {
+    const providers: Array<{
+      slug: string; name: string; type: string; apiKey: string; baseUrl: string; defaultModel: string; isActive: boolean;
+      supportsText: boolean; supportsVision: boolean; supportsReasoning: boolean; supportsImageGeneration: boolean;
+    }> = []
+    for (const [key, val] of Object.entries(values)) {
+      const match = key.match(/^custom_(.+)_name$/)
+      if (!match) continue
+      const slug = match[1]
+
+      const supportsTextVal = values[`custom_${slug}_supports_text`]
+      const supportsText = supportsTextVal === 'true' || supportsTextVal === undefined; // default true
+
+      providers.push({
+        slug,
+        name: val,
+        type: values[`custom_${slug}_type`] ?? '',
+        apiKey: values[`custom_${slug}_api_key`] ?? '',
+        baseUrl: values[`custom_${slug}_base_url`] ?? '',
+        defaultModel: values[`custom_${slug}_default_model`] ?? '',
+        isActive: values[`custom_${slug}_is_active`] === 'true',
+        supportsText,
+        supportsVision: values[`custom_${slug}_supports_vision`] === 'true',
+        supportsReasoning: values[`custom_${slug}_supports_reasoning`] === 'true',
+        supportsImageGeneration: values[`custom_${slug}_supports_image_generation`] === 'true',
+      })
+    }
+    return providers
+  }
+
+  function openNewCustomProvider() {
+    setCustomForm({
+      name: '', type: 'openai-compatible', apiKey: '', baseUrl: '', defaultModel: '', isActive: true,
+      supportsText: true, supportsVision: true, supportsReasoning: false, supportsImageGeneration: false,
+    })
+    setEditingCustomSlug(null)
+    setShowCustomForm(true)
+  }
+
+  function openEditCustomProvider(item: ReturnType<typeof parseCustomProviders>[number]) {
+    setCustomForm({
+      name: item.name, type: item.type as any, apiKey: item.apiKey, baseUrl: item.baseUrl, defaultModel: item.defaultModel, isActive: item.isActive,
+      supportsText: item.supportsText, supportsVision: item.supportsVision, supportsReasoning: item.supportsReasoning, supportsImageGeneration: item.supportsImageGeneration,
+    })
+    setEditingCustomSlug(item.slug)
+    setShowCustomForm(true)
+  }
+
+  async function saveCustomProvider() {
+    if (!customForm.name.trim()) return
+    const newSlug = toSlug(customForm.name)
+    const entries = [
+      { key: `custom_${newSlug}_name`, value: customForm.name, category: 'providers' },
+      { key: `custom_${newSlug}_type`, value: customForm.type, category: 'providers' },
+      { key: `custom_${newSlug}_api_key`, value: customForm.apiKey, category: 'providers', isSecret: true },
+      { key: `custom_${newSlug}_base_url`, value: customForm.baseUrl, category: 'providers' },
+      { key: `custom_${newSlug}_default_model`, value: customForm.defaultModel, category: 'providers' },
+      { key: `custom_${newSlug}_is_active`, value: String(customForm.isActive), category: 'providers' },
+      { key: `custom_${newSlug}_supports_text`, value: String(customForm.supportsText), category: 'providers' },
+      { key: `custom_${newSlug}_supports_vision`, value: String(customForm.supportsVision), category: 'providers' },
+      { key: `custom_${newSlug}_supports_reasoning`, value: String(customForm.supportsReasoning), category: 'providers' },
+      { key: `custom_${newSlug}_supports_image_generation`, value: String(customForm.supportsImageGeneration), category: 'providers' },
+    ]
+    const finalEntries = entries.filter(e => !e.value.includes('••'))
+    try {
+      if (editingCustomSlug && editingCustomSlug !== newSlug) {
+        const oldKeys = [
+          `custom_${editingCustomSlug}_name`, `custom_${editingCustomSlug}_type`,
+          `custom_${editingCustomSlug}_api_key`, `custom_${editingCustomSlug}_base_url`,
+          `custom_${editingCustomSlug}_default_model`, `custom_${editingCustomSlug}_is_active`,
+          `custom_${editingCustomSlug}_supports_text`, `custom_${editingCustomSlug}_supports_vision`,
+          `custom_${editingCustomSlug}_supports_reasoning`, `custom_${editingCustomSlug}_supports_image_generation`,
+        ]
+        await deleteSettings(oldKeys)
+      }
+      await saveSettings(finalEntries)
+      setShowCustomForm(false)
+      await loadSettings()
+      toastSuccess('Fournisseur enregistré')
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Erreur lors de l'enregistrement")
+    }
+  }
+
+  async function deleteCustomProvider(slug: string) {
+    const keys = [
+      `custom_${slug}_name`, `custom_${slug}_type`,
+      `custom_${slug}_api_key`, `custom_${slug}_base_url`,
+      `custom_${slug}_default_model`, `custom_${slug}_is_active`,
+      `custom_${slug}_supports_text`, `custom_${slug}_supports_vision`,
+      `custom_${slug}_supports_reasoning`, `custom_${slug}_supports_image_generation`,
+    ]
+    try {
+      await deleteSettings(keys)
+      await loadSettings()
+      toastSuccess('Fournisseur supprimé')
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Erreur lors de la suppression")
+    }
+  }
 
   return (
     <div className="space-y-5 max-w-[900px] mx-auto">
@@ -205,9 +320,6 @@ export default function SettingsPage() {
                 <FieldGroup label="Crédits par génération" hint="Crédits déduits par affiche générée">
                   <input type="number" value={val('credits_per_generation', '10')} onChange={(e) => set('credits_per_generation', e.target.value)} className={INPUT_CLS} />
                 </FieldGroup>
-                <FieldGroup label="Crédits par prompt" hint="Crédits déduits par génération de prompt">
-                  <input type="number" value={val('credits_per_prompt', '2')} onChange={(e) => set('credits_per_prompt', e.target.value)} className={INPUT_CLS} />
-                </FieldGroup>
                 <FieldGroup label="Générations gratuites" hint="Offertes aux nouveaux utilisateurs">
                   <input type="number" value={val('free_generations', '3')} onChange={(e) => set('free_generations', e.target.value)} className={INPUT_CLS} />
                 </FieldGroup>
@@ -244,63 +356,218 @@ export default function SettingsPage() {
             <h3 className="text-sm font-semibold text-[var(--text)]">Clés API Providers</h3>
             {isLoading
               ? Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="p-4 border border-[var(--border)] rounded-xl space-y-3">
-                    <div className="h-4 w-24 rounded bg-[var(--bg-subtle)] animate-skeleton" />
-                    <div className="h-9 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
-                    <div className="h-9 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
-                  </div>
-                ))
+                <div key={i} className="p-4 border border-[var(--border)] rounded-xl space-y-3">
+                  <div className="h-4 w-24 rounded bg-[var(--bg-subtle)] animate-skeleton" />
+                  <div className="h-9 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
+                  <div className="h-9 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
+                </div>
+              ))
               : PROVIDERS.map((p) => {
-                  const hasKey = val(p.keyField) && !val(p.keyField).includes('••')
-                  const isMasked = val(p.keyField).includes('••')
-                  return (
-                    <div key={p.key} className="p-4 border border-[var(--border)] rounded-xl space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className={cn('w-2.5 h-2.5 rounded-full', p.color)} />
-                        <span className="text-sm font-semibold text-[var(--text)]">{p.name}</span>
-                        {(hasKey || isMasked) && (
-                          <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
-                            Configuré
-                          </span>
-                        )}
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs text-[var(--text-muted)]">Clé API</label>
-                        <div className="relative">
-                          <input
-                            type={showKeys[p.keyField] ? 'text' : 'password'}
-                            value={val(p.keyField)}
-                            onChange={(e) => set(p.keyField, e.target.value)}
-                            placeholder={p.key === 'openai' ? 'sk-...' : p.key === 'anthropic' ? 'sk-ant-...' : 'AIza...'}
-                            className={cn(MONO_INPUT_CLS, 'pr-10')}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowKeys((s) => ({ ...s, [p.keyField]: !s[p.keyField] }))}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                          >
-                            {showKeys[p.keyField] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                        {isMasked && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">
-                            La clé est masquée. Saisissez une nouvelle valeur pour la remplacer.
-                          </p>
-                        )}
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs text-[var(--text-muted)]">Modèle par défaut</label>
+                const hasKey = val(p.keyField) && !val(p.keyField).includes('••')
+                const isMasked = val(p.keyField).includes('••')
+                return (
+                  <div key={p.key} className="p-4 border border-[var(--border)] rounded-xl space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className={cn('w-2.5 h-2.5 rounded-full', p.color)} />
+                      <span className="text-sm font-semibold text-[var(--text)]">{p.name}</span>
+                      {(hasKey || isMasked) && (
+                        <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+                          Configuré
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-[var(--text-muted)]">Clé API</label>
+                      <div className="relative">
                         <input
-                          type="text"
-                          value={val(p.modelField)}
-                          onChange={(e) => set(p.modelField, e.target.value)}
-                          className={MONO_INPUT_CLS}
+                          type={showKeys[p.keyField] ? 'text' : 'password'}
+                          value={val(p.keyField)}
+                          onChange={(e) => set(p.keyField, e.target.value)}
+                          placeholder={p.key === 'openai' ? 'sk-...' : p.key === 'anthropic' ? 'sk-ant-...' : 'AIza...'}
+                          className={cn(MONO_INPUT_CLS, 'pr-10')}
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowKeys((s) => ({ ...s, [p.keyField]: !s[p.keyField] }))}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                        >
+                          {showKeys[p.keyField] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {isMasked && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          La clé est masquée. Saisissez une nouvelle valeur pour la remplacer.
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-[var(--text-muted)]">Modèle par défaut</label>
+                      <input
+                        type="text"
+                        value={val(p.modelField)}
+                        onChange={(e) => set(p.modelField, e.target.value)}
+                        className={MONO_INPUT_CLS}
+                      />
+                    </div>
+                  </div>
+                )
+              })
+            }
+
+            {/* ── Custom providers ──────────────────────────────────────────── */}
+            <div className="pt-6 border-t border-[var(--border)] mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text)]">Fournisseurs personnalisés</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">Providers IA compatibles OpenAI / Anthropic / Gemini</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={openNewCustomProvider}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white text-xs font-medium hover:opacity-90 transition-opacity"
+                >
+                  + Ajouter
+                </button>
+              </div>
+
+              {isLoading ? (
+                <div className="h-12 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
+              ) : parseCustomProviders().length === 0 ? (
+                <p className="text-xs text-[var(--text-muted)] text-center py-6">Aucun fournisseur personnalisé configuré.</p>
+              ) : (
+                <div className="space-y-2">
+                  {parseCustomProviders().map((cp) => (
+                    <div key={cp.slug} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)]">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={cn('w-2 h-2 rounded-full flex-shrink-0', cp.isActive ? 'bg-emerald-500' : 'bg-gray-400')} />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-[var(--text)] flex items-center gap-2 flex-wrap">
+                            <span>{cp.name}</span>
+                            <div className="flex gap-1 flex-wrap">
+                              {cp.supportsText && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">Texte</span>}
+                              {cp.supportsVision && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">Vision</span>}
+                              {cp.supportsReasoning && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">Raison</span>}
+                              {cp.supportsImageGeneration && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">Image</span>}
+                            </div>
+                          </div>
+                          <div className="text-xs text-[var(--text-muted)] truncate">
+                            {cp.type === 'openai-compatible' ? 'OpenAI' : cp.type === 'anthropic-compatible' ? 'Anthropic' : 'Gemini'} compatible
+                            {cp.defaultModel ? ` · ${cp.defaultModel}` : ''}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button type="button" onClick={() => openEditCustomProvider(cp)} className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors" title="Modifier">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </button>
+                        <button type="button" onClick={() => deleteCustomProvider(cp.slug)} className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Supprimer">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
                       </div>
                     </div>
-                  )
-                })
-            }
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Custom provider form modal ──────────────────────────────────── */}
+            {showCustomForm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                <div className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 space-y-4 shadow-xl">
+                  <h4 className="text-sm font-semibold text-[var(--text)]">
+                    {editingCustomSlug ? 'Modifier le fournisseur' : 'Ajouter un fournisseur'}
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)]">Nom *</label>
+                      <input type="text" value={customForm.name} onChange={(e) => setCustomForm(f => ({ ...f, name: e.target.value }))} placeholder="Mon Provider" className={INPUT_CLS} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)]">Type</label>
+                      <select value={customForm.type} onChange={(e) => setCustomForm(f => ({ ...f, type: e.target.value as any }))} className={INPUT_CLS}>
+                        <option value="openai-compatible">OpenAI compatible</option>
+                        <option value="anthropic-compatible">Anthropic compatible</option>
+                        <option value="gemini-compatible">Gemini compatible</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)]">Clé API</label>
+                      <input type="password" value={customForm.apiKey} onChange={(e) => setCustomForm(f => ({ ...f, apiKey: e.target.value }))} placeholder="sk-..." className={MONO_INPUT_CLS} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)]">URL de base</label>
+                      <input type="text" value={customForm.baseUrl} onChange={(e) => setCustomForm(f => ({ ...f, baseUrl: e.target.value }))} placeholder="https://api.example.com/v1" className={MONO_INPUT_CLS} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)]">Modèle par défaut</label>
+                      <input type="text" value={customForm.defaultModel} onChange={(e) => setCustomForm(f => ({ ...f, defaultModel: e.target.value }))} placeholder="gpt-4o" className={MONO_INPUT_CLS} />
+                    </div>
+
+                    <div className="space-y-2.5 border-t border-b border-[var(--border)] py-2.5 my-1">
+                      <span className="text-xs font-semibold text-[var(--text)] block mb-1">Capacités du fournisseur :</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="flex items-center gap-2 text-xs text-[var(--text)] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={customForm.supportsText}
+                            onChange={(e) => setCustomForm(f => ({ ...f, supportsText: e.target.checked }))}
+                            className="rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] bg-[var(--surface)]"
+                          />
+                          <span>Texte</span>
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-[var(--text)] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={customForm.supportsVision}
+                            onChange={(e) => setCustomForm(f => ({ ...f, supportsVision: e.target.checked }))}
+                            className="rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] bg-[var(--surface)]"
+                          />
+                          <span>Vision</span>
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-[var(--text)] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={customForm.supportsReasoning}
+                            onChange={(e) => setCustomForm(f => ({ ...f, supportsReasoning: e.target.checked }))}
+                            className="rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] bg-[var(--surface)]"
+                          />
+                          <span>Raisonnement</span>
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-[var(--text)] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={customForm.supportsImageGeneration}
+                            onChange={(e) => setCustomForm(f => ({ ...f, supportsImageGeneration: e.target.checked }))}
+                            className="rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] bg-[var(--surface)]"
+                          />
+                          <span>Génération d'images</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[var(--text-muted)]">Actif</span>
+                      <button
+                        type="button"
+                        onClick={() => setCustomForm(f => ({ ...f, isActive: !f.isActive }))}
+                        className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors', customForm.isActive ? 'bg-[var(--accent)]' : 'bg-[var(--border)]')}
+                      >
+                        <span className={cn('inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform', customForm.isActive ? 'translate-x-4' : 'translate-x-0.5')} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button type="button" onClick={() => setShowCustomForm(false)} className="flex-1 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--text)] hover:bg-[var(--bg-subtle)] transition-colors">
+                      Annuler
+                    </button>
+                    <button type="button" onClick={saveCustomProvider} disabled={!customForm.name.trim()} className="flex-1 px-3 py-2 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+                      {editingCustomSlug ? 'Enregistrer' : 'Ajouter'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between pt-2">
               <SavedBadge show={saved} />
               <div className="ml-auto"><SaveButton onSave={handleSave} saving={saving} /></div>
@@ -546,10 +813,10 @@ export default function SettingsPage() {
               <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Actions de maintenance</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { label: 'Vider le cache IA',              desc: 'Supprime les réponses cached des agents',          color: 'text-amber-600',  bg: 'hover:bg-[var(--icon-amber)]' },
-                  { label: 'Nettoyer les fichiers temporaires', desc: 'Supprime les uploads non liés à un projet',     color: 'text-blue-600',   bg: 'hover:bg-[var(--icon-blue)]' },
-                  { label: 'Réindexer la base artistique',   desc: 'Reconstruit les métadonnées des ressources',       color: 'text-violet-600', bg: 'hover:bg-[var(--icon-violet)]' },
-                  { label: 'Forcer déconnexion sessions',    desc: 'Invalide tous les tokens JWT actifs',              color: 'text-red-600',    bg: 'hover:bg-[var(--icon-red)]' },
+                  { label: 'Vider le cache IA', desc: 'Supprime les réponses cached des agents', color: 'text-amber-600', bg: 'hover:bg-[var(--icon-amber)]' },
+                  { label: 'Nettoyer les fichiers temporaires', desc: 'Supprime les uploads non liés à un projet', color: 'text-blue-600', bg: 'hover:bg-[var(--icon-blue)]' },
+                  { label: 'Réindexer la base artistique', desc: 'Reconstruit les métadonnées des ressources', color: 'text-violet-600', bg: 'hover:bg-[var(--icon-violet)]' },
+                  { label: 'Forcer déconnexion sessions', desc: 'Invalide tous les tokens JWT actifs', color: 'text-red-600', bg: 'hover:bg-[var(--icon-red)]' },
                 ].map(({ label, desc, color, bg }) => (
                   <button key={label} className={cn('flex items-start gap-3 p-3 rounded-lg border border-[var(--border)] text-left transition-colors', bg)}>
                     <div className="flex-1">

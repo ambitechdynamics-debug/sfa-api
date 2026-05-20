@@ -10,6 +10,9 @@ import { BrandMark } from "@/components/ui/BrandMark"
 import { Poster } from "@/components/poster/Poster"
 import { AiPromptPanel } from "./AiPromptPanel"
 import { FloatingTestimonials } from "./FloatingTestimonials"
+import { AdCreationShowcase } from "./AdCreationShowcase"
+import { TestimonialsSection } from "./TestimonialsSection"
+import { PlatformVisualLibrarySection } from "./PlatformVisualLibrarySection"
 
 const FAQ = [
   { q: "Comment fonctionne la génération par IA ?", a: "Vous remplissez un brief en quelques étapes (type, message, style, couleurs, format). Notre IA combine ces informations avec vos préférences de marque pour produire 4 propositions de visuels en moins d'une minute. Vous pouvez ensuite demander des retouches en langage naturel." },
@@ -33,8 +36,11 @@ export function Landing() {
       <MarketingNav />
       <Hero />
       <PartnerLogos />
+      <AdCreationShowcase />
+      <PlatformVisualLibrarySection />
       <Features />
       <Pricing />
+      <TestimonialsSection />
       <CTA />
       <Footer />
     </div>
@@ -210,22 +216,24 @@ function Features() {
     { icon: "palette" as const, title: "Mémoires de marque", desc: "L'IA mémorise votre identité et l'applique." },
   ]
   return (
-    <section id="features" style={{ padding: "120px 32px", maxWidth: 1280, margin: "0 auto" }}>
-      <SectionTitle
-        overline="Fonctionnalités"
-        title="Tout ce qu'il faut pour briefer, générer, livrer."
-        subtitle="Studio Flyer ne remplace pas votre direction artistique. Il accélère le travail répétitif pour vous laisser créer encore mieux, plus vite."
-      />
-      <div style={{ marginTop: 56, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
-        {features.map((f) => (
-          <Card key={f.title} padding={28} style={{ display: "flex", flexDirection: "column", gap: 14, height: "100%" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 10, background: "var(--acc-soft)", border: "1px solid var(--acc-line)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--acc)" }}>
-              <Icon name={f.icon} size={20} />
-            </div>
-            <h3 className="display" style={{ fontSize: 22, margin: 0 }}>{f.title}</h3>
-            <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.55, margin: 0 }}>{f.desc}</p>
-          </Card>
-        ))}
+    <section id="features" style={{ padding: "120px 32px", background: "var(--bg-0)" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+        <SectionTitle
+          overline="Fonctionnalités"
+          title="Tout ce qu'il faut pour briefer, générer, livrer."
+          subtitle="Studio Flyer ne remplace pas votre direction artistique. Il accélère le travail répétitif pour vous laisser créer encore mieux, plus vite."
+        />
+        <div style={{ marginTop: 56, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+          {features.map((f) => (
+            <Card key={f.title} padding={28} style={{ display: "flex", flexDirection: "column", gap: 14, height: "100%", background: "var(--bg-0)" }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: "var(--acc-soft)", border: "1px solid var(--acc-line)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--acc)" }}>
+                <Icon name={f.icon} size={20} />
+              </div>
+              <h3 className="display" style={{ fontSize: 22, margin: 0 }}>{f.title}</h3>
+              <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.55, margin: 0 }}>{f.desc}</p>
+            </Card>
+          ))}
+        </div>
       </div>
     </section>
   )

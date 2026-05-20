@@ -20,7 +20,7 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
-  const [menuOpen, setMenuOpen] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState<{ id: string; top: number; right: number } | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => { fetchProjects().then(setProjects).catch((error) => toastLoadError(error, 'Impossible de charger les projets')).finally(() => setIsLoading(false)) }, [])
@@ -62,13 +62,22 @@ export default function ProjectsPage() {
       header: 'Actions', accessor: 'id',
       cell: (p) => (
         <div className="relative">
-          <button onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === p.id ? null : p.id) }} className="p-1.5 rounded-md hover:bg-[var(--bg-subtle)] transition-colors">
+          <button onClick={(e) => {
+            e.stopPropagation()
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+            setMenuOpen(
+              menuOpen?.id === p.id ? null : { id: p.id, top: rect.bottom + 8, right: window.innerWidth - rect.right }
+            )
+          }} className="p-1.5 rounded-md hover:bg-[var(--bg-subtle)] transition-colors">
             <MoreVertical className="w-4 h-4 text-[var(--text-muted)]" />
           </button>
-          {menuOpen === p.id && (
+          {menuOpen?.id === p.id && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)} />
-              <div className="absolute right-0 top-8 z-20 w-40 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-lg py-1 text-sm">
+              <div
+                className="fixed z-50 w-40 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-lg py-1 text-sm"
+                style={{ top: menuOpen.top, right: menuOpen.right }}
+              >
                 <button className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--bg-subtle)] text-[var(--text)]">
                   <Eye className="w-3.5 h-3.5" /> Voir détails
                 </button>

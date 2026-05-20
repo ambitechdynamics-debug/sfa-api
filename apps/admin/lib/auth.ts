@@ -18,6 +18,8 @@ type LoginResponse = {
   token: string
 }
 
+let cachedToken: string | null = null
+
 /**
  * Resolve the Bearer token used to authenticate API calls.
  *
@@ -26,18 +28,37 @@ type LoginResponse = {
  */
 export async function getToken(): Promise<string> {
   if (typeof window === 'undefined') return ''
-  const authEndpointToken = await fetchAuthJwt()
-  if (authEndpointToken) return authEndpointToken
+  if (cachedToken) return cachedToken
 
+  // 1. Check the Better Auth session first (no network request to /api/auth/token
+  //    unless we actually have a session — avoids 401 console spam for legacy users).
   try {
     const { data } = await getSession()
-    const sessionToken = findAuthToken(data)
-    if (sessionToken) return sessionToken
+    if (data) {
+      // We have a Better Auth session: try to extract the JWT from it.
+      const sessionToken = findAuthToken(data)
+      if (sessionToken) {
+        cachedToken = sessionToken
+        return sessionToken
+      }
+
+      // Session exists but token not in the session object — probe the auth endpoints.
+      const authEndpointToken = await fetchAuthJwt()
+      if (authEndpointToken) {
+        cachedToken = authEndpointToken
+        return authEndpointToken
+      }
+    }
   } catch {
-    // Fall through to legacy admin token.
+    // No Better Auth session — fall through to legacy token.
   }
 
-  return localStorage.getItem('admin_token') || ''
+  // 2. Legacy JWT stored by loginWithLegacyAdmin().
+  const legacyToken = localStorage.getItem('admin_token') || ''
+  if (legacyToken) {
+    cachedToken = legacyToken
+  }
+  return legacyToken
 }
 
 async function fetchAuthJwt(): Promise<string> {
@@ -113,6 +134,9 @@ async function requestApi<T>(path: string, options?: RequestInit): Promise<T> {
 
   const data = await res.json().catch(() => ({} as ApiResponse<T>))
   if (!res.ok || !data.success || data.data === undefined) {
+    if (res.status === 401) {
+      cachedToken = null
+    }
     throw new AdminApiError(data.message || 'Erreur API', res.status)
   }
 
@@ -162,6 +186,7 @@ export async function loginWithLegacyAdmin(email: string, password: string): Pro
 
   localStorage.setItem('admin_token', data.data.token)
   localStorage.setItem('admin_user', JSON.stringify(data.data.user))
+  cachedToken = data.data.token
   return data.data.user
 }
 
@@ -169,6 +194,7 @@ export async function loginWithLegacyAdmin(email: string, password: string): Pro
  * Sign out: clears the Better Auth session cookie + local cache.
  */
 export async function logoutAdmin(): Promise<void> {
+  cachedToken = null
   try {
     await signOut()
   } catch {
@@ -189,6 +215,7 @@ export function isAdmin(user: AdminUser | null): boolean {
  * Better Auth session cookie. No-op outside the browser.
  */
 export function clearSession() {
+  cachedToken = null
   if (typeof window === 'undefined') return
   localStorage.removeItem('admin_token')
   localStorage.removeItem('admin_user')

@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon"
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const isDashboard = pathname === "/dashboard" || pathname.startsWith("/dashboard/")
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -18,9 +19,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
+        height: isDashboard ? "100vh" : "auto",
         minHeight: "100vh",
         display: "flex",
         background: "var(--bg-0)",
+        overflow: isDashboard ? "hidden" : "visible",
       }}
     >
       <div className="max-md:hidden" style={{ flexShrink: 0 }}>
@@ -48,8 +51,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <div className="md:hidden" style={{ padding: "12px 16px 0" }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: isDashboard ? "100%" : "auto", overflow: isDashboard ? "hidden" : "visible" }}>
+        <div className="md:hidden" style={{ padding: "12px 16px 0", flexShrink: 0 }}>
           <button
             type="button"
             aria-label="Ouvrir la navigation"
@@ -73,7 +76,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </div>
 
         <main
-          style={{
+          style={isDashboard ? {
+            flex: 1,
+            minWidth: 0,
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            position: "relative",
+            overflow: "hidden",
+          } : {
             flex: 1,
             minWidth: 0,
             width: "100%",
@@ -82,7 +93,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             padding: "28px clamp(16px, 4vw, 48px) 48px",
           }}
         >
-          <div style={{ width: "100%", maxWidth: 1440 }}>{children}</div>
+          <div style={isDashboard ? {
+            width: "100%",
+            height: "100%",
+            position: "relative",
+            overflow: "hidden",
+          } : {
+            width: "100%",
+            maxWidth: 1440,
+          }}>{children}</div>
         </main>
       </div>
     </div>

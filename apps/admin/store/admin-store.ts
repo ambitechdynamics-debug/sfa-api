@@ -44,7 +44,7 @@ export const useAdminStore = create<AdminStore>((set) => ({
   user: null,
   isAuthenticated: false,
   sidebarOpen: true,
-  isLoading: true,
+  isLoading: false,
   token: null,
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),

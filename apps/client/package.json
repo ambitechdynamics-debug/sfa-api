@@ -10,6 +10,7 @@
     "verify:auth-loading": "node scripts/verify-auth-loading.mjs"
   },
   "dependencies": {
+    "@stripe/stripe-js": "^9.6.0",
     "better-auth": "^1.6.10",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
