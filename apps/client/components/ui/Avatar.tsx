@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react"
 
 const AVATAR_GRADS: Array<[string, string]> = [
-  ["#e08a64", "#c66a45"],
+  ["#777777", "#555555"],
   ["#8aa57a", "#5d7a4d"],
   ["#b08bc7", "#8861a3"],
   ["#7aa3c9", "#4d7da8"],

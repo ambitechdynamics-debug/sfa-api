@@ -122,11 +122,11 @@ const FONTS_CATEGORIES = [
 
 // Predefined harmonious color palettes for the AI color generator
 const MOCK_PALETTES = [
-  { name: "Terre cuite", primary: "#e08a64", secondary: "#100c08", accent: "#d8a85a", background: "#f5eee2", text: "#1c1108" },
+  { name: "Noir & Gris", primary: "#777777", secondary: "#151515", accent: "#888888", background: "#0a0a0a", text: "#f5f5f5" },
   { name: "Obsidienne dorée", primary: "#ea9b75", secondary: "#211a14", accent: "#ea9b75", background: "#100c08", text: "#e2d8c5" },
   { name: "Sauge sauvage", primary: "#8aa57a", secondary: "#2a2118", accent: "#d8a85a", background: "#f1ead9", text: "#1d1611" },
   { name: "Prune royale", primary: "#b08bc7", secondary: "#181310", accent: "#ea9b75", background: "#181310", text: "#f5eee2" },
-  { name: "Crème minimaliste", primary: "#5a4f43", secondary: "#b6a791", accent: "#c66a45", background: "#ffffff", text: "#1d1611" }
+  { name: "Blanc Minimaliste", primary: "#5a5a5a", secondary: "#e0e0e0", accent: "#777777", background: "#ffffff", text: "#111111" }
 ]
 
 function isLocalConversationId(value?: string) {
@@ -434,11 +434,11 @@ export function ChatConversation({
   const [config, setConfig] = useState<VisualConfig>({
     format: "Portrait — 4:5",
     colors: {
-      primary: "#e08a64",
-      secondary: "#100c08",
-      accent: "#d8a85a",
-      background: "#f5eee2",
-      text: "#1c1108"
+      primary: "#777777",
+      secondary: "#1f1f1f",
+      accent: "#888888",
+      background: "#0a0a0a",
+      text: "#f5f5f5"
     },
     fonts: {
       title: "Moderne",
@@ -670,8 +670,8 @@ export function ChatConversation({
     }
     // Simulate beautiful dominant color extraction
     const extractedPalettes = [
-      { primary: "#ea9b75", secondary: "#211a14", accent: "#d8a85a", background: "#fbf8f1", text: "#382d23" },
-      { primary: "#8aa57a", secondary: "#100c08", accent: "#e08a64", background: "#ffffff", text: "#1d1611" }
+      { primary: "#777777", secondary: "#1f1f1f", accent: "#888888", background: "#0a0a0a", text: "#f5f5f5" },
+      { primary: "#8aa57a", secondary: "#100c08", accent: "#888888", background: "#ffffff", text: "#1d1611" }
     ]
     const chosen = extractedPalettes[Math.floor(Math.random() * extractedPalettes.length)]
     setConfig((prev) => ({

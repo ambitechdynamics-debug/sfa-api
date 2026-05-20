@@ -205,7 +205,7 @@ function Badge({ children, tone = "neutral", icon, dot, size = "md", style }) {
 
 // ── Avatar ──
 const AVATAR_GRADS = [
-  ["#e08a64", "#c66a45"],
+  ["#777777", "#555555"],
   ["#8aa57a", "#5d7a4d"],
   ["#b08bc7", "#8861a3"],
   ["#7aa3c9", "#4d7da8"],

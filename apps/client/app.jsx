@@ -2,14 +2,14 @@
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "theme": "dark",
-  "accent": "#e08a64",
-  "palette": ["#e08a64", "#181310", "#f5eee2"],
+  "accent": "#777777",
+  "palette": ["#777777", "#151515", "#f5f5f5"],
   "density": "regular",
   "showGrain": true
 }/*EDITMODE-END*/;
 
 const ACCENT_PALETTES = {
-  "#e08a64": { acc: "#e08a64", bright: "#ea9b75", deep: "#c66a45", soft: "rgba(224,138,100,0.14)", line: "rgba(224,138,100,0.32)" },
+  "#777777": { acc: "#777777", bright: "#888888", deep: "#666666", soft: "rgba(119,119,119,0.14)", line: "rgba(119,119,119,0.32)" },
   "#8aa57a": { acc: "#8aa57a", bright: "#9bb88a", deep: "#6d8a5e", soft: "rgba(138,165,122,0.14)", line: "rgba(138,165,122,0.32)" },
   "#b08bc7": { acc: "#b08bc7", bright: "#c2a3d4", deep: "#8e6ba8", soft: "rgba(176,139,199,0.14)", line: "rgba(176,139,199,0.32)" },
   "#d8a85a": { acc: "#d8a85a", bright: "#e3b96d", deep: "#b88a3e", soft: "rgba(216,168,90,0.14)", line: "rgba(216,168,90,0.32)" },
@@ -67,7 +67,7 @@ function App() {
   React.useEffect(() => {
     document.documentElement.setAttribute("data-theme", t.theme);
     document.documentElement.setAttribute("data-density", t.density);
-    const p = ACCENT_PALETTES[t.accent] || ACCENT_PALETTES["#e08a64"];
+    const p = ACCENT_PALETTES[t.accent] || ACCENT_PALETTES["#777777"];
     const r = document.documentElement.style;
     r.setProperty("--acc", p.acc);
     r.setProperty("--acc-bright", p.bright);
