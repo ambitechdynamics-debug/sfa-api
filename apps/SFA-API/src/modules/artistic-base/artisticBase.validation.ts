@@ -40,8 +40,8 @@ export const updateArtisticResourceSchema = z
 export const listArtisticResourcesQuerySchema = z.object({
   category: z.string().trim().min(1).optional(),
   resourceType: z.nativeEnum(ArtisticResourceType).optional(),
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20)
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(10000).optional()
 });
 
 export const searchArtisticResourcesQuerySchema = listArtisticResourcesQuerySchema.extend({

@@ -12,10 +12,13 @@ import {
 import { callVisionAI } from '../ai/ai.service';
 import { AIProvider } from '../ai/ai.types';
 
-const buildPagination = (page: number, limit: number) => ({
-  skip: (page - 1) * limit,
-  take: limit
-});
+const buildPagination = (page?: number, limit?: number) => {
+  if (page === undefined || limit === undefined) return {};
+  return {
+    skip: (page - 1) * limit,
+    take: limit
+  };
+};
 
 const toJsonInput = (value: unknown) => value as Prisma.InputJsonValue;
 const toNullableJsonInput = (value: unknown) =>
@@ -54,10 +57,10 @@ export const artisticBaseService = {
     return {
       items,
       pagination: {
-        page: query.page,
-        limit: query.limit,
+        page: query.page ?? 1,
+        limit: query.limit ?? total,
         total,
-        totalPages: Math.ceil(total / query.limit)
+        totalPages: query.limit ? Math.ceil(total / query.limit) : 1
       }
     };
   },
@@ -91,10 +94,10 @@ export const artisticBaseService = {
     return {
       items,
       pagination: {
-        page: query.page,
-        limit: query.limit,
+        page: query.page ?? 1,
+        limit: query.limit ?? total,
         total,
-        totalPages: Math.ceil(total / query.limit)
+        totalPages: query.limit ? Math.ceil(total / query.limit) : 1
       }
     };
   },
