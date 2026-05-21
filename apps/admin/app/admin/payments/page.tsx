@@ -5,7 +5,7 @@ import { Wallet, Download, Search, Eye, RotateCcw } from 'lucide-react'
 import { DataTable, Column } from '@/components/admin/DataTable'
 import { StatusBadge } from '@/components/admin/StatusBadge'
 import { Modal } from '@/components/admin/Modals'
-import { fetchPayments } from '@/lib/admin-api'
+import { fetchPayments, refundPayment, verifyPayment } from '@/lib/admin-api'
 import { Payment, PaymentStatus } from '@/types/payment'
 import { formatDate, formatCurrency, downloadCSV } from '@/lib/utils'
 import { toastLoadError } from '@/lib/toast'
@@ -36,6 +36,25 @@ export default function PaymentsPage() {
   }, [payments, search, statusFilter])
 
   const totalRevenue = filtered.filter((p) => p.status === 'SUCCESS').reduce((acc, p) => acc + p.amount, 0)
+
+  async function handleVerify(payment: Payment) {
+    try {
+      const updated = await verifyPayment(payment.id)
+      setPayments((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)))
+    } catch (e: unknown) {
+      toastLoadError(e, 'Impossible de vérifier ce paiement')
+    }
+  }
+
+  async function handleRefund(payment: Payment) {
+    if (!confirm(`Rembourser ${formatCurrency(payment.amount, payment.currency)} ?`)) return
+    try {
+      const updated = await refundPayment(payment.id)
+      setPayments((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)))
+    } catch (e: unknown) {
+      toastLoadError(e, 'Impossible de rembourser ce paiement')
+    }
+  }
 
   const columns: Column<Payment>[] = [
     {
@@ -69,8 +88,13 @@ export default function PaymentsPage() {
             <Eye className="w-3.5 h-3.5 text-[var(--text-muted)]" />
           </button>
           {p.status === 'PENDING' && (
-            <button className="p-1.5 rounded-md hover:bg-amber-50 transition-colors" title="Relancer vérification">
+            <button onClick={() => handleVerify(p)} className="p-1.5 rounded-md hover:bg-amber-50 transition-colors" title="Relancer vérification">
               <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
+            </button>
+          )}
+          {p.status === 'SUCCESS' && p.provider === 'STRIPE' && (
+            <button onClick={() => handleRefund(p)} className="p-1.5 rounded-md hover:bg-red-50 transition-colors" title="Rembourser">
+              <RotateCcw className="w-3.5 h-3.5 text-red-400" />
             </button>
           )}
         </div>

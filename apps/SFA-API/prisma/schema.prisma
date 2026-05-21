@@ -83,7 +83,7 @@ model AgentDefinition {
   key                  String            @unique
   name                 String
   description          String?
-  provider             AgentProvider     @default(MOCK)
+  provider             String            @default("mock")
   model                String
   systemPrompt         String
   expectedOutputSchema Json
@@ -320,12 +320,6 @@ enum MemoryScope {
   GLOBAL
 }
 
-enum AgentProvider {
-  OPENAI
-  ANTHROPIC
-  GEMINI
-  MOCK
-}
 
 enum AgentMemoryUsageType {
   INPUT

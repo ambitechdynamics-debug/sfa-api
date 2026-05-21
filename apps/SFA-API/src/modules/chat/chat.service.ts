@@ -145,6 +145,7 @@ const DEFAULT_CHAT_SYSTEM_PROMPT = [
   `- Si l'utilisateur écrit "modifier" ou "changer" : demander quelle information il veut corriger`,
   `- Si le contexte n'est pas un restaurant : adapter automatiquement les choix (boutique, salon, agence, etc.)`,
   `- Toujours rester dans le format Question + [Choix] même pour les cas particuliers`,
+  `- Si l'utilisateur écrit "gérer le visuel" ou "générer le visuel" : répondre avec le résumé complet du brief collecté au format structuré (Entreprise, Secteur, Objectif, Public, Message, Style, Couleurs, Format, Logo, Contact), puis ajouter "[Générer le visuel]" comme seul choix`,
 ].join('\n\n');
 
 type OpenAICompatibleMessage = {
@@ -154,7 +155,11 @@ type OpenAICompatibleMessage = {
 
 const TEXT_PROVIDERS: AIProvider[] = ['openai', 'anthropic', 'gemini'];
 
-export function buildChatMessages(history: ChatHistoryMessage[] | undefined, message: string): OpenAICompatibleMessage[] {
+export function buildChatMessages(
+  history: ChatHistoryMessage[] | undefined,
+  message: string,
+  visualConfig?: Record<string, unknown>
+): OpenAICompatibleMessage[] {
   const cleanHistory = (history ?? [])
     .filter((item) => item.content.trim())
     .map((item) => ({
@@ -162,8 +167,13 @@ export function buildChatMessages(history: ChatHistoryMessage[] | undefined, mes
       content: item.content.trim()
     }));
 
+  let systemContent = DEFAULT_CHAT_SYSTEM_PROMPT;
+  if (visualConfig && Object.keys(visualConfig).length > 0) {
+    systemContent += `\n\n═══════════════════════════════════════\nCONFIGURATION CRÉATIVE ACTIVE (utilise ces paramètres en priorité)\n═══════════════════════════════════════\n${JSON.stringify(visualConfig, null, 2)}`;
+  }
+
   return [
-    { role: 'system', content: DEFAULT_CHAT_SYSTEM_PROMPT },
+    { role: 'system', content: systemContent },
     ...cleanHistory,
     { role: 'user', content: message.trim() }
   ];
@@ -296,6 +306,11 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
   const providers = await resolveFallbackProviders(primaryProvider);
   let lastError: unknown;
 
+  let resolvedSystemPrompt = agentProfile.systemPrompt;
+  if (input.visualConfig && Object.keys(input.visualConfig).length > 0) {
+    resolvedSystemPrompt += `\n\n═══════════════════════════════════════\nCONFIGURATION CRÉATIVE ACTIVE (utilise ces paramètres en priorité)\n═══════════════════════════════════════\n${JSON.stringify(input.visualConfig, null, 2)}`;
+  }
+
   for (const provider of providers) {
     const model = await resolveChatModel(provider);
     logger.info('[chat] calling AI provider', { provider, model, agentName: agentProfile.name });
@@ -306,7 +321,7 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
         await adapter.callText({
           provider,
           model,
-          systemPrompt: agentProfile.systemPrompt,
+          systemPrompt: resolvedSystemPrompt,
           userPrompt: buildChatUserPrompt(input.history, input.message),
           temperature: 0.4,
           responseFormat: 'text'
@@ -399,6 +414,28 @@ export const chatService = {
 
       return currentConversationId;
     });
+
+    // Save first user message as M_SMS so orchestrator agents have context
+    if (projectId && isNewConversation) {
+      prisma.memoryDefinition.findUnique({ where: { key: 'M_SMS' } })
+        .then((def) => {
+          if (!def) return;
+          return prisma.memoryEntry.upsert({
+            where: { projectId_memoryDefinitionId: { projectId: projectId!, memoryDefinitionId: def.id } },
+            update: {},
+            create: {
+              projectId: projectId!,
+              userId,
+              memoryDefinitionId: def.id,
+              content: {
+                request: input.message.trim(),
+                savedAt: new Date().toISOString(),
+              },
+            },
+          });
+        })
+        .catch(() => {});
+    }
 
     return {
       success: true,

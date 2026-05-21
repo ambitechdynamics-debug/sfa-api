@@ -29,4 +29,14 @@ export const imageGenController = {
     const posters = await imageGenService.listForProject(projectId, userId, userRole);
     return sendSuccess(res, 'Generated posters retrieved', posters);
   },
+
+  /**
+   * DELETE /api/projects/:projectId/generated-posters/:posterId
+   */
+  deletePoster: async (req: Request, res: Response) => {
+    const { projectId, posterId } = req.params;
+    const userId = req.user!.id;
+    const result = await imageGenService.deletePoster(userId, projectId, posterId);
+    return sendSuccess(res, 'Poster deleted', result);
+  },
 };

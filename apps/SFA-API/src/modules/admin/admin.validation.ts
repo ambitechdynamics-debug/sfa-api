@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MemoryScope, AgentProvider, AgentMemoryUsageType } from '@prisma/client';
+import { MemoryScope, AgentMemoryUsageType } from '@prisma/client';
 
 export const createMemoryDefSchema = z.object({
   key: z.string().min(1),
@@ -17,7 +17,7 @@ export const createAgentDefSchema = z.object({
   key: z.string().min(1),
   name: z.string().min(1),
   description: z.string().optional(),
-  provider: z.nativeEnum(AgentProvider).optional(),
+  provider: z.string().min(1).optional(),
   model: z.string(),
   systemPrompt: z.string().min(1),
   expectedOutputSchema: z.record(z.unknown()).optional(),

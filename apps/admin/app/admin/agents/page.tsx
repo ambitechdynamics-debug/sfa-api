@@ -123,10 +123,10 @@ export default function AgentsPage() {
   }
 
   const PROVIDER_COLORS: Record<string, string> = {
-    OPENAI: 'bg-emerald-500',
-    ANTHROPIC: 'bg-orange-500',
-    GEMINI: 'bg-blue-500',
-    MOCK: 'bg-gray-400',
+    OPENAI: 'bg-emerald-500', openai: 'bg-emerald-500',
+    ANTHROPIC: 'bg-orange-500', anthropic: 'bg-orange-500',
+    GEMINI: 'bg-blue-500', gemini: 'bg-blue-500',
+    MOCK: 'bg-gray-400', mock: 'bg-gray-400',
   }
 
   const selectedModelKey = modelKeyForProvider(chatSettings.text_ai_provider)
@@ -272,16 +272,21 @@ export default function AgentsPage() {
       </section>
 
       {/* Stats bar */}
-      <div className="flex items-center gap-4 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-xl">
-        {['OPENAI', 'ANTHROPIC', 'GEMINI', 'MOCK'].map((prov) => {
-          const count = agents.filter((a) => a.provider === prov).length
-          return (
+      <div className="flex items-center gap-4 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-xl flex-wrap">
+        {(() => {
+          const counts: Record<string, number> = {}
+          for (const a of agents) {
+            const key = a.provider.toLowerCase()
+            counts[key] = (counts[key] || 0) + 1
+          }
+          const labels: Record<string, string> = { openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini', mock: 'Mock' }
+          return Object.entries(counts).map(([prov, count]) => (
             <div key={prov} className="flex items-center gap-2">
-              <span className={cn('w-2 h-2 rounded-full', PROVIDER_COLORS[prov])} />
-              <span className="text-xs font-medium text-[var(--text-muted)]">{prov} · {count}</span>
+              <span className={cn('w-2 h-2 rounded-full', PROVIDER_COLORS[prov] || 'bg-purple-500')} />
+              <span className="text-xs font-medium text-[var(--text-muted)]">{labels[prov] || prov} · {count}</span>
             </div>
-          )
-        })}
+          ))
+        })()}
       </div>
 
       {/* Agent Cards Grid */}
@@ -298,8 +303,8 @@ export default function AgentsPage() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', PROVIDER_COLORS[agent.provider], 'bg-opacity-15')}>
-                      <Bot className={cn('w-4.5 h-4.5', agent.provider === 'OPENAI' ? 'text-emerald-600' : agent.provider === 'ANTHROPIC' ? 'text-orange-600' : agent.provider === 'GEMINI' ? 'text-blue-600' : 'text-gray-500')} />
+                    <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', PROVIDER_COLORS[agent.provider] || 'bg-purple-500', 'bg-opacity-15')}>
+                      <Bot className={cn('w-4.5 h-4.5', ['OPENAI','openai'].includes(agent.provider) ? 'text-emerald-600' : ['ANTHROPIC','anthropic'].includes(agent.provider) ? 'text-orange-600' : ['GEMINI','gemini'].includes(agent.provider) ? 'text-blue-600' : 'text-gray-500')} />
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-[var(--text)]">{agent.name}</div>

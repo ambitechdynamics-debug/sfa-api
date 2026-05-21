@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { env } from './env';
 
+
 if (!env.STRIPE_SECRET_KEY) {
   console.warn('STRIPE_SECRET_KEY is missing. Stripe actions will fail.');
 }

@@ -1,46 +1,69 @@
 'use client'
 
-import { useState } from 'react'
-import { CreditCard, Users, Pencil, Check, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Users, Pencil, Check, X } from 'lucide-react'
 import { SubscriptionPlan } from '@/types/admin'
-
-// Plans définis en configuration (pas encore persistés en base)
-const DEFAULT_PLANS: SubscriptionPlan[] = [
-  { id: 'free', name: 'Gratuit', price: 0, currency: 'XOF', credits: 0, maxProjects: 3, maxFilesPerProject: 3, features: ['3 projets max', '3 générations gratuites', 'Affiches en basse résolution'], isActive: true, subscribersCount: 0 },
-  { id: 'starter', name: 'Starter', price: 9, currency: 'EUR', credits: 50, maxProjects: 10, maxFilesPerProject: 10, features: ['10 projets', '50 crédits/mois', 'HD 1080p', 'Support email'], isActive: true, subscribersCount: 0 },
-  { id: 'business', name: 'Business', price: 29, currency: 'EUR', credits: 200, maxProjects: 50, maxFilesPerProject: 20, features: ['50 projets', '200 crédits/mois', '4K', 'Support prioritaire', 'Export multi-formats'], isActive: true, subscribersCount: 0 },
-  { id: 'agence', name: 'Agence', price: 79, currency: 'EUR', credits: 500, maxProjects: 999, maxFilesPerProject: 50, features: ['Projets illimités', '500 crédits/mois', '4K + RAW', 'Account manager dédié', 'API access', 'White-label'], isActive: true, subscribersCount: 0 },
-]
+import { fetchSubscriptions, updateSubscription } from '@/lib/admin-api'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
 const PLAN_COLORS: Record<string, string> = {
-  Gratuit: 'border-gray-200 dark:border-gray-800',
-  Starter: 'border-blue-200 dark:border-blue-800',
+  Gratuit:  'border-gray-200 dark:border-gray-800',
+  Starter:  'border-blue-200 dark:border-blue-800',
   Business: 'border-violet-300 dark:border-violet-700',
-  Agence: 'border-amber-300 dark:border-amber-700',
+  Agence:   'border-amber-300 dark:border-amber-700',
 }
 
 const PLAN_HEADER_BG: Record<string, string> = {
-  Gratuit: 'bg-gray-50 dark:bg-gray-900/30',
-  Starter: 'bg-blue-50 dark:bg-blue-900/20',
+  Gratuit:  'bg-gray-50 dark:bg-gray-900/30',
+  Starter:  'bg-blue-50 dark:bg-blue-900/20',
   Business: 'bg-violet-50 dark:bg-violet-900/20',
-  Agence: 'bg-amber-50 dark:bg-amber-900/20',
+  Agence:   'bg-amber-50 dark:bg-amber-900/20',
 }
 
 export default function SubscriptionsPage() {
-  const [plans, setPlans] = useState<SubscriptionPlan[]>(DEFAULT_PLANS)
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [editId, setEditId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Partial<SubscriptionPlan>>({})
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetchSubscriptions()
+      .then(setPlans)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [])
 
   function startEdit(plan: SubscriptionPlan) {
     setEditId(plan.id)
     setEditForm({ price: plan.price, credits: plan.credits, maxProjects: plan.maxProjects })
   }
 
-  function saveEdit(planId: string) {
-    setPlans((prev) => prev.map((p) => p.id === planId ? { ...p, ...editForm } : p))
-    setEditId(null)
+  async function saveEdit(planId: string) {
+    setSaving(true)
+    try {
+      const updated = await updateSubscription(planId, {
+        price: editForm.price,
+        credits: editForm.credits,
+        maxProjects: editForm.maxProjects,
+      })
+      setPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, ...updated } : p)))
+      setEditId(null)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erreur lors de la sauvegarde')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return <div className="p-8 text-[var(--text-muted)] text-sm">Chargement des abonnements…</div>
+  }
+
+  if (error) {
+    return <div className="p-8 text-red-500 text-sm">{error}</div>
   }
 
   return (
@@ -60,11 +83,17 @@ export default function SubscriptionsPage() {
                 <h3 className="text-sm font-bold text-[var(--text)]">{plan.name}</h3>
                 {editId === plan.id ? (
                   <div className="flex gap-1">
-                    <button onClick={() => saveEdit(plan.id)} className="p-1 rounded bg-emerald-100 text-emerald-600"><Check className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => setEditId(null)} className="p-1 rounded bg-red-100 text-red-600"><X className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => saveEdit(plan.id)} disabled={saving} className="p-1 rounded bg-emerald-100 text-emerald-600 disabled:opacity-50">
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setEditId(null)} disabled={saving} className="p-1 rounded bg-red-100 text-red-600 disabled:opacity-50">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 ) : (
-                  <button onClick={() => startEdit(plan)} className="p-1.5 rounded-md hover:bg-white/50 transition-colors"><Pencil className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
+                  <button onClick={() => startEdit(plan)} className="p-1.5 rounded-md hover:bg-white/50 transition-colors">
+                    <Pencil className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                  </button>
                 )}
               </div>
 
@@ -112,13 +141,13 @@ export default function SubscriptionsPage() {
         ))}
       </div>
 
-      {/* Recent subscriptions table */}
+      {/* Distribution chart */}
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
         <h3 className="text-sm font-semibold text-[var(--text)] mb-4">Répartition des abonnements</h3>
         <div className="space-y-3">
           {plans.map((plan) => {
             const total = plans.reduce((acc, p) => acc + p.subscribersCount, 0)
-            const pct = Math.round((plan.subscribersCount / total) * 100)
+            const pct = total > 0 ? Math.round((plan.subscribersCount / total) * 100) : 0
             return (
               <div key={plan.id}>
                 <div className="flex items-center justify-between text-xs mb-1">

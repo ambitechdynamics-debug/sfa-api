@@ -13,4 +13,7 @@ router.post('/:projectId/generate-images', asyncHandler(imageGenController.gener
 // GET /api/projects/:projectId/generated-posters
 router.get('/:projectId/generated-posters', asyncHandler(imageGenController.list));
 
+// DELETE /api/projects/:projectId/generated-posters/:posterId
+router.delete('/:projectId/generated-posters/:posterId', asyncHandler(imageGenController.deletePoster));
+
 export default router;

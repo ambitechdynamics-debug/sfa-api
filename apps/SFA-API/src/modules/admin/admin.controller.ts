@@ -158,6 +158,26 @@ export const adminController = {
     sendSuccess(res, 'Poster updated', poster);
   }),
 
+  refundPayment: asyncHandler(async (req: Request, res: Response) => {
+    const payment = await adminService.refundPayment(req.params.id);
+    sendSuccess(res, 'Paiement remboursé', payment);
+  }),
+
+  verifyPayment: asyncHandler(async (req: Request, res: Response) => {
+    const payment = await adminService.verifyPayment(req.params.id);
+    sendSuccess(res, 'Statut vérifié', payment);
+  }),
+
+  listSubscriptions: asyncHandler(async (_req: Request, res: Response) => {
+    const subscriptions = await adminService.listSubscriptions();
+    sendSuccess(res, 'Subscriptions retrieved', subscriptions);
+  }),
+
+  updateSubscription: asyncHandler(async (req: Request, res: Response) => {
+    const plan = await adminService.updateSubscription(req.params.planId, req.body);
+    sendSuccess(res, 'Subscription updated', plan);
+  }),
+
   getLlmProviders: asyncHandler(async (_req: Request, res: Response) => {
     const providers = await adminService.getLlmProviders();
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

@@ -92,6 +92,30 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     throw new AppError('Project not found or access denied', 404);
   }
 
+  // ─── 2. Auto-peupler M_SMS depuis M-CREATIVE-BRIEF si absent ────
+
+  const mSmsEntry = project.memoryEntries.find(
+    (e) => e.memoryDefinition?.key === 'M_SMS'
+  );
+  if (!mSmsEntry) {
+    const creativeBriefEntry = project.memoryEntries.find(
+      (e) => e.memoryDefinition?.key === 'M-CREATIVE-BRIEF'
+    );
+    if (creativeBriefEntry?.content) {
+      const brief = creativeBriefEntry.content as Record<string, unknown>;
+      const history = brief.conversationHistory as Array<{ role: string; content: string }> | undefined;
+      const firstUserMessage = history?.find((m) => m.role === 'user')?.content;
+      if (firstUserMessage) {
+        await upsertMemory(options.projectId, 'M_SMS', {
+          request: firstUserMessage,
+          conversationHistory: history?.slice(0, 10),
+          auto_populated: true,
+          populated_at: new Date().toISOString(),
+        } as unknown as Prisma.InputJsonValue);
+      }
+    }
+  }
+
   // ─── 3. Image Analyst (si fichiers présents) ─────────
 
   let imageAnalystResults: ImageAnalystOutput[] = [];
@@ -119,7 +143,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
         file_count: imageAnalystResults.length,
         generated_at: new Date().toISOString()
       };
-      await upsertMemory(options.projectId, 'M-MD', mdContent as unknown as Prisma.InputJsonValue);
+      await upsertMemory(options.projectId, 'M_MD', mdContent as unknown as Prisma.InputJsonValue);
     } catch (err) {
       // Non bloquant : continuer même si l'analyse image échoue
       console.warn('ImageAnalystAgent warning:', err instanceof Error ? err.message : err);
@@ -141,8 +165,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     throw new AppError(`Planner Agent échoué: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
   }
 
-  // Sauvegarder M-QT1
-  await upsertMemory(options.projectId, 'M-QT1', {
+  // Sauvegarder M_QT1
+  await upsertMemory(options.projectId, 'M_QT1', {
     questions_to_user: plannerResult.questions_to_user,
     missing_information: plannerResult.missing_information,
     generated_at: new Date().toISOString()
@@ -229,8 +253,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     throw new AppError(`Brand Agent échoué: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
   }
 
-  // Sauvegarder M-ID
-  await upsertMemory(options.projectId, 'M-ID', brandAgentResult as unknown as unknown as Prisma.InputJsonValue);
+  // Sauvegarder M_ID
+  await upsertMemory(options.projectId, 'M_ID', brandAgentResult as unknown as unknown as Prisma.InputJsonValue);
 
   // ─── 8. Artistic Base Agent → M-BA ──────────────────
 
@@ -268,8 +292,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     throw new AppError(`Artistic Base Agent échoué: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
   }
 
-  // Sauvegarder M-BA
-  await upsertMemory(options.projectId, 'M-BA', artisticBaseResult as unknown as unknown as Prisma.InputJsonValue);
+  // Sauvegarder M_BA
+  await upsertMemory(options.projectId, 'M_BA', artisticBaseResult as unknown as unknown as Prisma.InputJsonValue);
 
   // ─── 9. Prompt Architect → M-PROMPT1 ────────────────
 
@@ -296,8 +320,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     throw new AppError(`Prompt Architect Agent échoué: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
   }
 
-  // Sauvegarder M-PROMPT1
-  await upsertMemory(options.projectId, 'M-PROMPT1', promptArchitectResult as unknown as unknown as Prisma.InputJsonValue);
+  // Sauvegarder M_PROMPT1
+  await upsertMemory(options.projectId, 'M_PROMPT1', promptArchitectResult as unknown as unknown as Prisma.InputJsonValue);
 
   // ─── 10. Quality Agent ────────────────────────────────
 

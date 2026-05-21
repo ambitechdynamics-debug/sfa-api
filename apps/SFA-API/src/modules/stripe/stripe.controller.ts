@@ -4,6 +4,11 @@ import { env } from '../../config/env';
 import { stripe } from '../../config/stripe';
 import { getPlanLimits } from '../../utils/stripeLimits';
 
+const ZERO_DECIMAL_CURRENCIES = new Set(['bif','clp','gnf','jpy','kmf','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof']);
+function stripeAmountToDecimal(amount: number, currency: string): number {
+  return ZERO_DECIMAL_CURRENCIES.has(currency.toLowerCase()) ? amount : amount / 100;
+}
+
 // Helper to resolve price ID based on plan and period
 function getPriceId(plan: string, period: string): string | undefined {
   const planLower = plan.toLowerCase();
@@ -194,24 +199,60 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
         const invoice = event.data.object;
         const customerId = invoice.customer as string;
         const subscriptionId = invoice.subscription as string;
+        let plan = 'free';
 
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           await syncSubscription(customerId, subscription);
+          const priceId = subscription.items.data[0]?.price?.id;
+          if (priceId) plan = mapPriceToPlan(priceId);
+        }
+
+        const user = await prisma.user.findFirst({ where: { stripeCustomerId: customerId } });
+        if (user && invoice.amount_paid > 0) {
+          const amount = stripeAmountToDecimal(invoice.amount_paid, invoice.currency);
+          await prisma.payment.upsert({
+            where:  { reference: invoice.id },
+            update: { status: 'SUCCESS', amount, currency: invoice.currency.toUpperCase() },
+            create: {
+              userId: user.id, amount, currency: invoice.currency.toUpperCase(),
+              provider: 'STRIPE', status: 'SUCCESS', reference: invoice.id, planName: plan,
+            },
+          });
         }
         break;
       }
       case 'invoice.payment_failed': {
         const invoice = event.data.object;
         console.warn(`Payment failed for invoice ${invoice.id} customer ${invoice.customer}`);
-        // Optional: Update status in DB as unpaid/past_due
         const customerId = invoice.customer as string;
         await prisma.user.updateMany({
           where: { stripeCustomerId: customerId },
-          data: {
-            subscriptionStatus: 'past_due'
-          }
+          data: { subscriptionStatus: 'past_due' },
         });
+
+        const user = await prisma.user.findFirst({ where: { stripeCustomerId: customerId } });
+        if (user) {
+          const amount = stripeAmountToDecimal(invoice.amount_due || 0, invoice.currency || 'eur');
+          await prisma.payment.upsert({
+            where:  { reference: invoice.id },
+            update: { status: 'FAILED' },
+            create: {
+              userId: user.id, amount, currency: (invoice.currency || 'eur').toUpperCase(),
+              provider: 'STRIPE', status: 'FAILED', reference: invoice.id,
+            },
+          });
+        }
+        break;
+      }
+      case 'charge.refunded': {
+        const charge = event.data.object;
+        if (charge.invoice) {
+          await prisma.payment.updateMany({
+            where: { reference: charge.invoice as string },
+            data:  { status: 'CANCELLED' },
+          });
+        }
         break;
       }
       default:

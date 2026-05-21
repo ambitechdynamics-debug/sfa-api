@@ -21,6 +21,8 @@ async function main() {
     { key: 'M_ID', name: 'Identité Visuelle', description: 'Identité de marque extraite', isSystem: true },
     { key: 'M_BA', name: 'Base Artistique', description: 'Ressources artistiques recommandées', isSystem: true },
     { key: 'M_PROMPT1', name: 'Prompt Final', description: 'Le prompt final prêt pour génération', isSystem: true },
+    { key: 'M-CREATIVE-BRIEF', name: 'Brief Créatif', description: 'Configuration créative du dashboard (format, couleurs, polices, qualité, style, objectif)', isSystem: false },
+    { key: 'M-ASSETS', name: 'Assets Importés', description: 'Fichiers importés dans le panel Configuration Créative (URLs Cloudinary)', isSystem: false },
   ];
 
   const memDefs: Record<string, string> = {};

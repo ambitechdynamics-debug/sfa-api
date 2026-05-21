@@ -1,6 +1,6 @@
 import { MemoryDefinition } from './memory'
 
-export type AgentProvider = 'OPENAI' | 'ANTHROPIC' | 'GEMINI' | 'MOCK'
+export type AgentProvider = string
 export type AgentMemoryUsageType = 'INPUT' | 'OUTPUT' | 'BOTH'
 
 export interface AgentDefinition {

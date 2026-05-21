@@ -1,6 +1,14 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { AppError } from '../../utils/appError';
+import { stripe } from '../../config/stripe';
+
+const SUBSCRIPTION_PLAN_DEFAULTS = {
+  free:     { name: 'Gratuit',  price: 0,  currency: 'XOF', credits: 0,   maxProjects: 3,   maxFilesPerProject: 3,  features: ['3 projets max', '3 générations gratuites', 'Affiches en basse résolution'], isActive: true },
+  starter:  { name: 'Starter',  price: 9,  currency: 'EUR', credits: 50,  maxProjects: 10,  maxFilesPerProject: 10, features: ['10 projets', '50 crédits/mois', 'HD 1080p', 'Support email'], isActive: true },
+  business: { name: 'Business', price: 29, currency: 'EUR', credits: 200, maxProjects: 50,  maxFilesPerProject: 20, features: ['50 projets', '200 crédits/mois', '4K', 'Support prioritaire', 'Export multi-formats'], isActive: true },
+  agence:   { name: 'Agence',   price: 79, currency: 'EUR', credits: 500, maxProjects: 999, maxFilesPerProject: 50, features: ['Projets illimités', '500 crédits/mois', '4K + RAW', 'Account manager dédié', 'API access', 'White-label'], isActive: true },
+};
 
 export const adminService = {
   // Memory Definitions
@@ -374,6 +382,78 @@ export const adminService = {
       recentEvents,
       generatedAt: new Date().toISOString()
     };
+  },
+
+  // ─── Payment Actions ───────────────────────────────────────────────────────
+
+  refundPayment: async (paymentId: string) => {
+    if (!stripe) throw new AppError('Stripe non configuré', 503);
+    const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) throw new AppError('Paiement introuvable', 404);
+    if (payment.status !== 'SUCCESS') throw new AppError('Seuls les paiements réussis peuvent être remboursés', 400);
+    if (payment.provider !== 'STRIPE') throw new AppError('Remboursement uniquement disponible pour Stripe', 400);
+
+    const invoice = await stripe.invoices.retrieve(payment.reference);
+    if (!invoice.charge) throw new AppError('Aucun charge associé à ce paiement', 400);
+
+    await stripe.refunds.create({ charge: invoice.charge as string });
+    return prisma.payment.update({ where: { id: paymentId }, data: { status: 'CANCELLED' } });
+  },
+
+  verifyPayment: async (paymentId: string) => {
+    const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) throw new AppError('Paiement introuvable', 404);
+    if (payment.provider !== 'STRIPE' || !stripe) return payment;
+
+    const invoice = await stripe.invoices.retrieve(payment.reference);
+    const newStatus =
+      invoice.status === 'paid'  ? 'SUCCESS'   :
+      invoice.status === 'void'  ? 'CANCELLED'  :
+      invoice.status === 'open'  ? 'PENDING'    : 'FAILED';
+
+    if (newStatus !== payment.status) {
+      return prisma.payment.update({ where: { id: paymentId }, data: { status: newStatus } });
+    }
+    return payment;
+  },
+
+  // ─── Subscriptions ─────────────────────────────────────────────────────────
+
+  listSubscriptions: async () => {
+    const [counts, settings] = await Promise.all([
+      prisma.user.groupBy({ by: ['subscriptionPlan'], _count: { _all: true } }),
+      prisma.appSetting.findMany({ where: { category: 'subscriptions' } }),
+    ]);
+    const countMap = Object.fromEntries(counts.map(c => [c.subscriptionPlan, c._count._all]));
+    const findVal = (key: string) => settings.find(s => s.key === key)?.value;
+
+    return Object.entries(SUBSCRIPTION_PLAN_DEFAULTS).map(([id, def]) => ({
+      id,
+      ...def,
+      price:       findVal(`plan_${id}_price`)       !== undefined ? Number(findVal(`plan_${id}_price`))       : def.price,
+      credits:     findVal(`plan_${id}_credits`)     !== undefined ? Number(findVal(`plan_${id}_credits`))     : def.credits,
+      maxProjects: findVal(`plan_${id}_maxProjects`) !== undefined ? Number(findVal(`plan_${id}_maxProjects`)) : def.maxProjects,
+      subscribersCount: countMap[id] ?? 0,
+    }));
+  },
+
+  updateSubscription: async (planId: string, data: { price?: number; credits?: number; maxProjects?: number }) => {
+    if (!SUBSCRIPTION_PLAN_DEFAULTS[planId as keyof typeof SUBSCRIPTION_PLAN_DEFAULTS])
+      throw new AppError('Plan not found', 404);
+
+    const upserts = Object.entries(data)
+      .filter(([, v]) => v !== undefined)
+      .map(([field, value]) =>
+        prisma.appSetting.upsert({
+          where:  { key: `plan_${planId}_${field}` },
+          update: { value: String(value) },
+          create: { key: `plan_${planId}_${field}`, value: String(value), category: 'subscriptions', isSecret: false },
+        })
+      );
+    if (upserts.length) await prisma.$transaction(upserts);
+
+    const all = await adminService.listSubscriptions();
+    return all.find(p => p.id === planId)!;
   },
 
   getLlmProviders: async () => {

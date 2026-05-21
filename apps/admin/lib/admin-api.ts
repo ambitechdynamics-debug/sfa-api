@@ -1,4 +1,4 @@
-import { AdminStats } from '@/types/admin'
+import { AdminStats, SubscriptionPlan } from '@/types/admin'
 import { AdminUser, CreditTransaction } from '@/types/user'
 import { AdminProject, FileAsset, GeneratedPoster, FinalPrompt } from '@/types/project'
 import { AgentDefinition, AgentMemoryLink, AgentRunRecord } from '@/types/agent'
@@ -54,6 +54,18 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return data.data
+}
+
+// ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
+export async function fetchSubscriptions(): Promise<SubscriptionPlan[]> {
+  return apiFetch('/api/admin/subscriptions')
+}
+
+export async function updateSubscription(
+  planId: string,
+  data: Partial<Pick<SubscriptionPlan, 'price' | 'credits' | 'maxProjects'>>,
+): Promise<SubscriptionPlan> {
+  return apiFetch(`/api/admin/subscriptions/${planId}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
 // ─── STATS ────────────────────────────────────────────────────────────────────
@@ -313,6 +325,14 @@ export async function fetchPrompts(): Promise<FinalPrompt[]> {
 // ─── PAYMENTS ─────────────────────────────────────────────────────────────────
 export async function fetchPayments(): Promise<Payment[]> {
   return apiFetch('/api/admin/payments')
+}
+
+export async function refundPayment(id: string): Promise<Payment> {
+  return apiFetch(`/api/admin/payments/${id}/refund`, { method: 'POST' })
+}
+
+export async function verifyPayment(id: string): Promise<Payment> {
+  return apiFetch(`/api/admin/payments/${id}/verify`, { method: 'POST' })
 }
 
 // ─── CREDITS ──────────────────────────────────────────────────────────────────

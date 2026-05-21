@@ -56,8 +56,14 @@ router.get('/agent-runs', adminController.listAgentRuns);
 // ─── Prompts (M-PROMPT1 MemoryEntries) ──────────────────────────────────────
 router.get('/prompts', adminController.listPrompts);
 
+// ─── Subscriptions ───────────────────────────────────────────────────────────
+router.get('/subscriptions', adminController.listSubscriptions)
+router.patch('/subscriptions/:planId', adminController.updateSubscription)
+
 // ─── Payments ───────────────────────────────────────────────────────────────
-router.get('/payments', adminController.listPayments);
+router.get('/payments', adminController.listPayments)
+router.post('/payments/:id/refund', adminController.refundPayment)
+router.post('/payments/:id/verify', adminController.verifyPayment);
 
 // ─── Credit Transactions ────────────────────────────────────────────────────
 router.get('/credits', adminController.listCreditTransactions);

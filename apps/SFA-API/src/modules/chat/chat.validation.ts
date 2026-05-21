@@ -20,7 +20,8 @@ export const chatRequestSchema = z
     history: z.preprocess(
       (value) => (value === undefined || value === null ? [] : value),
       z.array(chatHistoryMessageSchema).max(40).default([])
-    )
+    ),
+    visualConfig: z.record(z.unknown()).optional()
   });
 
 export type ChatRequestSchema = z.infer<typeof chatRequestSchema>;

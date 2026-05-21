@@ -45,12 +45,27 @@ interface AgentFormProps {
 
 export function AgentForm({ initial, onSubmit, onCancel, isLoading }: AgentFormProps) {
   const [form, setForm] = useState<Partial<AgentDefinition>>({
-    key: '', name: '', description: '', provider: 'ANTHROPIC', model: 'claude-sonnet-4-6',
+    key: '', name: '', description: '', provider: 'anthropic', model: 'claude-sonnet-4-6',
     systemPrompt: '', expectedOutputSchema: {}, isActive: true, ...initial
   })
+  const [providers, setProviders] = useState<LlmProvider[]>([])
+  const [loadingProviders, setLoadingProviders] = useState(true)
+
+  useEffect(() => {
+    fetchLlmProviders()
+      .then((list) => setProviders(list.filter((p) => p.enabled)))
+      .catch(() => {})
+      .finally(() => setLoadingProviders(false))
+  }, [])
 
   const set = (field: keyof AgentDefinition, val: unknown) =>
     setForm((f) => ({ ...f, [field]: val }))
+
+  function handleProviderChange(slug: string) {
+    set('provider', slug)
+    const matched = providers.find((p) => p.id === slug)
+    if (matched?.defaultModel) set('model', matched.defaultModel)
+  }
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(form) }} className="space-y-4">
@@ -65,15 +80,38 @@ export function AgentForm({ initial, onSubmit, onCancel, isLoading }: AgentFormP
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Provider *">
-          <select className={selectCls} value={form.provider} onChange={(e) => set('provider', e.target.value)}>
-            <option value="OPENAI">OpenAI</option>
-            <option value="ANTHROPIC">Anthropic</option>
-            <option value="GEMINI">Gemini</option>
-            <option value="MOCK">Mock</option>
+          <select
+            className={selectCls}
+            value={form.provider}
+            onChange={(e) => handleProviderChange(e.target.value)}
+            disabled={loadingProviders}
+          >
+            {loadingProviders ? (
+              <option value="">Chargement…</option>
+            ) : providers.length === 0 ? (
+              <option value="">Aucun provider configuré</option>
+            ) : (
+              providers.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))
+            )}
           </select>
         </Field>
-        <Field label="Modèle *">
-          <input className={inputCls} placeholder="claude-sonnet-4-6" value={form.model || ''} onChange={(e) => set('model', e.target.value)} required />
+        <Field label="Modèle *" hint="Modifiable — le défaut vient des paramètres">
+          <input
+            className={inputCls}
+            list="agent-model-suggestions"
+            placeholder="claude-sonnet-4-6"
+            value={form.model || ''}
+            onChange={(e) => set('model', e.target.value)}
+            required
+          />
+          <datalist id="agent-model-suggestions">
+            {providers
+              .filter((p) => p.id === form.provider && p.defaultModel)
+              .map((p) => <option key={p.id} value={p.defaultModel} />)
+            }
+          </datalist>
         </Field>
       </div>
       <Field label="Prompt Système *">

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import { GenerateFinalPromptSchema } from './promptOrchestrator.validation';
-import { generateFinalPrompt, getAgentRuns } from './promptOrchestrator.controller';
+import { generateFinalPrompt, getAgentRuns, extractColors } from './promptOrchestrator.controller';
 
 const router = Router({ mergeParams: true });
 
@@ -17,6 +17,12 @@ router.post(
   validate({ body: GenerateFinalPromptSchema }),
   generateFinalPrompt
 );
+
+/**
+ * POST /api/projects/:projectId/extract-colors
+ * Analyse un logo via le provider vision configuré et retourne une palette hex
+ */
+router.post('/:projectId/extract-colors', extractColors);
 
 /**
  * GET /api/projects/:projectId/agent-runs

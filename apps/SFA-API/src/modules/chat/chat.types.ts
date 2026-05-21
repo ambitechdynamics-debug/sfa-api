@@ -10,6 +10,7 @@ export interface ChatRequestInput {
   conversationId?: string;
   projectId?: string;
   history?: ChatHistoryMessage[];
+  visualConfig?: Record<string, unknown>;
 }
 
 export interface ChatResponsePayload {

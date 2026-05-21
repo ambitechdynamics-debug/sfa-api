@@ -186,4 +186,13 @@ export const imageGenService = {
       orderBy: { variationNumber: 'asc' },
     });
   },
+
+  async deletePoster(userId: string, projectId: string, posterId: string): Promise<{ id: string }> {
+    const poster = await prisma.generatedPoster.findFirst({
+      where: { id: posterId, projectId, userId },
+    });
+    if (!poster) throw new AppError('Poster not found', 404);
+    await prisma.generatedPoster.delete({ where: { id: posterId } });
+    return { id: posterId };
+  },
 };
