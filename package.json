@@ -3,5 +3,11 @@
   "private": true,
   "workspaces": [
     "apps/*"
-  ]
+  ],
+  "scripts": {
+    "dev": "concurrently --names \"API,ADMIN,CLIENT\" --prefix-colors \"cyan,magenta,green\" \"npm run dev --workspace=apps/SFA-API\" \"npm run dev --workspace=apps/admin\" \"npm run dev --workspace=apps/client\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
 }

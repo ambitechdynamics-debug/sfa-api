@@ -9,7 +9,7 @@ import { ChatInput, PromptChip } from "@/components/app/dashboard-ui"
 import { useChatStore, type Message } from "@/store/chat-store"
 import { relativeTime } from "@/lib/utils"
 import { useAuth } from "@/hooks/useAuth"
-import { fetchGeneratedPosters } from "@/lib/projects"
+import { fetchGeneratedPosters, generateImages, generateFinalPrompt, deleteGeneratedPoster, uploadProjectFile, upsertProjectMemory, getProjectMemory, extractColorsFromLogo } from "@/lib/projects"
 import type { GeneratedPoster } from "@/types/project"
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
@@ -20,15 +20,11 @@ interface UploadedAsset {
   type: "logo" | "product" | "reference" | "poster" | "other"
   url: string
   status: "uploading" | "success" | "error"
+  isPrimary?: boolean
 }
 
 interface VisualConfig {
   format: string
-  customSize?: {
-    width: number
-    height: number
-    unit: "px" | "cm" | "mm"
-  }
   colors: {
     primary?: string
     secondary?: string
@@ -36,15 +32,8 @@ interface VisualConfig {
     background?: string
     text?: string
   }
-  fonts: {
-    title?: string
-    subtitle?: string
-    body?: string
-    cta?: string
-  }
   quality: string
   style: string
-  styleDescription?: string
   objective: string
 }
 
@@ -64,38 +53,6 @@ const PROMPTS = [
   "Créer une publication Instagram",
 ]
 
-// Default elegant visual templates to populate the viewer in absence of API-generated ones
-const DEFAULT_VISUALS: GeneratedVisual[] = [
-  {
-    id: "def-1",
-    title: "Maison Café Brunch",
-    imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80",
-    format: "Portrait — 4:5",
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: "def-2",
-    title: "Soirée Afterwork Lab",
-    imageUrl: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
-    format: "Carré — 1:1",
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-  },
-  {
-    id: "def-3",
-    title: "Drop Été Collection",
-    imageUrl: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&q=80",
-    format: "Story — 9:16",
-    createdAt: new Date(Date.now() - 14400000).toISOString(),
-  },
-  {
-    id: "def-4",
-    title: "Grandes Soldes Boutique",
-    imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&q=80",
-    format: "Paysage — 16:9",
-    createdAt: new Date(Date.now() - 28800000).toISOString(),
-  }
-]
-
 const QUALITY_LEVELS = [
   { value: "Draft", label: "Brouillon rapide", desc: "Génération ultra-rapide pour valider la composition de base." },
   { value: "Standard", label: "Standard", desc: "Qualité optimisée pour les réseaux sociaux et aperçus rapides." },
@@ -111,23 +68,34 @@ const STYLES = [
 ]
 
 const OBJECTIVES = [
-  "Vendre un produit", "Promouvoir un événement", "Annoncer une offre", 
-  "Présenter une marque", "Recruter", "Informer", "Faire connaître un service", 
+  "Vendre un produit", "Promouvoir un événement", "Annoncer une offre",
+  "Présenter une marque", "Recruter", "Informer", "Faire connaître un service",
   "Améliorer une affiche existante", "Créer une variante", "Préparer un visuel pour impression"
 ]
 
-const FONTS_CATEGORIES = [
-  "Moderne", "Luxe", "Minimaliste", "Sportif", "Corporate", "Élégant", "Jeune / dynamique", "Artistique", "Traditionnel"
+// Formats compatibles Nano Banana (Gemini Imagen 3) — aspect ratios uniquement
+const FORMATS = [
+  { value: "Carré — 1:1",    hint: "Instagram, Facebook" },
+  { value: "Portrait — 9:16", hint: "Stories, Reels, TikTok" },
+  { value: "Paysage — 16:9", hint: "YouTube, Bannière web" },
+  { value: "Portrait — 3:4", hint: "Flyer, Affiche, A4" },
+  { value: "Bannière — 4:3", hint: "Présentation, pub" },
 ]
 
-// Predefined harmonious color palettes for the AI color generator
-const MOCK_PALETTES = [
-  { name: "Noir & Gris", primary: "#777777", secondary: "#151515", accent: "#888888", background: "#0a0a0a", text: "#f5f5f5" },
-  { name: "Obsidienne dorée", primary: "#ea9b75", secondary: "#211a14", accent: "#ea9b75", background: "#100c08", text: "#e2d8c5" },
-  { name: "Sauge sauvage", primary: "#8aa57a", secondary: "#2a2118", accent: "#d8a85a", background: "#f1ead9", text: "#1d1611" },
-  { name: "Prune royale", primary: "#b08bc7", secondary: "#181310", accent: "#ea9b75", background: "#181310", text: "#f5eee2" },
-  { name: "Blanc Minimaliste", primary: "#5a5a5a", secondary: "#e0e0e0", accent: "#777777", background: "#ffffff", text: "#111111" }
-]
+const ASSET_TYPE_LABELS: Record<UploadedAsset["type"], string> = {
+  logo: "Logo",
+  product: "Produit",
+  reference: "Référence",
+  poster: "Affiche",
+  other: "Autre",
+}
+
+const REQUIRED_CONFIG_KEYS = ["format", "colors", "quality"]
+const CONFIG_KEY_LABELS: Record<string, string> = {
+  format: "Format & Style",
+  colors: "Palette de couleurs",
+  quality: "Qualité & Objectif",
+}
 
 function isLocalConversationId(value?: string) {
   return Boolean(value?.startsWith("local-"))
@@ -184,15 +152,17 @@ function ChatBubble({
         <span
           className="anim-logo-breathe"
           style={{
-            width: 32,
-            height: 32,
+            width: 34,
+            height: 34,
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
-            background: "var(--bg-2)",
-            border: "1px solid var(--line-2)",
-            borderRadius: 8,
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 10,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+            backdropFilter: "blur(8px)",
           }}
         >
           <BrandMark size={20} withWordmark={false} />
@@ -201,22 +171,30 @@ function ChatBubble({
       <article
         style={{
           width: "fit-content",
-          maxWidth: "min(720px, 82%)",
-          padding: isUser ? "12px 16px" : "10px 4px",
-          borderRadius: isUser ? "16px 16px 5px 16px" : 0,
-          border: isUser ? "1px solid var(--acc-line)" : 0,
-          background: isUser ? "var(--acc-soft)" : "transparent",
+          maxWidth: "min(720px, 84%)",
+          padding: isUser ? "11px 16px" : "14px 18px",
+          borderRadius: isUser ? "18px 18px 6px 18px" : "6px 18px 18px 18px",
+          border: isUser
+            ? "1px solid rgba(224,138,100,0.25)"
+            : "1px solid rgba(255,255,255,0.06)",
+          background: isUser
+            ? "linear-gradient(135deg, rgba(224,138,100,0.14), rgba(180,90,50,0.08))"
+            : "rgba(255,255,255,0.04)",
+          backdropFilter: isUser ? "none" : "blur(12px)",
+          WebkitBackdropFilter: isUser ? "none" : "blur(12px)",
           color: "var(--ink-0)",
-          boxShadow: isUser ? "var(--sh-1)" : "none",
+          boxShadow: isUser
+            ? "0 2px 16px rgba(224,138,100,0.1)"
+            : "0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 650, color: isUser ? "var(--acc-bright)" : "var(--ink-1)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 650, color: isUser ? "var(--acc-bright)" : "rgba(255,255,255,0.45)", letterSpacing: "0.02em" }}>
             {isUser ? "Vous" : "Studio Flyer AI"}
           </span>
-          <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{relativeTime(message.createdAt)}</span>
+          <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.22)" }}>{relativeTime(message.createdAt)}</span>
         </div>
-        <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.68, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.72, whiteSpace: "pre-wrap", overflowWrap: "anywhere", color: isUser ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.82)" }}>
           {textContent}
         </p>
 
@@ -271,41 +249,31 @@ function LoadingBubble() {
       <span
         className="anim-logo-breathe"
         style={{
-          width: 32,
-          height: 32,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
+          width: 34, height: 34,
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
-          background: "var(--bg-2)",
-          border: "1px solid var(--line-2)",
-          borderRadius: 8,
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 10,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+          backdropFilter: "blur(8px)",
         }}
       >
         <BrandMark size={20} withWordmark={false} />
       </span>
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 9,
-          minHeight: 32,
-          color: "var(--ink-2)",
-          fontSize: 13,
-        }}
-      >
-        <span
-          aria-hidden="true"
-          className="anim-shimmer"
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: 999,
-            background: "var(--acc-bright)",
-            boxShadow: "0 0 0 4px var(--acc-soft)",
-          }}
-        />
-        L'agent réfléchit...
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 10,
+        padding: "10px 16px", borderRadius: "6px 18px 18px 18px",
+        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+        backdropFilter: "blur(12px)", minHeight: 44,
+        color: "rgba(255,255,255,0.4)", fontSize: 13,
+      }}>
+        <span style={{ display: "flex", gap: 4 }}>
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="anim-dot-bounce" style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(255,255,255,0.35)", display: "inline-block", animationDelay: `${i * 0.18}s` }} />
+          ))}
+        </span>
+        L'agent orchestre votre visuel...
       </div>
     </div>
   )
@@ -352,6 +320,96 @@ function ErrorNotice({
   )
 }
 
+function PanelSection({
+  title,
+  isOpen,
+  onToggle,
+  headerRight,
+  children,
+}: {
+  title: string
+  isOpen: boolean
+  onToggle: () => void
+  headerRight?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        borderRadius: 7,
+        border: "1px solid rgba(255,255,255,0.065)",
+        background: "rgba(255,255,255,0.016)",
+        // iOS 26 liquid glass: top specular + depth shadow
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.065), 0 2px 6px rgba(0,0,0,0.22)",
+        overflow: "hidden",
+      }}
+    >
+      {/* Photoshop-style compact header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          height: 28,
+          background: isOpen
+            ? "linear-gradient(180deg, rgba(255,255,255,0.048) 0%, rgba(255,255,255,0.022) 100%)"
+            : "rgba(255,255,255,0.026)",
+          borderBottom: isOpen ? "1px solid rgba(255,255,255,0.055)" : "none",
+          // Warm left accent when open — Photoshop active-section cue
+          boxShadow: isOpen ? "inset 3px 0 0 rgba(200,120,50,0.32)" : "none",
+          transition: "background 0.2s ease, box-shadow 0.2s ease",
+        }}
+      >
+        <button
+          onClick={onToggle}
+          style={{
+            flex: 1,
+            padding: "0 10px",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            background: "transparent",
+            border: 0,
+            cursor: "pointer",
+            color: isOpen ? "rgba(255,255,255,0.78)" : "rgba(255,255,255,0.42)",
+            fontSize: 10.5,
+            fontWeight: 650,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase" as const,
+            textAlign: "left",
+            transition: "color 0.2s ease",
+          }}
+        >
+          <Icon
+            name="chevronR"
+            size={9}
+            style={{
+              color: isOpen ? "var(--acc-bright)" : "rgba(255,255,255,0.28)",
+              transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
+              transition: "transform 0.22s cubic-bezier(0.4,0,0.2,1)",
+              flexShrink: 0,
+            }}
+          />
+          {title}
+        </button>
+        {headerRight}
+      </div>
+      <div
+        style={{
+          maxHeight: isOpen ? "2000px" : "0px",
+          overflow: "hidden",
+          transition: "max-height 0.32s cubic-bezier(0.4,0,0.2,1)",
+        }}
+      >
+        <div style={{ padding: "10px 12px 12px" }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
 function EmptyConversationState({ onPrompt }: { onPrompt: (value: string) => void }) {
   return (
     <div
@@ -363,34 +421,54 @@ function EmptyConversationState({ onPrompt }: { onPrompt: (value: string) => voi
         alignItems: "center",
         padding: "40px 16px",
         textAlign: "center",
+        position: "relative",
+        zIndex: 2,
       }}
     >
+      {/* Center dot accent */}
+      <div style={{
+        position: "absolute", top: "28%", left: "50%", transform: "translate(-50%,-50%)",
+        width: 280, height: 280, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(255,255,255,0.025) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+
       <div
         className="anim-logo-breathe"
         style={{
-          width: 54,
-          height: 54,
-          marginBottom: 20,
+          width: 64,
+          height: 64,
+          marginBottom: 24,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "var(--bg-2)",
-          border: "1px solid var(--line-2)",
-          borderRadius: 14,
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 18,
+          boxShadow: "0 2px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+          backdropFilter: "blur(12px)",
         }}
       >
-        <BrandMark size={28} withWordmark={false} />
+        <BrandMark size={32} withWordmark={false} />
       </div>
+
       <h2
         className="display"
-        style={{ fontSize: "clamp(24px, 3vw, 36px)", margin: "0 0 12px 0", letterSpacing: 0, textAlign: "center", color: "var(--ink-0)" }}
+        style={{
+          fontSize: "clamp(22px, 2.8vw, 34px)",
+          margin: "0 0 10px 0",
+          letterSpacing: "-0.02em",
+          textAlign: "center",
+          color: "var(--ink-0)",
+          textShadow: "none",
+        }}
       >
         Que voulez-vous créer aujourd'hui ?
       </h2>
-      <p style={{ margin: "0 0 28px", maxWidth: 540, color: "var(--ink-2)", fontSize: 14, lineHeight: 1.55 }}>
-        Préparez vos paramètres créatifs sur la gauche (format, style, couleurs), puis décrivez votre visuel au centre. L'IA générera des affiches magnifiques visibles en temps réel sur la droite.
+      <p style={{ margin: "0 0 32px", maxWidth: 480, color: "var(--ink-3)", fontSize: 13.5, lineHeight: 1.6 }}>
+        Configurez vos paramètres à gauche, décrivez votre idée ici — l'IA orchestre le reste.
       </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", maxWidth: 660 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 9, justifyContent: "center", maxWidth: 620 }}>
         {PROMPTS.map((item) => (
           <PromptChip key={item} onClick={() => onPrompt(item)}>
             {item}
@@ -407,24 +485,27 @@ export function ChatConversation({
   conversationId,
   projectId,
   initialTitle,
+  initialPrompt,
 }: {
   conversationId?: string
   projectId?: string
   initialTitle?: string
+  initialPrompt?: string
 }) {
   const router = useRouter()
   const { user } = useAuth()
 
   // --- States ---
-  const [prompt, setPrompt] = useState("")
+  const [prompt, setPrompt] = useState(initialPrompt ?? "")
   const [loadingConversation, setLoadingConversation] = useState(Boolean(conversationId))
   const [hasSubmittedInView, setHasSubmittedInView] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const pendingFilesRef = useRef<{ file: File; tempId: string; assetType: UploadedAsset["type"] }[]>([])
 
   // Responsive state
   const [activeTab, setActiveTab] = useState<"settings" | "chat" | "preview">("chat")
-  const [leftOpen, setLeftOpen] = useState(true)
-  const [rightOpen, setRightOpen] = useState(true)
+  const [leftOpen, setLeftOpen] = useState(false)
+  const [rightOpen, setRightOpen] = useState(false)
 
   // Creation State - Frame 1
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([])
@@ -432,31 +513,50 @@ export function ChatConversation({
   const [dragOver, setDragOver] = useState(false)
 
   const [config, setConfig] = useState<VisualConfig>({
-    format: "Portrait — 4:5",
+    format: "Portrait — 3:4",
     colors: {
-      primary: "#777777",
-      secondary: "#1f1f1f",
-      accent: "#888888",
-      background: "#0a0a0a",
-      text: "#f5f5f5"
-    },
-    fonts: {
-      title: "Moderne",
-      body: "Moderne"
+      primary: "#808080",
+      secondary: "#2a2a2a",
+      accent: "#a0a0a0",
+      background: "#111111",
+      text: "#f0f0f0"
     },
     quality: "Premium",
     style: "Moderne",
     objective: "Vendre un produit"
   })
-  const [customSize, setCustomSize] = useState({ width: 1080, height: 1350, unit: "px" as const })
-  const [aiFonts, setAiFonts] = useState(true)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
-
   // Visuals State - Frame 3
-  const [visuals, setVisuals] = useState<GeneratedVisual[]>(DEFAULT_VISUALS)
-  const [selectedVisualId, setSelectedVisualId] = useState<string>("def-1")
+  const [visuals, setVisuals] = useState<GeneratedVisual[]>([])
+  const [selectedVisualId, setSelectedVisualId] = useState<string>("")
   const [zoomOpen, setZoomOpen] = useState(false)
   const [activeExportFormat, setActiveExportFormat] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isExtractingColors, setIsExtractingColors] = useState(false)
+  const [awaitingOther, setAwaitingOther] = useState(false)
+  const [sweepActive, setSweepActive] = useState(false)
+  const sweepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [touchedSections, setTouchedSections] = useState<Set<string>>(new Set())
+  const [libreFields, setLibreFields] = useState<Set<string>>(new Set())
+  const [configAttached, setConfigAttached] = useState(false)
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
+  const isSectionOpen = (key: string) => !collapsedSections.has(key)
+  const toggleSection = (key: string) =>
+    setCollapsedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  const markTouched = (key: string) =>
+    setTouchedSections((prev) => { const s = new Set(prev); s.add(key); return s })
+  const toggleLibre = (key: string) =>
+    setLibreFields((prev) => { const s = new Set(prev); if (s.has(key)) s.delete(key); else s.add(key); return s })
+  const isSectionFilled = (key: string) => touchedSections.has(key) || libreFields.has(key)
+
+  const validateCreativeConfig = () => {
+    const missing = REQUIRED_CONFIG_KEYS.filter((k) => !isSectionFilled(k))
+    return { valid: missing.length === 0, missing }
+  }
 
   const {
     activeConversation,
@@ -475,14 +575,29 @@ export function ChatConversation({
   const showPassiveError = Boolean(error && !failedMessage && !loadingConversation)
   const activeId = activeConversation?.id || conversationId
   const currentProjectId = activeConversation?.projectId || projectId
+  const conversationStarted = messages.length > 0 || Boolean(conversationId)
+
+  // Auto-apply brown border when latest assistant message asks an open question (no choices)
+  useEffect(() => {
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant")
+    if (!lastAssistant) return
+    const lines = lastAssistant.content.split("\n")
+    const hasChoices = lines.some((l) => l.trim().match(/^(?:[-*\d.]+\s*)?\[.+\]$/))
+    const hasQuestion = lastAssistant.content.includes("?")
+    setAwaitingOther(!hasChoices && hasQuestion)
+  }, [messages])
 
   // --- Dynamic Layout Init ---
   useEffect(() => {
     const handleResize = () => {
       const w = window.innerWidth
+      if (!conversationStarted) {
+        setLeftOpen(false)
+        setRightOpen(false)
+        return
+      }
       if (w < 768) {
-        // Mobile
-        // Tabs will control display
+        // Mobile — tabs will control display
       } else if (w < 1200) {
         // Tablet
         setLeftOpen(false)
@@ -496,7 +611,15 @@ export function ChatConversation({
     window.addEventListener("resize", handleResize)
     handleResize()
     return () => window.removeEventListener("resize", handleResize)
-  }, [])
+  }, [conversationStarted])
+
+  // Open panels when conversation starts on desktop
+  useEffect(() => {
+    if (conversationStarted && window.innerWidth >= 1200) {
+      setLeftOpen(true)
+      setRightOpen(true)
+    }
+  }, [conversationStarted])
 
   // --- Sync Generated Posters from active project ---
   useEffect(() => {
@@ -515,13 +638,10 @@ export function ChatConversation({
             setSelectedVisualId(mapped[0].id)
           }
         })
-        .catch(() => {
-          // Fallback silently to mock visuals if request fails or is mock env
-        })
+        .catch(() => {})
     } else {
-      // Reset to default mock templates if no project is active
-      setVisuals(DEFAULT_VISUALS)
-      setSelectedVisualId(DEFAULT_VISUALS[0].id)
+      setVisuals([])
+      setSelectedVisualId("")
     }
   }, [currentProjectId, config.format])
 
@@ -550,19 +670,133 @@ export function ChatConversation({
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [messages.length, isSending, showRetryError, showPassiveError])
 
+  // Restore creative config and assets from backend memory when project loads
+  useEffect(() => {
+    if (!currentProjectId) return
+
+    getProjectMemory(currentProjectId, "M-CREATIVE-BRIEF")
+      .then((entry) => {
+        if (!entry?.content) return
+        const saved = entry.content as Record<string, unknown>
+        setConfig((prev) => ({
+          ...prev,
+          ...(saved.quality ? { quality: saved.quality as string } : {}),
+          ...(saved.style ? { style: saved.style as string } : {}),
+          ...(saved.objective ? { objective: saved.objective as string } : {}),
+          ...(saved.colors ? { colors: saved.colors as typeof prev.colors } : {}),
+          ...(saved.format && FORMATS.some((f) => f.value === saved.format) ? { format: saved.format as string } : {}),
+        }))
+      })
+      .catch(() => {})
+
+    getProjectMemory(currentProjectId, "M-ASSETS")
+      .then((entry) => {
+        if (!entry?.content) return
+        const saved = entry.content as Record<string, unknown>
+        const assets = saved.assets as Array<{ type: string; url: string; name: string; isPrimary?: boolean }> | undefined
+        if (assets?.length) {
+          setUploadedAssets(
+            assets.map((a, i) => ({
+              id: `restored-${i}-${Date.now()}`,
+              name: a.name,
+              type: a.type as UploadedAsset["type"],
+              url: a.url,
+              status: "success" as const,
+              isPrimary: a.isPrimary,
+            }))
+          )
+        }
+      })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProjectId])
+
+  // Drain pending file uploads once a projectId is available
+  useEffect(() => {
+    if (!currentProjectId || pendingFilesRef.current.length === 0) return
+    const pending = [...pendingFilesRef.current]
+    pendingFilesRef.current = []
+    Promise.all(
+      pending.map(({ file, tempId, assetType }) =>
+        uploadToCloudinary(file, tempId, assetType, currentProjectId)
+      )
+    ).then((urls) => {
+      if (urls.some(Boolean)) saveAssetsToMemory(currentProjectId)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProjectId])
+
   function shouldNavigateToConversation(nextConversationId?: string) {
     if (!nextConversationId || projectId || nextConversationId === conversationId) return false
     if (isLocalConversationId(nextConversationId)) return false
     return !conversationId || isLocalConversationId(conversationId)
   }
 
+  function buildVisualConfigPayload(): Record<string, unknown> {
+    return {
+      format: config.format,
+      colors: config.colors,
+      quality: config.quality,
+      style: config.style,
+      objective: config.objective,
+      assets: uploadedAssets
+        .filter((a) => a.status === "success" && !a.url.startsWith("blob:"))
+        .map((a) => ({ type: a.type, url: a.url, name: a.name, isPrimary: a.isPrimary })),
+    }
+  }
+
+  async function saveCreativeBriefToMemory(projectId: string) {
+    await upsertProjectMemory(projectId, "M-CREATIVE-BRIEF", {
+      ...buildVisualConfigPayload(),
+      conversationHistory: messages
+        .filter((m) => m.role !== "system")
+        .map((m) => ({ role: m.role, content: m.content.slice(0, 500) }))
+        .slice(-20),
+      savedAt: new Date().toISOString(),
+    }).catch(() => {})
+  }
+
+  async function triggerOrchestratedGeneration(projectId: string) {
+    if (isGenerating) return
+    setIsGenerating(true)
+    try {
+      const result = await generateFinalPrompt(projectId)
+      if (result?.data?.ready_for_generation) {
+        await triggerGeneration(3)
+      } else {
+        setIsGenerating(false)
+      }
+    } catch {
+      setIsGenerating(false)
+    }
+  }
+
   async function handleSend(content = prompt) {
     const clean = content.trim()
     if (!clean || !user?.id || isSending || loadingConversation) return
 
+    const isVisualTrigger = /g[eé]r[eé]r.*visuel|g[eé]n[eé]r[eé]r.*visuel/i.test(clean)
+
+    if (isVisualTrigger) {
+      const { valid } = validateCreativeConfig()
+      if (!valid) {
+        setLeftOpen(true)
+        return
+      }
+    }
+
     setPrompt("")
+    setConfigAttached(false)
+    setAwaitingOther(false)
     setHasSubmittedInView(true)
-    const nextConversationId = await sendMessage(clean, user.id, projectId)
+    const nextConversationId = await sendMessage(clean, user.id, projectId, buildVisualConfigPayload())
+
+    const resolvedProjectId = currentProjectId || activeConversation?.projectId
+    if (isVisualTrigger && resolvedProjectId) {
+      await saveCreativeBriefToMemory(resolvedProjectId)
+      triggerOrchestratedGeneration(resolvedProjectId)
+    }
+
     if (shouldNavigateToConversation(nextConversationId)) {
       router.push(`/dashboard/c/${nextConversationId}`)
     }
@@ -577,10 +811,14 @@ export function ChatConversation({
     }
   }
 
-  // --- Premium Actions & Triggers ---
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 3000)
+  function handleChoiceClick(choice: string) {
+    const isAutre = /^autre$/i.test(choice.trim()) || /autre/i.test(choice)
+    if (isAutre) {
+      setAwaitingOther(true)
+      return
+    }
+    setAwaitingOther(false)
+    void handleSend(choice)
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -589,39 +827,73 @@ export function ChatConversation({
     processFiles(Array.from(files))
   }
 
+  const USAGE_TYPE_MAP: Record<UploadedAsset["type"], string> = {
+    logo: "LOGO",
+    product: "PRODUCT_IMAGE",
+    reference: "REFERENCE_IMAGE",
+    poster: "GENERATED_POSTER",
+    other: "OTHER",
+  }
+
+  async function uploadToCloudinary(
+    file: File,
+    tempId: string,
+    assetType: UploadedAsset["type"],
+    projectId: string
+  ): Promise<string | null> {
+    try {
+      const result = await uploadProjectFile(projectId, file, USAGE_TYPE_MAP[assetType] ?? "OTHER")
+      setUploadedAssets((prev) =>
+        prev.map((a) => (a.id === tempId ? { ...a, url: result.fileUrl, status: "success" } : a))
+      )
+      return result.fileUrl
+    } catch {
+      setUploadedAssets((prev) =>
+        prev.map((a) => (a.id === tempId ? { ...a, status: "error" } : a))
+      )
+      return null
+    }
+  }
+
+  async function saveAssetsToMemory(projectId: string) {
+    setUploadedAssets((currentAssets) => {
+      const successAssets = currentAssets
+        .filter((a) => a.status === "success" && !a.url.startsWith("blob:"))
+        .map((a) => ({ type: a.type, url: a.url, name: a.name, isPrimary: a.isPrimary }))
+      if (successAssets.length > 0) {
+        upsertProjectMemory(projectId, "M-ASSETS", {
+          assets: successAssets,
+          updatedAt: new Date().toISOString(),
+        }).catch(() => {})
+      }
+      return currentAssets
+    })
+  }
+
   const processFiles = (files: File[]) => {
     files.forEach((file) => {
-      // Max 10 Mo limit
-      if (file.size > 10 * 1024 * 1024) {
-        triggerToast(`Fichier ${file.name} trop volumineux (> 10 Mo)`)
-        return
-      }
-      const fileType = file.name.split('.').pop()?.toLowerCase()
-      if (!["jpg", "jpeg", "png", "webp", "svg"].includes(fileType || "")) {
-        triggerToast("Format de fichier non accepté (uniquement JPG, PNG, WebP, SVG)")
-        return
-      }
+      if (file.size > 10 * 1024 * 1024) return
+      const fileType = file.name.split(".").pop()?.toLowerCase()
+      if (!["jpg", "jpeg", "png", "webp", "svg"].includes(fileType || "")) return
 
       const tempAssetId = `asset-${Date.now()}-${Math.random().toString(36).slice(2)}`
       const objectUrl = URL.createObjectURL(file)
-
       const newAsset: UploadedAsset = {
         id: tempAssetId,
         name: file.name,
         type: activeAssetType,
         url: objectUrl,
-        status: "uploading"
+        status: "uploading",
       }
-
       setUploadedAssets((prev) => [...prev, newAsset])
 
-      // Simulate premium uploading shimmer animation
-      setTimeout(() => {
-        setUploadedAssets((prev) =>
-          prev.map((asset) => (asset.id === tempAssetId ? { ...asset, status: "success" } : asset))
-        )
-        triggerToast(`${file.name} importé avec succès en tant que ${activeAssetType}`)
-      }, 1500)
+      if (currentProjectId) {
+        uploadToCloudinary(file, tempAssetId, activeAssetType, currentProjectId).then((url) => {
+          if (url) saveAssetsToMemory(currentProjectId)
+        })
+      } else {
+        pendingFilesRef.current.push({ file, tempId: tempAssetId, assetType: activeAssetType })
+      }
     })
   }
 
@@ -644,106 +916,128 @@ export function ChatConversation({
 
   const deleteAsset = (id: string) => {
     setUploadedAssets((prev) => prev.filter((a) => a.id !== id))
-    triggerToast("Fichier supprimé de l'espace de création")
   }
 
-  const generateAIPalette = () => {
-    const randomPalette = MOCK_PALETTES[Math.floor(Math.random() * MOCK_PALETTES.length)]
-    setConfig((prev) => ({
-      ...prev,
-      colors: {
-        primary: randomPalette.primary,
-        secondary: randomPalette.secondary,
-        accent: randomPalette.accent,
-        background: randomPalette.background,
-        text: randomPalette.text
-      }
-    }))
-    triggerToast(`Palette IA « ${randomPalette.name} » appliquée !`)
+  const setPrimaryAsset = (id: string) => {
+    setUploadedAssets((prev) =>
+      prev.map((a) => ({ ...a, isPrimary: a.id === id }))
+    )
+    if (currentProjectId) saveAssetsToMemory(currentProjectId)
   }
 
-  const extractColors = () => {
-    const succeededAssets = uploadedAssets.filter((a) => a.status === "success")
-    if (succeededAssets.length === 0) {
-      triggerToast("Veuillez d'abord uploader une image pour y extraire les couleurs.")
-      return
+  const ASSET_TYPES_ORDER: UploadedAsset["type"][] = ["logo", "product", "reference", "poster", "other"]
+
+  const cycleAssetType = (id: string) => {
+    setUploadedAssets((prev) =>
+      prev.map((a) => {
+        if (a.id !== id) return a
+        const idx = ASSET_TYPES_ORDER.indexOf(a.type)
+        const nextType = ASSET_TYPES_ORDER[(idx + 1) % ASSET_TYPES_ORDER.length]
+        return { ...a, type: nextType }
+      })
+    )
+  }
+
+  const extractColors = async () => {
+    if (isExtractingColors) return
+    const succeededAssets = uploadedAssets.filter((a) => a.status === "success" && !a.url.startsWith("blob:"))
+    if (succeededAssets.length === 0 || !currentProjectId) return
+    // Use primary asset (any type), fallback to first available
+    const sourceAsset = succeededAssets.find((a) => a.isPrimary) ?? succeededAssets[0]
+    setIsExtractingColors(true)
+    try {
+      const colors = await extractColorsFromLogo(currentProjectId, sourceAsset.url)
+      setConfig((prev) => ({ ...prev, colors }))
+      markTouched("colors")
+    } catch {
+      // silent — isExtractingColors returns to false via finally
+    } finally {
+      setIsExtractingColors(false)
     }
-    // Simulate beautiful dominant color extraction
-    const extractedPalettes = [
-      { primary: "#777777", secondary: "#1f1f1f", accent: "#888888", background: "#0a0a0a", text: "#f5f5f5" },
-      { primary: "#8aa57a", secondary: "#100c08", accent: "#888888", background: "#ffffff", text: "#1d1611" }
-    ]
-    const chosen = extractedPalettes[Math.floor(Math.random() * extractedPalettes.length)]
-    setConfig((prev) => ({
-      ...prev,
-      colors: chosen
-    }))
-    triggerToast("Palette extraite de l'image avec succès !")
   }
 
   const applyToChatContext = () => {
-    const formatStr = config.format === "Format personnalisé"
-      ? `Personnalisé (${customSize.width}x${customSize.height} ${customSize.unit})`
-      : config.format
-
-    const activeAssets = uploadedAssets.filter((a) => a.status === "success")
-    const assetsText = activeAssets.length > 0
-      ? `\n- 📎 **Fichiers importés :** ${activeAssets.map(a => `${a.name} (${a.type})`).join(', ')}`
-      : ""
-
-    const promptPayload = `🎨 **Brief de visuel configuré :**
-- 📐 **Format :** ${formatStr}
-- 🎨 **Palette de couleurs :** Primaire: \`${config.colors.primary}\`, Secondaire: \`${config.colors.secondary}\`, Accent: \`${config.colors.accent}\`
-- 🔤 **Polices :** ${aiFonts ? "Laisser l'IA choisir les meilleures polices" : `Titre: ${config.fonts.title}, Corps: ${config.fonts.body}`}
-- ⚡ **Qualité requise :** ${config.quality}
-- 🎭 **Style visuel :** ${config.style}${config.styleDescription ? ` (« ${config.styleDescription} »)` : ""}
-- 🎯 **Objectif stratégique :** ${config.objective}${assetsText}
-
-*Veuillez utiliser ces paramètres pour générer et améliorer mon visuel.*`
-
-    setPrompt(promptPayload)
+    setConfigAttached(true)
     setActiveTab("chat")
-    triggerToast("Paramètres injectés avec succès dans le chat central !")
-  }
-
-  const downloadActiveVisual = () => {
-    const activeVisual = visuals.find((v) => v.id === selectedVisualId)
-    if (!activeVisual) return
-    triggerToast(`Téléchargement de « ${activeVisual.title} » en cours...`)
-    
-    const url = activeVisual.imageUrl.includes("/upload/")
-      ? activeVisual.imageUrl.replace("/upload/", "/upload/fl_attachment/")
-      : activeVisual.imageUrl
-    window.open(url, "_blank")
-  }
-
-  const requestVariant = () => {
-    const activeVisual = visuals.find((v) => v.id === selectedVisualId)
-    if (!activeVisual) return
-    const text = `Générer une variante créative basée sur le visuel « ${activeVisual.title} ».`
-    setPrompt(text)
-    setActiveTab("chat")
-    handleSend(text)
-  }
-
-  const requestImprovement = () => {
-    const activeVisual = visuals.find((v) => v.id === selectedVisualId)
-    if (!activeVisual) return
-    const text = `Améliorer la composition, l'éclairage et la typographie du visuel « ${activeVisual.title} ».`
-    setPrompt(text)
-    setActiveTab("chat")
-    handleSend(text)
-  }
-
-  const deleteActiveVisual = () => {
-    if (visuals.length <= 1) {
-      triggerToast("Impossible de supprimer le dernier visuel.")
-      return
+    // Trigger light sweep animation
+    if (sweepTimerRef.current) clearTimeout(sweepTimerRef.current)
+    setSweepActive(true)
+    sweepTimerRef.current = setTimeout(() => setSweepActive(false), 700)
+    if (currentProjectId) {
+      upsertProjectMemory(currentProjectId, "M-CREATIVE-BRIEF", buildVisualConfigPayload()).catch(() => {})
     }
-    setVisuals((prev) => prev.filter((v) => v.id !== selectedVisualId))
-    const remaining = visuals.filter((v) => v.id !== selectedVisualId)
+  }
+
+  function buildCloudinaryUrl(imageUrl: string, format: string): string {
+    if (!imageUrl.includes("/upload/")) return imageUrl
+    const transformMap: Record<string, string> = {
+      "PNG": "f_png,q_100",
+      "JPG": "f_jpg,q_92",
+      "PDF": "f_pdf",
+      "WebP": "f_webp,q_90",
+      "HD Print": "f_png,dpr_3.0,q_100",
+    }
+    const transform = transformMap[format] ?? "f_auto"
+    return imageUrl.replace("/upload/", `/upload/${transform},fl_attachment/`)
+  }
+
+  const downloadWithFormat = (format: string) => {
+    const activeVisual = visuals.find((v) => v.id === selectedVisualId)
+    if (!activeVisual) return
+    setActiveExportFormat(null)
+    window.open(buildCloudinaryUrl(activeVisual.imageUrl, format), "_blank")
+  }
+
+  const downloadActiveVisual = () => downloadWithFormat("PNG")
+
+  async function triggerGeneration(variations = 1) {
+    if (!currentProjectId || isGenerating) return
+    setIsGenerating(true)
+    try {
+      const result = await generateImages(currentProjectId, { variations })
+      if (result.posters?.length > 0) {
+        const mapped: GeneratedVisual[] = result.posters.map((p) => ({
+          id: p.id,
+          title: `Variante ${p.variationNumber}`,
+          imageUrl: p.imageUrl,
+          format: config.format,
+          createdAt: p.createdAt || new Date().toISOString(),
+        }))
+        setVisuals((prev) => {
+          const existingIds = new Set(prev.map((v) => v.id))
+          const newOnes = mapped.filter((v) => !existingIds.has(v.id))
+          return [...prev, ...newOnes]
+        })
+        setSelectedVisualId(mapped[0].id)
+      }
+    } catch {
+      // silent — isGenerating returns to false via finally
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const requestVariant = () => triggerGeneration(1)
+
+  const requestImprovement = () => triggerGeneration(1)
+
+  const deleteActiveVisual = async () => {
+    if (visuals.length <= 1 || !currentProjectId) return
+    const toDelete = selectedVisualId
+    const remaining = visuals.filter((v) => v.id !== toDelete)
+    setVisuals(remaining)
     setSelectedVisualId(remaining[0].id)
-    triggerToast("Visuel supprimé de la galerie locale.")
+    try {
+      await deleteGeneratedPoster(currentProjectId, toDelete)
+    } catch {
+      setVisuals((prev) => {
+        const deleted = visuals.find((v) => v.id === toDelete)
+        if (!deleted) return prev
+        return [...prev, deleted].sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        )
+      })
+    }
   }
 
   const activeVisual = visuals.find((v) => v.id === selectedVisualId)
@@ -751,263 +1045,122 @@ export function ChatConversation({
 
   return (
     <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column", background: "var(--bg-0)", position: "relative" }}>
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div style={{
-          position: "fixed", top: 20, right: 20,
-          background: "var(--bg-2)", border: "1px solid var(--acc-line)",
-          boxShadow: "var(--sh-acc)", borderRadius: 10,
-          padding: "12px 18px", zIndex: 1000,
-          display: "flex", alignItems: "center", gap: 10,
-          color: "var(--ink-0)", fontSize: 13,
-          animation: "slideIn 0.3s ease"
-        }}>
-          <Icon name="sparkles" size={15} style={{ color: "var(--acc-bright)" }} />
-          {toastMessage}
-        </div>
-      )}
-
-      {/* Tabs navigation for mobile displays */}
-      <div className="md:hidden" style={{
-        display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
-        borderBottom: "1px solid var(--line-2)", background: "var(--bg-1)",
-        height: 48, flexShrink: 0
-      }}>
-        {(["settings", "chat", "preview"] as const).map((tab) => {
-          const isActive = activeTab === tab
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                border: 0, background: "transparent",
-                color: isActive ? "var(--acc-bright)" : "var(--ink-2)",
-                fontSize: 13, fontWeight: isActive ? 650 : 500,
-                borderBottom: isActive ? "2px solid var(--acc)" : "none",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                gap: 6, cursor: "pointer"
-              }}
-            >
-              <Icon name={tab === "settings" ? "layoutSidebar" : tab === "chat" ? "message" : "image"} size={14} />
-              {tab === "settings" ? "Paramètres" : tab === "chat" ? "Chat IA" : "Aperçu"}
-            </button>
-          )
-        })}
-      </div>
-
       {/* 3-Frame Grid Content Wrapper */}
       <div style={{ flex: 1, minHeight: 0, display: "flex", position: "relative", width: "100%" }}>
 
         {/* ─── FRAME 1 — LEFT CREATION PANEL ─── */}
         <aside
           style={{
-            width: "25%",
-            borderRight: "1px solid var(--line-2)",
-            background: "var(--bg-1)",
-            display: leftOpen ? "flex" : "none",
-            flexDirection: "column",
-            minWidth: 280,
-            zIndex: 10
+            width: conversationStarted ? (leftOpen ? "clamp(340px, 30%, 480px)" : "28px") : "0px",
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "row",
+            overflow: "hidden",
+            borderRight: conversationStarted ? "1px solid rgba(255,255,255,0.07)" : "none",
+            background: "rgba(10,10,12,0.78)",
+            backdropFilter: "blur(20px) saturate(160%)",
+            WebkitBackdropFilter: "blur(20px) saturate(160%)",
+            transition: "width 0.35s cubic-bezier(0.4,0,0.2,1)",
+            zIndex: 10,
           }}
           className="frame-left-panel max-md:!w-full max-md:!min-w-0"
         >
+          {/* Content column */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
           {/* Internal scroll wrapper */}
-          <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 24 }}>
-            
+          <div style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 5 }}>
+
             {/* Header */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <Icon name="palette" size={16} style={{ color: "var(--acc-bright)" }} />
-                <h2 className="display" style={{ fontSize: 16, margin: 0, color: "var(--ink-0)" }}>Configuration Créative</h2>
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h2 style={{ fontSize: 10, fontWeight: 650, margin: 0, color: "rgba(255,255,255,0.5)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Configuration Créative</h2>
               </div>
-              <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: 0 }}>Configurez les contraintes IA pour guider le visuel.</p>
             </div>
 
-            {/* A. User Assets Uploads */}
-            <div>
-              <h3 style={{ fontSize: 12.5, fontWeight: 650, color: "var(--ink-1)", marginBottom: 8, letterSpacing: "0.02em" }}>ÉLÉMENTS IMPORTÉS</h3>
-              
-              {/* Type Select */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4, marginBottom: 8 }}>
-                {(["logo", "product", "reference", "poster", "other"] as const).map((type) => (
+            {/* Format & Style */}
+            <PanelSection
+              title="Format & Style"
+              isOpen={isSectionOpen("format")}
+              onToggle={() => toggleSection("format")}
+              headerRight={
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleLibre("format") }}
+                  style={{
+                    padding: "3px 8px", marginRight: 8, fontSize: 9, borderRadius: 5, cursor: "pointer",
+                    background: isSectionFilled("format") ? "rgba(30,110,55,0.38)" : "rgba(110,30,30,0.38)",
+                    border: `1px solid ${isSectionFilled("format") ? "rgba(50,180,80,0.5)" : "rgba(200,50,50,0.5)"}`,
+                    color: isSectionFilled("format") ? "rgba(100,230,130,1)" : "rgba(230,100,100,1)",
+                    fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" as const,
+                  }}
+                >Libre</button>
+              }
+            >
+
+              {/* Sub-title: Format */}
+              <div style={{ fontSize: 9.5, fontWeight: 650, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
+                Format
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>
+                {FORMATS.map((f) => (
                   <button
-                    key={type}
-                    onClick={() => setActiveAssetType(type)}
-                    title={`Uploader en tant que: ${type}`}
+                    key={f.value}
+                    onClick={() => { setConfig((prev) => ({ ...prev, format: f.value })); markTouched("format") }}
+                    className="panel-chip"
                     style={{
-                      padding: "4px 2px", fontSize: 10, borderRadius: 6,
-                      background: activeAssetType === type ? "var(--acc-soft)" : "var(--bg-3)",
-                      border: `1px solid ${activeAssetType === type ? "var(--acc-line)" : "var(--line-1)"}`,
-                      color: activeAssetType === type ? "var(--acc-bright)" : "var(--ink-3)",
-                      cursor: "pointer", textTransform: "capitalize"
+                      padding: "5px 10px", fontSize: 11, borderRadius: 8, cursor: "pointer",
+                      background: config.format === f.value ? "rgba(80,42,12,0.48)" : "var(--bg-2)",
+                      border: `1px solid ${config.format === f.value ? "rgba(139,90,43,0.45)" : "var(--line-2)"}`,
+                      color: config.format === f.value ? "var(--ink-0)" : "var(--ink-2)",
+                      fontWeight: config.format === f.value ? 600 : 400,
                     }}
                   >
-                    {type === "reference" ? "insp." : type === "product" ? "prod." : type}
+                    {f.value}
                   </button>
                 ))}
               </div>
 
-              {/* Drag Area */}
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                style={{
-                  border: `1.5px dashed ${dragOver ? "var(--acc)" : "var(--line-3)"}`,
-                  background: dragOver ? "var(--acc-soft)" : "var(--bg-2)",
-                  borderRadius: 10, padding: "16px 10px", textAlign: "center",
-                  cursor: "pointer", transition: "all 0.2s ease", position: "relative"
-                }}
-              >
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileUpload}
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
-                  accept=".jpg,.jpeg,.png,.webp,.svg"
-                />
-                <Icon name="upload" size={16} style={{ color: "var(--acc-bright)", marginBottom: 6, margin: "0 auto 6px" }} />
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-1)" }}>+ Ajouter un fichier</div>
-                <div style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 2 }}>JPG, PNG, WebP, SVG &lt; 10 Mo</div>
+              {/* Sub-title: Style visuel */}
+              <div style={{ fontSize: 9.5, fontWeight: 650, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
+                Style visuel
               </div>
-
-              {/* Uploads list preview */}
-              {uploadedAssets.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
-                  {uploadedAssets.map((asset) => (
-                    <div
-                      key={asset.id}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8,
-                        background: "var(--bg-2)", border: "1px solid var(--line-2)",
-                        borderRadius: 8, padding: 6, position: "relative"
-                      }}
-                    >
-                      {/* Image Preview thumbnail */}
-                      <div style={{ width: 28, height: 28, borderRadius: 4, background: "var(--bg-3)", overflow: "hidden", flexShrink: 0 }}>
-                        {asset.status === "success" ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={asset.url} alt={asset.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ fontSize: 9, color: "var(--ink-3)" }}>...</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info & Status */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 550, color: "var(--ink-1)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-                          {asset.name}
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <span style={{
-                            padding: "1px 4px", borderRadius: 4, fontSize: 8, fontWeight: 600,
-                            background: "var(--bg-3)", color: "var(--ink-2)", textTransform: "uppercase"
-                          }}>
-                            {asset.type}
-                          </span>
-                          <span style={{
-                            fontSize: 9,
-                            color: asset.status === "uploading" ? "var(--gold)" : asset.status === "success" ? "var(--sage)" : "var(--rose)"
-                          }}>
-                            {asset.status === "uploading" ? "Chargement..." : asset.status === "success" ? "Prêt" : "Erreur"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Delete */}
-                      <button
-                        onClick={() => deleteAsset(asset.id)}
-                        aria-label="Supprimer l'élément importé"
-                        style={{
-                          border: 0, background: "transparent", cursor: "pointer",
-                          color: "var(--ink-3)", padding: 4, display: "flex", alignItems: "center"
-                        }}
-                        className="hover:!color-rose"
-                      >
-                        <Icon name="trash" size={13} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* B. Format du visuel */}
-            <div>
-              <h3 style={{ fontSize: 12.5, fontWeight: 650, color: "var(--ink-1)", marginBottom: 8, letterSpacing: "0.02em" }}>FORMAT DU VISUEL</h3>
-              <select
-                value={config.format}
-                onChange={(e) => setConfig((prev) => ({ ...prev, format: e.target.value }))}
-                style={{
-                  width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-3)",
-                  borderRadius: 10, padding: 8, color: "var(--ink-1)", fontSize: 13, outline: 0
-                }}
-              >
-                <option value="Carré — 1:1">Carré — 1:1</option>
-                <option value="Portrait — 4:5">Portrait — 4:5</option>
-                <option value="Story — 9:16">Story — 9:16</option>
-                <option value="Paysage — 16:9">Paysage — 16:9</option>
-                <option value="Affiche A4">Affiche A4</option>
-                <option value="Flyer A5">Flyer A5</option>
-                <option value="Bannière web">Bannière web</option>
-                <option value="Publication Instagram">Publication Instagram</option>
-                <option value="Couverture Facebook">Couverture Facebook</option>
-                <option value="Format personnalisé">Format personnalisé</option>
-              </select>
-
-              {config.format === "Format personnalisé" && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 8 }}>
-                  <div>
-                    <label htmlFor="custom-width" style={{ fontSize: 9.5, color: "var(--ink-3)" }}>Largeur</label>
-                    <input
-                      id="custom-width"
-                      type="number"
-                      value={customSize.width}
-                      onChange={(e) => setCustomSize((prev) => ({ ...prev, width: Number(e.target.value) }))}
-                      style={{
-                        width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-3)",
-                        borderRadius: 6, padding: "5px 6px", color: "var(--ink-1)", fontSize: 12, outline: 0
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="custom-height" style={{ fontSize: 9.5, color: "var(--ink-3)" }}>Hauteur</label>
-                    <input
-                      id="custom-height"
-                      type="number"
-                      value={customSize.height}
-                      onChange={(e) => setCustomSize((prev) => ({ ...prev, height: Number(e.target.value) }))}
-                      style={{
-                        width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-3)",
-                        borderRadius: 6, padding: "5px 6px", color: "var(--ink-1)", fontSize: 12, outline: 0
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="custom-unit" style={{ fontSize: 9.5, color: "var(--ink-3)" }}>Unité</label>
-                    <select
-                      id="custom-unit"
-                      value={customSize.unit}
-                      onChange={(e) => setCustomSize((prev) => ({ ...prev, unit: e.target.value as any }))}
-                      style={{
-                        width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-3)",
-                        borderRadius: 6, padding: "4px 4px", color: "var(--ink-1)", fontSize: 12, outline: 0
-                      }}
-                    >
-                      <option value="px">px</option>
-                      <option value="cm">cm</option>
-                      <option value="mm">mm</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                {STYLES.map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => { setConfig((prev) => ({ ...prev, style })); markTouched("format") }}
+                    className="panel-chip"
+                    style={{
+                      padding: "5px 10px", fontSize: 11, borderRadius: 8, cursor: "pointer",
+                      background: config.style === style ? "rgba(80,42,12,0.48)" : "var(--bg-2)",
+                      border: `1px solid ${config.style === style ? "rgba(139,90,43,0.45)" : "var(--line-2)"}`,
+                      color: config.style === style ? "var(--ink-0)" : "var(--ink-2)",
+                      fontWeight: config.style === style ? 600 : 400,
+                    }}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            </PanelSection>
 
             {/* C. Palette de couleurs */}
-            <div>
-              <h3 style={{ fontSize: 12.5, fontWeight: 650, color: "var(--ink-1)", marginBottom: 8, letterSpacing: "0.02em" }}>PALETTE DE COULEURS</h3>
+            <PanelSection
+              title="Palette de couleurs"
+              isOpen={isSectionOpen("colors")}
+              onToggle={() => toggleSection("colors")}
+              headerRight={
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleLibre("colors") }}
+                  style={{
+                    padding: "3px 8px", marginRight: 8, fontSize: 9, borderRadius: 5, cursor: "pointer",
+                    background: isSectionFilled("colors") ? "rgba(30,110,55,0.38)" : "rgba(110,30,30,0.38)",
+                    border: `1px solid ${isSectionFilled("colors") ? "rgba(50,180,80,0.5)" : "rgba(200,50,50,0.5)"}`,
+                    color: isSectionFilled("colors") ? "rgba(100,230,130,1)" : "rgba(230,100,100,1)",
+                    fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" as const,
+                  }}
+                >Libre</button>
+              }
+            >
               
               {/* Color pickers grid */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6, marginBottom: 12 }}>
@@ -1027,10 +1180,10 @@ export function ChatConversation({
                       <input
                         type="color"
                         value={(config.colors as any)[col.key] || "#ffffff"}
-                        onChange={(e) => setConfig((prev) => ({
+                        onChange={(e) => { setConfig((prev) => ({
                           ...prev,
                           colors: { ...prev.colors, [col.key]: e.target.value }
-                        }))}
+                        })); markTouched("colors") }}
                         style={{
                           position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer"
                         }}
@@ -1041,167 +1194,143 @@ export function ChatConversation({
                 ))}
               </div>
 
-              {/* Action Buttons */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                <button
-                  onClick={extractColors}
-                  style={{
-                    padding: "6px 8px", fontSize: 11, borderRadius: 8,
-                    background: "var(--bg-3)", border: "1px solid var(--line-3)",
-                    color: "var(--ink-1)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, justifyContent: "center"
-                  }}
-                >
-                  <Icon name="image" size={11} /> Extraire
-                </button>
-                <button
-                  onClick={generateAIPalette}
-                  style={{
-                    padding: "6px 8px", fontSize: 11, borderRadius: 8,
-                    background: "var(--acc-soft)", border: "1px solid var(--acc-line)",
-                    color: "var(--acc-bright)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, justifyContent: "center"
-                  }}
-                >
-                  <Icon name="sparkles" size={11} /> Palette IA
-                </button>
-              </div>
-            </div>
-
-            {/* D. Typographies */}
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <h3 style={{ fontSize: 12.5, fontWeight: 650, color: "var(--ink-1)", margin: 0, letterSpacing: "0.02em" }}>POLICES À UTILISER</h3>
-                
-                {/* AI choice toggle */}
-                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={aiFonts}
-                    onChange={(e) => setAiFonts(e.target.checked)}
-                    style={{ accentColor: "var(--acc)" }}
-                  />
-                  <span style={{ fontSize: 10.5, color: "var(--acc-bright)" }}>Choix IA</span>
-                </label>
-              </div>
-
-              {!aiFonts && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div>
-                    <label htmlFor="font-title" style={{ fontSize: 10, color: "var(--ink-3)" }}>Police du titre</label>
-                    <select
-                      id="font-title"
-                      value={config.fonts.title}
-                      onChange={(e) => setConfig((prev) => ({ ...prev, fonts: { ...prev.fonts, title: e.target.value } }))}
-                      style={{
-                        width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-3)",
-                        borderRadius: 8, padding: 6, color: "var(--ink-1)", fontSize: 12, outline: 0
-                      }}
-                    >
-                      {FONTS_CATEGORIES.map((font) => (
-                        <option key={font} value={font}>{font}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="font-body" style={{ fontSize: 10, color: "var(--ink-3)" }}>Police du texte</label>
-                    <select
-                      id="font-body"
-                      value={config.fonts.body}
-                      onChange={(e) => setConfig((prev) => ({ ...prev, fonts: { ...prev.fonts, body: e.target.value } }))}
-                      style={{
-                        width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-3)",
-                        borderRadius: 8, padding: 6, color: "var(--ink-1)", fontSize: 12, outline: 0
-                      }}
-                    >
-                      {FONTS_CATEGORIES.map((font) => (
-                        <option key={font} value={font}>{font}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* E. Niveau de qualité */}
-            <div>
-              <h3 style={{ fontSize: 12.5, fontWeight: 650, color: "var(--ink-1)", marginBottom: 8, letterSpacing: "0.02em" }}>NIVEAU DE QUALITÉ</h3>
-              <select
-                value={config.quality}
-                onChange={(e) => setConfig((prev) => ({ ...prev, quality: e.target.value }))}
+              {/* Extract from logo */}
+              <button
+                onClick={extractColors}
+                disabled={isExtractingColors}
                 style={{
-                  width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-3)",
-                  borderRadius: 10, padding: 8, color: "var(--ink-1)", fontSize: 13, outline: 0
+                  width: "100%", padding: "7px 10px", fontSize: 11, borderRadius: 8,
+                  background: isExtractingColors ? "rgba(60,35,12,0.55)" : "var(--bg-2)",
+                  border: "1px solid rgba(139,90,43,0.35)",
+                  color: isExtractingColors ? "var(--ink-3)" : "var(--ink-1)",
+                  cursor: isExtractingColors ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", gap: 6, justifyContent: "center",
+                  transition: "all 0.15s ease",
                 }}
               >
+                {isExtractingColors
+                  ? <><span className="anim-shimmer" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--acc-bright)", display: "inline-block" }} /> Analyse en cours...</>
+                  : <><Icon name="image" size={11} /> Extraire de l&apos;élément ★</>
+                }
+              </button>
+            </PanelSection>
+
+            {/* D. Qualité & Objectif */}
+            <PanelSection
+              title="Qualité & Objectif"
+              isOpen={isSectionOpen("quality")}
+              onToggle={() => toggleSection("quality")}
+              headerRight={
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleLibre("quality") }}
+                  style={{
+                    padding: "3px 8px", marginRight: 8, fontSize: 9, borderRadius: 5, cursor: "pointer",
+                    background: isSectionFilled("quality") ? "rgba(30,110,55,0.38)" : "rgba(110,30,30,0.38)",
+                    border: `1px solid ${isSectionFilled("quality") ? "rgba(50,180,80,0.5)" : "rgba(200,50,50,0.5)"}`,
+                    color: isSectionFilled("quality") ? "rgba(100,230,130,1)" : "rgba(230,100,100,1)",
+                    fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" as const,
+                  }}
+                >Libre</button>
+              }
+            >
+
+              {/* Sub-title: Qualité */}
+              <div style={{ fontSize: 9.5, fontWeight: 650, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
+                Niveau de qualité
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>
                 {QUALITY_LEVELS.map((q) => (
-                  <option key={q.value} value={q.value}>{q.label}</option>
+                  <button
+                    key={q.value}
+                    onClick={() => { setConfig((prev) => ({ ...prev, quality: q.value })); markTouched("quality") }}
+                    className="panel-chip"
+                    style={{
+                      padding: "5px 10px", fontSize: 11, borderRadius: 8, cursor: "pointer",
+                      background: config.quality === q.value ? "rgba(80,42,12,0.48)" : "var(--bg-2)",
+                      border: `1px solid ${config.quality === q.value ? "rgba(139,90,43,0.45)" : "var(--line-2)"}`,
+                      color: config.quality === q.value ? "var(--ink-0)" : "var(--ink-2)",
+                      fontWeight: config.quality === q.value ? 600 : 400,
+                    }}
+                  >
+                    {q.label}
+                  </button>
                 ))}
-              </select>
-              {qualityDetails && (
-                <div style={{ fontSize: 10.5, color: "var(--ink-3)", marginTop: 6, fontStyle: "italic", lineHeight: 1.4 }}>
-                  {qualityDetails.desc}
-                </div>
-              )}
-            </div>
+              </div>
 
-            {/* F. Style visuel */}
-            <div>
-              <h3 style={{ fontSize: 12.5, fontWeight: 650, color: "var(--ink-1)", marginBottom: 8, letterSpacing: "0.02em" }}>STYLE VISUEL</h3>
-              <select
-                value={config.style}
-                onChange={(e) => setConfig((prev) => ({ ...prev, style: e.target.value }))}
-                style={{
-                  width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-3)",
-                  borderRadius: 10, padding: 8, color: "var(--ink-1)", fontSize: 13, outline: 0, marginBottom: 8
-                }}
-              >
-                {STYLES.map((style) => (
-                  <option key={style} value={style}>{style}</option>
-                ))}
-              </select>
-              <textarea
-                value={config.styleDescription || ""}
-                onChange={(e) => setConfig((prev) => ({ ...prev, styleDescription: e.target.value }))}
-                placeholder="Décris le style souhaité (ex: néon violet sombre, vintage années 80, épuré nordique...)"
-                rows={2}
-                style={{
-                  width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-3)",
-                  borderRadius: 10, padding: 8, color: "var(--ink-0)", fontSize: 12, outline: 0, resize: "none"
-                }}
-              />
-            </div>
-
-            {/* G. Objectif de l'affiche */}
-            <div>
-              <h3 style={{ fontSize: 12.5, fontWeight: 650, color: "var(--ink-1)", marginBottom: 8, letterSpacing: "0.02em" }}>OBJECTIF DE L'AFFICHE</h3>
-              <select
-                value={config.objective}
-                onChange={(e) => setConfig((prev) => ({ ...prev, objective: e.target.value }))}
-                style={{
-                  width: "100%", background: "var(--bg-2)", border: "1px solid var(--line-3)",
-                  borderRadius: 10, padding: 8, color: "var(--ink-1)", fontSize: 13, outline: 0
-                }}
-              >
+              {/* Sub-title: Objectif */}
+              <div style={{ fontSize: 9.5, fontWeight: 650, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
+                Objectif de l&apos;affiche
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                 {OBJECTIVES.map((obj) => (
-                  <option key={obj} value={obj}>{obj}</option>
+                  <button
+                    key={obj}
+                    onClick={() => { setConfig((prev) => ({ ...prev, objective: obj })); markTouched("quality") }}
+                    className="panel-chip"
+                    style={{
+                      padding: "5px 10px", fontSize: 11, borderRadius: 8, cursor: "pointer",
+                      background: config.objective === obj ? "rgba(80,42,12,0.48)" : "var(--bg-2)",
+                      border: `1px solid ${config.objective === obj ? "rgba(139,90,43,0.45)" : "var(--line-2)"}`,
+                      color: config.objective === obj ? "var(--ink-0)" : "var(--ink-2)",
+                      fontWeight: config.objective === obj ? 600 : 400,
+                    }}
+                  >
+                    {obj}
+                  </button>
                 ))}
-              </select>
-            </div>
+              </div>
+            </PanelSection>
 
           </div>
 
           {/* H. Action button at bottom */}
-          <div style={{ padding: 16, borderTop: "1px solid var(--line-2)", background: "var(--bg-2)" }}>
+          <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.065)", background: "linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.012) 100%)", backdropFilter: "blur(8px)" }}>
             <Button
               onClick={applyToChatContext}
               style={{
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                background: "linear-gradient(180deg, var(--acc-bright), var(--acc-deep))",
-                color: "var(--acc-ink)"
+                background: "linear-gradient(135deg, rgba(224,138,100,0.92), rgba(180,100,70,0.8))",
+                backdropFilter: "blur(8px)",
+                borderRadius: 16,
+                border: "1px solid rgba(255,255,255,0.15)",
+                boxShadow: "0 4px 16px rgba(224,138,100,0.25), inset 0 1px 0 rgba(255,255,255,0.12)",
+                color: "#fff",
               }}
             >
-              <Icon name="wand" size={15} /> Appliquer au chat IA
+              <Icon name="wand" size={15} /> Appliquer
             </Button>
           </div>
+          </div>{/* end content column */}
+
+          {/* Left panel toggle — always 28px, right edge */}
+          {conversationStarted && (
+            <button
+              onClick={() => setLeftOpen(!leftOpen)}
+              title={leftOpen ? "Réduire" : "Configuration Créative"}
+              style={{
+                width: 28, flexShrink: 0,
+                background: "rgba(255,255,255,0.02)",
+                border: 0, borderLeft: "1px solid rgba(255,255,255,0.06)",
+                cursor: "pointer",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                gap: 10, color: "var(--ink-4)",
+                padding: "16px 0",
+              }}
+            >
+              {!leftOpen && (
+                <>
+                  <Icon name="palette" size={13} style={{ color: "var(--acc-bright)" }} />
+                  <span style={{
+                    fontSize: 8.5, fontWeight: 600, letterSpacing: "0.12em",
+                    writingMode: "vertical-rl", transform: "rotate(180deg)",
+                    color: "var(--ink-3)", textTransform: "uppercase",
+                  }}>Config</span>
+                </>
+              )}
+              <Icon name={leftOpen ? "chevronL" : "chevronR"} size={11} />
+            </button>
+          )}
         </aside>
 
         {/* ─── FRAME 2 — CENTER CONVERSATIONAL CHAT ─── */}
@@ -1212,17 +1341,31 @@ export function ChatConversation({
             flexDirection: "column",
             minWidth: 0,
             height: "100%",
-            background: "var(--bg-0)",
+            backgroundColor: "#080809",
+            backgroundImage: [
+              "linear-gradient(rgba(255,255,255,0.032) 1px, transparent 1px)",
+              "linear-gradient(90deg, rgba(255,255,255,0.032) 1px, transparent 1px)",
+              "linear-gradient(rgba(255,255,255,0.016) 1px, transparent 1px)",
+              "linear-gradient(90deg, rgba(255,255,255,0.016) 1px, transparent 1px)",
+            ].join(", "),
+            backgroundSize: "64px 64px, 64px 64px, 16px 16px, 16px 16px",
+            position: "relative",
           }}
           className="frame-center-panel max-md:!w-full"
         >
+          {/* Top vignette for legibility */}
+          <div style={{
+            position: "absolute", top: 0, left: 0, right: 0, height: 60,
+            background: "linear-gradient(to bottom, rgba(8,8,9,0.85), transparent)",
+            pointerEvents: "none", zIndex: 1,
+          }} />
+
           {/* Scrollable messages box */}
-          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: showWelcome ? 0 : "24px 16px" }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: showWelcome ? 0 : "28px 16px 8px", position: "relative", zIndex: 2 }}>
             {showWelcome ? (
               <EmptyConversationState onPrompt={(val) => { setPrompt(val) }} />
             ) : (
-              // Inner wrapper ensuring messages exact alignment
-              <div style={{ maxWidth: 820, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ maxWidth: 820, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
                 {loadingConversation ? (
                   <>
                     <div className="anim-skeleton" style={{ height: 84, borderRadius: 14 }} />
@@ -1237,7 +1380,7 @@ export function ChatConversation({
                         key={message.id}
                         message={message}
                         isLatest={message.id === latestAssistantId}
-                        onChoiceClick={handleSend}
+                        onChoiceClick={handleChoiceClick}
                       />
                     ))
                   })()
@@ -1258,18 +1401,38 @@ export function ChatConversation({
             )}
           </div>
 
-          {/* Saisie text block wrapper - EXACT ALIGNMENT with messages */}
-          <div style={{ padding: "0 16px 24px", flexShrink: 0, background: "var(--bg-0)" }}>
+          {/* Bottom vignette above input */}
+          <div style={{
+            position: "absolute", bottom: 0, left: 0, right: 0, height: 110,
+            background: configAttached
+              ? "linear-gradient(to top, rgba(20,9,2,0.97) 50%, transparent)"
+              : "linear-gradient(to top, rgba(8,8,9,0.96) 45%, transparent)",
+            transition: "background 0.35s ease",
+            pointerEvents: "none", zIndex: 2,
+          }} />
+
+          {/* Input area */}
+          <div style={{
+            padding: "0 16px 20px", flexShrink: 0, position: "relative", zIndex: 3,
+          }}>
+            {/* Light sweep animation on Appliquer */}
+            {sweepActive && (
+              <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 10 }}>
+                <div className="sweep-light-bar" />
+              </div>
+            )}
             <div style={{ maxWidth: 820, width: "100%", margin: "0 auto" }}>
               <ChatInput
                 value={prompt}
-                onChange={setPrompt}
+                onChange={(v) => { setPrompt(v); if (awaitingOther && v) setAwaitingOther(false) }}
                 onSubmit={() => handleSend()}
                 disabled={!user?.id || isSending || loadingConversation}
                 loading={isSending}
+                highlighted={awaitingOther}
+                active={configAttached}
               />
-              <div style={{ textAlign: "center", fontSize: 11, color: "var(--ink-3)", marginTop: 12 }}>
-                L'IA peut faire des erreurs. Vérifiez les informations générées.
+              <div style={{ textAlign: "center", fontSize: 10.5, color: "rgba(255,255,255,0.2)", marginTop: 10 }}>
+                L'IA peut faire des erreurs · Vérifiez les résultats générés
               </div>
             </div>
           </div>
@@ -1278,38 +1441,213 @@ export function ChatConversation({
         {/* ─── FRAME 3 — RIGHT VISUALIZER PANEL ─── */}
         <aside
           style={{
-            width: "25%",
-            borderLeft: "1px solid var(--line-2)",
-            background: "var(--bg-1)",
-            display: rightOpen ? "flex" : "none",
-            flexDirection: "column",
-            minWidth: 280,
-            zIndex: 10
+            width: conversationStarted ? (rightOpen ? "clamp(340px, 30%, 480px)" : "28px") : "0px",
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "row",
+            overflow: "hidden",
+            borderLeft: conversationStarted ? "1px solid rgba(255,255,255,0.07)" : "none",
+            background: "rgba(10,10,12,0.78)",
+            backdropFilter: "blur(20px) saturate(160%)",
+            WebkitBackdropFilter: "blur(20px) saturate(160%)",
+            transition: "width 0.35s cubic-bezier(0.4,0,0.2,1)",
+            zIndex: 10,
           }}
           className="frame-right-panel max-md:!w-full max-md:!min-w-0"
         >
-          <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
-            
+          {/* Right panel toggle — always 28px, left edge */}
+          {conversationStarted && (
+            <button
+              onClick={() => setRightOpen(!rightOpen)}
+              title={rightOpen ? "Réduire" : "Aperçu du visuel"}
+              style={{
+                width: 28, flexShrink: 0,
+                background: "rgba(255,255,255,0.02)",
+                border: 0, borderRight: "1px solid rgba(255,255,255,0.06)",
+                cursor: "pointer",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                gap: 10, color: "var(--ink-4)",
+                padding: "16px 0",
+              }}
+            >
+              {!rightOpen && (
+                <>
+                  <Icon name="image" size={13} style={{ color: "var(--acc-bright)" }} />
+                  <span style={{
+                    fontSize: 8.5, fontWeight: 600, letterSpacing: "0.12em",
+                    writingMode: "vertical-rl",
+                    color: "var(--ink-3)", textTransform: "uppercase",
+                  }}>Aperçu</span>
+                </>
+              )}
+              <Icon name={rightOpen ? "chevronR" : "chevronL"} size={11} />
+            </button>
+          )}
+
+          {/* Content column */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+
             {/* Header */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <Icon name="image" size={16} style={{ color: "var(--acc-bright)" }} />
-                <h2 className="display" style={{ fontSize: 16, margin: 0, color: "var(--ink-0)" }}>Aperçu du visuel</h2>
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h2 style={{ fontSize: 10, fontWeight: 650, margin: 0, color: "rgba(255,255,255,0.5)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Aperçu du visuel</h2>
               </div>
-              <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: 0 }}>Visualisez vos créations générées en temps réel.</p>
             </div>
 
+            {/* Éléments importés */}
+            <PanelSection title="Éléments importés" isOpen={isSectionOpen("assets")} onToggle={() => toggleSection("assets")}>
+              {/* Card grid: uploaded assets + "+" add card */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}
+              >
+                {uploadedAssets.map((asset) => (
+                  <div
+                    key={asset.id}
+                    style={{
+                      borderRadius: 8, overflow: "hidden",
+                      border: `1px solid ${asset.isPrimary ? "var(--acc-line)" : "var(--line-2)"}`,
+                      background: "var(--bg-2)",
+                      display: "flex", flexDirection: "column",
+                    }}
+                  >
+                    {/* Pure thumbnail — no overlays */}
+                    <div style={{ aspectRatio: "1", overflow: "hidden", position: "relative", background: "var(--bg-3)" }}>
+                      {asset.url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={asset.url} alt={asset.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Icon name="warn" size={14} style={{ color: "var(--rose)" }} />
+                        </div>
+                      )}
+                      {asset.status === "uploading" && (
+                        <div style={{ position: "absolute", bottom: 4, left: "50%", transform: "translateX(-50%)" }}>
+                          <span className="anim-shimmer" style={{ display: "block", width: 20, height: 3, borderRadius: 2, background: "var(--acc-bright)" }} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer controls */}
+                    <div style={{
+                      display: "flex", alignItems: "center",
+                      borderTop: `1px solid ${asset.isPrimary ? "rgba(224,138,100,0.3)" : "var(--line-2)"}`,
+                      background: asset.isPrimary ? "rgba(224,138,100,0.08)" : "var(--bg-3)",
+                      height: 26,
+                      transition: "background 0.2s ease, border-color 0.2s ease",
+                    }}>
+                      {/* Star — all types */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPrimaryAsset(asset.id) }}
+                        title={asset.isPrimary ? "Élément principal ★" : "Définir comme élément principal"}
+                        className="asset-star-btn"
+                        style={{
+                          border: 0, borderRight: `1px solid ${asset.isPrimary ? "rgba(224,138,100,0.3)" : "var(--line-2)"}`,
+                          background: "transparent",
+                          color: asset.isPrimary ? "var(--acc-bright)" : "rgba(255,255,255,0.22)",
+                          width: 26, height: "100%", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", fontSize: 12,
+                          transition: "color 0.15s ease, background 0.15s ease",
+                        }}
+                      >{asset.isPrimary ? "★" : "☆"}</button>
+                      {/* Type badge — click to cycle */}
+                      <button
+                        onClick={() => cycleAssetType(asset.id)}
+                        title="Changer le type"
+                        style={{
+                          border: 0, background: "transparent",
+                          color: "var(--ink-3)", fontSize: 9, fontWeight: 600,
+                          flex: 1, height: "100%", cursor: "pointer",
+                          letterSpacing: "0.04em", textTransform: "uppercase",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          padding: "0 4px",
+                        }}
+                      >
+                        {ASSET_TYPE_LABELS[asset.type]}
+                      </button>
+                      {/* Delete */}
+                      <button
+                        onClick={() => deleteAsset(asset.id)}
+                        aria-label="Supprimer"
+                        className="asset-del-btn"
+                        style={{
+                          border: 0, borderLeft: "1px solid var(--line-2)",
+                          background: "transparent",
+                          color: "var(--ink-4)",
+                          width: 24, height: "100%", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer",
+                          transition: "color 0.15s ease, background 0.15s ease",
+                        }}
+                      >
+                        <Icon name="x" size={9} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* "+" add card */}
+                <div
+                  style={{
+                    position: "relative", borderRadius: 10, overflow: "hidden",
+                    border: `1.5px dashed ${dragOver ? "var(--acc)" : "var(--line-3)"}`,
+                    background: dragOver ? "var(--acc-soft)" : "var(--bg-2)",
+                    aspectRatio: "1", display: "flex", flexDirection: "column",
+                    alignItems: "center", justifyContent: "center", cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileUpload}
+                    style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%" }}
+                    accept=".jpg,.jpeg,.png,.webp,.svg"
+                  />
+                  <Icon name="upload" size={18} style={{ color: "var(--acc-bright)", marginBottom: 4 }} />
+                  <span style={{ fontSize: 9.5, color: "var(--ink-3)", textAlign: "center", lineHeight: 1.3 }}>
+                    Ajouter
+                  </span>
+                </div>
+              </div>
+
+              {/* Asset type selector for next upload */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4, marginTop: 8 }}>
+                {(["logo", "product", "reference", "poster", "other"] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setActiveAssetType(type)}
+                    title={`Uploader en tant que: ${ASSET_TYPE_LABELS[type]}`}
+                    style={{
+                      padding: "4px 2px", fontSize: 9.5, borderRadius: 6,
+                      background: activeAssetType === type ? "rgba(80,42,12,0.48)" : "rgba(60,35,12,0.55)",
+                      border: `1px solid ${activeAssetType === type ? "rgba(139,90,43,0.45)" : "rgba(139,90,43,0.3)"}`,
+                      color: activeAssetType === type ? "var(--ink-0)" : "var(--ink-3)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {type === "reference" ? "Insp." : type === "product" ? "Prod." : ASSET_TYPE_LABELS[type]}
+                  </button>
+                ))}
+              </div>
+            </PanelSection>
+
             {/* A. Large Preview Area */}
+            <PanelSection title="Aperçu du visuel" isOpen={isSectionOpen("preview")} onToggle={() => toggleSection("preview")}>
             {activeVisual ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div
                   onClick={() => setZoomOpen(true)}
                   style={{
                     position: "relative", width: "100%",
-                    borderRadius: 12, overflow: "hidden", cursor: "zoom-in",
-                    border: "1px solid var(--line-2)", background: "var(--bg-0)",
+                    borderRadius: 16, overflow: "hidden", cursor: "zoom-in",
+                    border: "1px solid rgba(255,255,255,0.07)", background: "var(--bg-0)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: "var(--sh-2)"
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)"
                   }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1355,26 +1693,34 @@ export function ChatConversation({
                     
                     <button
                       onClick={requestVariant}
+                      disabled={isGenerating}
                       style={{
                         padding: "8px 10px", fontSize: 12, borderRadius: 8,
                         background: "var(--bg-3)", border: "1px solid var(--line-3)",
-                        color: "var(--ink-1)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, justifyContent: "center"
+                        color: isGenerating ? "var(--ink-3)" : "var(--ink-1)",
+                        cursor: isGenerating ? "not-allowed" : "pointer",
+                        display: "flex", alignItems: "center", gap: 6, justifyContent: "center"
                       }}
                     >
-                      <Icon name="wand" size={12} /> Variantes
+                      <Icon name={isGenerating ? "loader" : "wand"} size={12} />
+                      {isGenerating ? "Génération..." : "Variantes"}
                     </button>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                     <button
                       onClick={requestImprovement}
+                      disabled={isGenerating}
                       style={{
                         padding: "8px 10px", fontSize: 12, borderRadius: 8,
                         background: "var(--acc-soft)", border: "1px solid var(--acc-line)",
-                        color: "var(--acc-bright)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, justifyContent: "center"
+                        color: isGenerating ? "var(--ink-3)" : "var(--acc-bright)",
+                        cursor: isGenerating ? "not-allowed" : "pointer",
+                        display: "flex", alignItems: "center", gap: 6, justifyContent: "center"
                       }}
                     >
-                      <Icon name="sparkles" size={12} /> Améliorer
+                      <Icon name={isGenerating ? "loader" : "sparkles"} size={12} />
+                      {isGenerating ? "Génération..." : "Améliorer"}
                     </button>
 
                     <button
@@ -1409,14 +1755,16 @@ export function ChatConversation({
                         borderRadius: 8, padding: 6, zIndex: 100, marginBottom: 4,
                         boxShadow: "var(--sh-3)", display: "flex", flexDirection: "column", gap: 4
                       }}>
-                        {["PNG (Standard)", "JPG (Compacter)", "PDF (Impression)", "WebP (Ultra léger)", "Impression HD Pro"].map((fmt) => (
+                        {[
+                          { label: "PNG (Standard)", key: "PNG" },
+                          { label: "JPG (Compressé)", key: "JPG" },
+                          { label: "PDF (Impression)", key: "PDF" },
+                          { label: "WebP (Ultra léger)", key: "WebP" },
+                          { label: "HD Print (300 DPI)", key: "HD Print" },
+                        ].map(({ label, key }) => (
                           <button
-                            key={fmt}
-                            onClick={() => {
-                              setActiveExportFormat(null)
-                              triggerToast(`Exportation lancée au format ${fmt}`)
-                              downloadActiveVisual()
-                            }}
+                            key={key}
+                            onClick={() => downloadWithFormat(key)}
                             style={{
                               padding: "6px 10px", fontSize: 11, border: 0, borderRadius: 6,
                               background: "transparent", color: "var(--ink-1)", cursor: "pointer",
@@ -1424,7 +1772,7 @@ export function ChatConversation({
                             }}
                             className="hover:!bg-bg-3 hover:!color-ink-0"
                           >
-                            ✓ {fmt}
+                            ✓ {label}
                           </button>
                         ))}
                       </div>
@@ -1433,24 +1781,26 @@ export function ChatConversation({
                 </div>
               </div>
             ) : (
-              /* Empty state */
               <div style={{
                 flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
                 justifyContent: "center", border: "1px dashed var(--line-3)", borderRadius: 12,
-                padding: 24, textAlign: "center", minHeight: 280, color: "var(--ink-3)"
+                padding: 28, textAlign: "center", minHeight: 280, gap: 10
               }}>
-                <Icon name="image" size={32} style={{ opacity: 0.4, marginBottom: 12 }} />
-                <div style={{ fontSize: 13, fontWeight: 650, color: "var(--ink-2)" }}>Aucun visuel généré</div>
-                <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6, lineHeight: 1.4 }}>
-                  Les créations apparaîtront ici dès que l'IA aura produit des variantes.
+                <Icon name="image" size={36} style={{ color: "var(--ink-4)", opacity: 0.35 }} />
+                <div style={{ fontSize: 13, fontWeight: 650, color: "var(--ink-2)", marginTop: 4 }}>
+                  Aucun visuel généré
+                </div>
+                <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: 0, lineHeight: 1.5 }}>
+                  Complétez la conversation puis dites<br />
+                  <strong style={{ color: "var(--acc-bright)" }}>&ldquo;gérer le visuel&rdquo;</strong> pour lancer la génération.
                 </p>
               </div>
             )}
+            </PanelSection>
 
             {/* B. Miniatures gallery at bottom */}
             {visuals.length > 0 && (
-              <div>
-                <h3 style={{ fontSize: 11.5, fontWeight: 650, color: "var(--ink-2)", marginBottom: 8, letterSpacing: "0.02em" }}>GALERIE DE VARIANTES</h3>
+              <PanelSection title="Galerie de variantes" isOpen={isSectionOpen("gallery")} onToggle={() => toggleSection("gallery")}>
                 <div style={{
                   display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8,
                   maxHeight: 200, overflowY: "auto", padding: 2
@@ -1485,10 +1835,10 @@ export function ChatConversation({
                     )
                   })}
                 </div>
-              </div>
+              </PanelSection>
             )}
 
-          </div>
+          </div>{/* end content column */}
         </aside>
 
       </div>
@@ -1547,10 +1897,6 @@ export function ChatConversation({
 
       {/* ─── Inject Local CSS Rules ─── */}
       <style>{`
-        @keyframes slideIn {
-          from { transform: translateY(-20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
         .hover\\:scale-102:hover {
           transform: scale(1.025);
         }
@@ -1562,6 +1908,24 @@ export function ChatConversation({
         }
         .hover\\:color-ink-0:hover {
           color: var(--ink-0) !important;
+        }
+
+        .panel-chip {
+          transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+        .panel-chip:hover {
+          background: rgba(80,42,12,0.48) !important;
+          color: var(--ink-0) !important;
+          border-color: rgba(139,90,43,0.45) !important;
+        }
+
+        .asset-star-btn:hover {
+          color: var(--acc-bright) !important;
+          background: rgba(119,119,119,0.12) !important;
+        }
+        .asset-del-btn:hover {
+          color: var(--rose) !important;
+          background: rgba(217,112,112,0.10) !important;
         }
 
         .choice-chip {
@@ -1601,6 +1965,44 @@ export function ChatConversation({
             display: ${activeTab === "preview" ? "flex" : "none"} !important;
           }
         }
+        @keyframes dotBounce {
+          0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+          40% { transform: scale(1); opacity: 1; }
+        }
+        .anim-dot-bounce {
+          animation: dotBounce 1.2s ease-in-out infinite;
+        }
+
+        @keyframes sweepLight {
+          0%   { left: -60%; opacity: 0; }
+          12%  { opacity: 1; }
+          88%  { opacity: 1; }
+          100% { left: 160%; opacity: 0; }
+        }
+        .sweep-light-bar {
+          position: absolute;
+          top: -20px; bottom: -20px;
+          left: -60%;
+          width: 55%;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(160,85,25,0.08) 15%,
+            rgba(210,120,40,0.22) 40%,
+            rgba(255,165,60,0.32) 50%,
+            rgba(210,120,40,0.22) 60%,
+            rgba(160,85,25,0.08) 85%,
+            transparent 100%
+          );
+          animation: sweepLight 0.68s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          pointer-events: none;
+        }
+
+        /* scrollbar — center panel */
+        .frame-center-panel ::-webkit-scrollbar { width: 4px; }
+        .frame-center-panel ::-webkit-scrollbar-track { background: transparent; }
+        .frame-center-panel ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+        .frame-center-panel ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
       `}</style>
     </div>
   )

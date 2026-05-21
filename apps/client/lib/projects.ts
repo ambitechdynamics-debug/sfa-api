@@ -81,8 +81,20 @@ export async function fetchProjectFiles(projectId: string): Promise<FileAsset[]>
 }
 
 // ─── Generation orchestration ────────────────────────────────────────────────
-export async function generateFinalPrompt(projectId: string): Promise<unknown> {
-  return apiFetch(`/api/projects/${projectId}/generate-final-prompt`, {
+export interface OrchestrationResult {
+  success: boolean
+  message: string
+  data: {
+    ready_for_generation: boolean
+    final_prompt?: string
+    negative_prompt?: string
+    agents_executed: string[]
+    total_duration_ms: number
+  }
+}
+
+export async function generateFinalPrompt(projectId: string): Promise<OrchestrationResult> {
+  return apiFetch<OrchestrationResult>(`/api/projects/${projectId}/generate-final-prompt`, {
     method: "POST",
     body: JSON.stringify({}),
   })
@@ -126,4 +138,29 @@ export async function generateImages(
  */
 export async function fetchGeneratedPosters(projectId: string): Promise<GeneratedPoster[]> {
   return apiFetch<GeneratedPoster[]>(`/api/projects/${projectId}/generated-posters`)
+}
+
+export async function deleteGeneratedPoster(projectId: string, posterId: string): Promise<void> {
+  return apiFetch<void>(`/api/projects/${projectId}/generated-posters/${posterId}`, {
+    method: "DELETE",
+  })
+}
+
+export interface ExtractedColors {
+  primary: string
+  secondary: string
+  accent: string
+  background: string
+  text: string
+}
+
+export async function extractColorsFromLogo(
+  projectId: string,
+  imageUrl: string,
+): Promise<ExtractedColors> {
+  const result = await apiFetch<{ success: boolean; data: { colors: ExtractedColors } }>(
+    `/api/projects/${projectId}/extract-colors`,
+    { method: "POST", body: JSON.stringify({ imageUrl }) },
+  )
+  return result.data.colors
 }

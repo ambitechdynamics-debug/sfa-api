@@ -19,6 +19,8 @@ export function ChatInput({
   placeholder = "Décrivez le visuel à créer...",
   disabled,
   loading,
+  highlighted,
+  active,
 }: {
   value: string
   onChange: (value: string) => void
@@ -26,6 +28,8 @@ export function ChatInput({
   placeholder?: string
   disabled?: boolean
   loading?: boolean
+  highlighted?: boolean
+  active?: boolean
 }) {
   const sendDisabled = disabled || loading || !value.trim()
 
@@ -37,10 +41,11 @@ export function ChatInput({
         gap: 10,
         alignItems: "end",
         padding: 12,
-        background: "var(--bg-2)",
-        border: "1px solid var(--line-2)",
+        background: active ? "rgba(18,8,2,0.97)" : "var(--bg-2)",
+        border: highlighted ? "2.5px solid rgba(139,90,43,0.85)" : "1px solid var(--line-2)",
         borderRadius: 16,
         boxShadow: "var(--sh-2)",
+        transition: "background 0.35s ease, border-color 0.2s ease",
       }}
       className="max-sm:!grid-cols-1"
     >
@@ -54,7 +59,7 @@ export function ChatInput({
           }
         }}
         rows={1}
-        placeholder={placeholder}
+        placeholder={highlighted ? "Précisez votre choix..." : placeholder}
         disabled={disabled || loading}
         aria-label="Message à envoyer à l'agent"
         style={{
@@ -85,7 +90,7 @@ export function ChatInput({
           height: 44,
           borderRadius: 12,
           border: "1px solid var(--acc-line)",
-          background: sendDisabled ? "var(--bg-3)" : "linear-gradient(180deg, var(--acc-bright), var(--acc-deep))",
+          background: sendDisabled ? "rgba(60,35,12,0.55)" : "linear-gradient(180deg, var(--acc-bright), var(--acc-deep))",
           color: sendDisabled ? "var(--ink-3)" : "var(--acc-ink)",
           display: "inline-flex",
           alignItems: "center",

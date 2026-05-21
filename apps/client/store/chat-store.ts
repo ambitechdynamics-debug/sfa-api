@@ -41,7 +41,7 @@ interface ChatState {
   failedMessageId: string
   fetchHistory: (userId: string) => Promise<void>
   loadConversation: (id: string, userId: string) => Promise<void>
-  sendMessage: (content: string, userId: string, projectId?: string) => Promise<string | undefined>
+  sendMessage: (content: string, userId: string, projectId?: string, visualConfig?: Record<string, unknown>) => Promise<string | undefined>
   retryFailedMessage: (userId: string) => Promise<string | undefined>
   clearActive: () => void
   renameConversation: (id: string, title: string, userId?: string) => Promise<void>
@@ -232,7 +232,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  sendMessage: async (content: string, userId: string, projectId?: string) => {
+  sendMessage: async (content: string, userId: string, projectId?: string, visualConfig?: Record<string, unknown>) => {
     const clean = content.trim()
     if (!clean || !userId || get().isSending) return undefined
 
@@ -277,6 +277,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         conversationId: isRequestableConversation(activeConversation?.id) ? activeConversation?.id : undefined,
         projectId: activeConversation?.projectId || projectId,
         history: toChatHistory(activeConversation?.messages),
+        visualConfig,
       })
 
       const assistantMessage: Message = {

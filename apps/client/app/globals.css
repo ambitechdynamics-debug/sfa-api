@@ -50,11 +50,11 @@
   --warn:  #d8a85a;
   --err:   #d97070;
 
-  /* Type — loaded via next/font in layout.tsx */
-  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
-  --font-sans:    var(--font-geist), ui-sans-serif, system-ui, sans-serif;
-  --font-mono:    var(--font-geist-mono), ui-monospace, monospace;
-  --font-serif:   var(--font-instrument), ui-serif, Georgia, serif;
+  /* Type — Inter only */
+  --font-display: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans:    var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    ui-monospace, "Menlo", monospace;
+  --font-serif:   var(--font-inter), "Inter", ui-sans-serif, sans-serif;
 
   /* Radii */
   --r-1: 6px;

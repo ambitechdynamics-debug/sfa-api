@@ -29,9 +29,9 @@ const VARIANTS: Record<Variant, CSSProperties> = {
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 6px 18px rgba(224,138,100,0.28)",
   },
   secondary: {
-    background: "var(--bg-3)",
+    background: "rgba(60,35,12,0.55)",
     color: "var(--ink-0)",
-    border: "1px solid var(--line-2)",
+    border: "1px solid rgba(139,90,43,0.4)",
     boxShadow: "var(--sh-1)",
   },
   ghost: {

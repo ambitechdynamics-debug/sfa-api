@@ -19,15 +19,24 @@ interface SidebarProps {
   onToggle?: () => void
 }
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <div style={{ padding: "16px 10px 7px", fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+    <div style={{
+      padding: "14px 12px 5px",
+      fontSize: 10,
+      fontWeight: 700,
+      color: "rgba(255,255,255,0.28)",
+      textTransform: "uppercase",
+      letterSpacing: "0.08em",
+    }}>
       {children}
     </div>
   )
 }
 
-function SidebarItem({
+function NavItem({
   icon,
   label,
   href,
@@ -35,10 +44,7 @@ function SidebarItem({
   collapsed,
   onClick,
   rightAction,
-  itemPadding,
-  itemGap,
-  labelStyle,
-  fillLabel,
+  indent,
 }: {
   icon: string
   label: string
@@ -47,45 +53,40 @@ function SidebarItem({
   collapsed?: boolean
   onClick?: () => void
   rightAction?: ReactNode
-  itemPadding?: string
-  itemGap?: number
-  labelStyle?: CSSProperties
-  fillLabel?: boolean
+  indent?: boolean
 }) {
-  const [isHovered, setIsHovered] = useState(false)
+  const [hovered, setHovered] = useState(false)
+
   const style: CSSProperties = {
     display: "flex",
     alignItems: "center",
     justifyContent: collapsed ? "center" : "flex-start",
-    gap: itemGap ?? 10,
-    minHeight: 36,
+    gap: 9,
+    minHeight: 34,
     width: "100%",
-    padding: collapsed ? "9px 0" : itemPadding ?? "8px 10px",
+    padding: collapsed ? "8px 0" : indent ? "6px 10px 6px 28px" : "6px 10px",
     borderRadius: 8,
     border: 0,
-    background: active ? "var(--bg-2)" : isHovered ? "rgba(255,255,255,0.06)" : "transparent",
-    color: active || isHovered ? "var(--ink-0)" : "var(--ink-2)",
+    position: "relative",
+    background: active
+      ? "rgba(80,42,12,0.38)"
+      : hovered
+      ? "rgba(255,255,255,0.05)"
+      : "transparent",
+    color: active ? "rgba(255,210,170,1)" : hovered ? "rgba(255,255,255,0.82)" : "rgba(255,255,255,0.48)",
     cursor: "pointer",
     fontSize: 13,
-    fontWeight: active ? 650 : 500,
+    fontWeight: active ? 600 : 450,
     textDecoration: "none",
-    transition: "background-color 200ms ease, color 200ms ease",
+    transition: "background 160ms ease, color 160ms ease",
+    boxShadow: active ? "inset 2px 0 0 rgba(200,120,50,0.75)" : "none",
   }
 
   const content = (
     <>
-      <Icon name={icon} size={16} />
+      <Icon name={icon} size={15} style={{ flexShrink: 0, opacity: active ? 1 : hovered ? 0.85 : 0.6 }} />
       {!collapsed && (
-        <span
-          style={{
-            flex: fillLabel === false ? "0 1 auto" : 1,
-            minWidth: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            ...labelStyle,
-          }}
-        >
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {label}
         </span>
       )}
@@ -95,22 +96,28 @@ function SidebarItem({
 
   if (href) {
     return (
-      <Link href={href} onClick={onClick} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} style={style} title={collapsed ? label : undefined}>
+      <Link href={href} onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={style} title={collapsed ? label : undefined}>
         {content}
       </Link>
     )
   }
 
   return (
-    <button type="button" onClick={onClick} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} style={style} title={collapsed ? label : undefined}>
+    <button type="button" onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={style} title={collapsed ? label : undefined}>
       {content}
     </button>
   )
 }
 
 function SidebarMessage({ children }: { children: ReactNode }) {
-  return <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--ink-3)", lineHeight: 1.45 }}>{children}</div>
+  return (
+    <div style={{ padding: "6px 12px", fontSize: 12, color: "rgba(255,255,255,0.25)", lineHeight: 1.5 }}>
+      {children}
+    </div>
+  )
 }
+
+// ─── Conversation actions menu ─────────────────────────────────────────────────
 
 function ConversationActionsMenu({
   position,
@@ -125,53 +132,59 @@ function ConversationActionsMenu({
 }) {
   const itemStyle: CSSProperties = {
     width: "100%",
-    minHeight: 34,
+    minHeight: 32,
     display: "flex",
     alignItems: "center",
-    gap: 9,
-    padding: "8px 10px",
+    gap: 8,
+    padding: "7px 10px",
     border: 0,
-    borderRadius: 7,
+    borderRadius: 6,
     background: "transparent",
-    color: "var(--ink-2)",
+    color: "rgba(255,255,255,0.6)",
     cursor: "pointer",
     fontSize: 12,
+    fontWeight: 500,
     textAlign: "left",
+    transition: "background 130ms ease, color 130ms ease",
   }
 
   return (
     <div
-      onClick={(event) => event.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       style={{
         position: "fixed",
         left: position.left,
         top: position.top,
         zIndex: 9999,
-        width: 164,
-        padding: 6,
+        width: 168,
+        padding: 5,
         display: "grid",
-        gap: 2,
-        background: "var(--bg-1)",
-        border: "1px solid var(--line-2)",
+        gap: 1,
+        background: "rgba(18,12,8,0.96)",
+        border: "1px solid rgba(139,90,43,0.3)",
         borderRadius: 10,
-        boxShadow: "var(--sh-2)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
+        backdropFilter: "blur(16px)",
       }}
     >
-      <button type="button" onClick={onRename} style={itemStyle} className="hover:bg-[rgba(255,255,255,0.06)] hover:text-[var(--ink-0)] transition-colors">
-        <Icon name="edit" size={14} />
+      <button type="button" onClick={onRename} style={itemStyle} className="sb-menu-item">
+        <Icon name="edit" size={13} />
         Renommer
       </button>
-      <button type="button" onClick={onArchive} style={itemStyle} className="hover:bg-[rgba(255,255,255,0.06)] hover:text-[var(--ink-0)] transition-colors">
-        <Icon name="archive" size={14} />
+      <button type="button" onClick={onArchive} style={itemStyle} className="sb-menu-item">
+        <Icon name="archive" size={13} />
         Archiver
       </button>
-      <button type="button" onClick={onDelete} style={{ ...itemStyle, color: "var(--danger, #ff6b6b)" }} className="hover:bg-[rgba(255,255,255,0.06)] transition-colors">
-        <Icon name="trash" size={14} />
+      <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "2px 0" }} />
+      <button type="button" onClick={onDelete} style={{ ...itemStyle, color: "rgba(230,100,100,0.85)" }} className="sb-menu-item-danger">
+        <Icon name="trash" size={13} />
         Supprimer
       </button>
     </div>
   )
 }
+
+// ─── Conversation item ─────────────────────────────────────────────────────────
 
 function RecentConversationItem({
   active,
@@ -207,13 +220,11 @@ function RecentConversationItem({
   }, [conversation.title, editing])
 
   useEffect(() => {
-    if (!menuOpen) {
-      setMenuPosition(null)
-    }
+    if (!menuOpen) setMenuPosition(null)
   }, [menuOpen])
 
-  function submitRename(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function submitRename(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     const clean = draftTitle.trim()
     if (!clean) return
     onRenameSubmit(clean)
@@ -221,32 +232,26 @@ function RecentConversationItem({
 
   if (editing) {
     return (
-      <form onSubmit={submitRename} className="recent-chat-item active" style={{ padding: "5px 6px" }}>
+      <form onSubmit={submitRename} style={{ padding: "3px 6px" }}>
         <input
           autoFocus
           value={draftTitle}
-          onChange={(event) => setDraftTitle(event.target.value)}
+          onChange={(e) => setDraftTitle(e.target.value)}
           onBlur={() => {
             const clean = draftTitle.trim()
-            if (!clean || clean === conversation.title) {
-              onRenameCancel()
-              return
-            }
+            if (!clean || clean === conversation.title) { onRenameCancel(); return }
             onRenameSubmit(clean)
           }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") onRenameCancel()
-          }}
+          onKeyDown={(e) => { if (e.key === "Escape") onRenameCancel() }}
           style={{
-            flex: 1,
-            minWidth: 0,
-            height: 28,
-            border: "1px solid var(--line-2)",
+            width: "100%",
+            height: 30,
+            border: "1px solid rgba(139,90,43,0.5)",
             borderRadius: 7,
-            background: "var(--bg-0)",
-            color: "var(--ink-0)",
-            padding: "0 8px",
-            fontSize: 13,
+            background: "rgba(20,10,4,0.8)",
+            color: "rgba(255,255,255,0.88)",
+            padding: "0 9px",
+            fontSize: 12,
             outline: "none",
           }}
         />
@@ -256,48 +261,36 @@ function RecentConversationItem({
 
   return (
     <div
-      className={`recent-chat-item ${active ? "active" : ""}`}
+      className={`sb-conv-item ${active ? "active" : ""}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      <span className="sb-conv-dot" />
       <Link
         href={`/dashboard/c/${conversation.id}`}
         onClick={onCloseMobile}
-        className="chat-title"
-        style={{
-          color: "inherit",
-          textDecoration: "none",
-          fontSize: 13,
-          fontWeight: active ? 650 : 500,
-        }}
+        className="sb-conv-title"
       >
         {conversation.title}
       </Link>
       <button
         type="button"
         aria-label={`Actions pour ${conversation.title}`}
-        onClick={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
           if (menuOpen) {
             onMenuToggle()
             setMenuPosition(null)
           } else {
-            const rect = event.currentTarget.getBoundingClientRect()
-            setMenuPosition({
-              top: rect.bottom + 4,
-              left: rect.right - 164
-            })
+            const rect = e.currentTarget.getBoundingClientRect()
+            setMenuPosition({ top: rect.bottom + 4, left: rect.right - 168 })
             onMenuToggle()
           }
         }}
-        className="chat-actions-button"
-        style={{
-          background: menuOpen ? "rgba(255,255,255,0.08)" : undefined,
-          opacity: menuOpen ? 1 : undefined,
-        }}
+        className={`sb-conv-actions ${menuOpen ? "open" : ""}`}
       >
-        ⋮
+        <Icon name="moreH" size={13} />
       </button>
 
       {menuOpen && menuPosition && typeof window !== "undefined" && createPortal(
@@ -313,6 +306,8 @@ function RecentConversationItem({
   )
 }
 
+// ─── Main Sidebar ──────────────────────────────────────────────────────────────
+
 export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -322,7 +317,6 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
   const [projectsMenuOpen, setProjectsMenuOpen] = useState(true)
-  const [isProjectsButtonHovered, setIsProjectsButtonHovered] = useState(false)
   const [conversationMenuId, setConversationMenuId] = useState<string | null>(null)
   const [renamingConversationId, setRenamingConversationId] = useState<string | null>(null)
 
@@ -334,18 +328,21 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
 
   useEffect(() => {
     if (!conversationMenuId) return
-    function closeMenu() {
-      setConversationMenuId(null)
-    }
+    function closeMenu() { setConversationMenuId(null) }
     window.addEventListener("click", closeMenu)
     return () => window.removeEventListener("click", closeMenu)
   }, [conversationMenuId])
 
-  const recentConversations = history.slice(0, 12)
+  useEffect(() => {
+    if (!profileMenuOpen) return
+    function closeProfile() { setProfileMenuOpen(false) }
+    window.addEventListener("click", closeProfile)
+    return () => window.removeEventListener("click", closeProfile)
+  }, [profileMenuOpen])
 
-  function closeMobile() {
-    if (mobile) onClose?.()
-  }
+  const recentConversations = history.slice(0, 14)
+
+  function closeMobile() { if (mobile) onClose?.() }
 
   function handleNewChat() {
     clearActive()
@@ -362,10 +359,7 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
   async function handleArchiveConversation(id: string) {
     await archiveConversation(id, user?.id)
     setConversationMenuId(null)
-    if (pathname === `/dashboard/c/${id}`) {
-      clearActive()
-      router.push("/dashboard")
-    }
+    if (pathname === `/dashboard/c/${id}`) { clearActive(); router.push("/dashboard") }
   }
 
   async function handleDeleteConversation(id: string) {
@@ -373,10 +367,7 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
     if (!confirmed) return
     await deleteConversation(id, user?.id)
     setConversationMenuId(null)
-    if (pathname === `/dashboard/c/${id}`) {
-      clearActive()
-      router.push("/dashboard")
-    }
+    if (pathname === `/dashboard/c/${id}`) { clearActive(); router.push("/dashboard") }
   }
 
   const asideStyle: CSSProperties = {
@@ -386,147 +377,257 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
     height: "100vh",
     display: "flex",
     flexDirection: "column",
-    width: mobile ? "min(88vw, 320px)" : collapsed ? 64 : 286,
-    padding: collapsed ? "12px 8px" : "12px",
+    width: mobile ? "min(88vw, 300px)" : collapsed ? 60 : 272,
     overflow: "hidden",
-    background: "var(--bg-0)",
-    borderRight: "1px solid var(--line-1)",
-    transition: "width 0.2s ease",
+    background: "rgba(10,10,12,0.97)",
+    borderRight: "1px solid rgba(255,255,255,0.07)",
+    transition: "width 0.22s cubic-bezier(0.4,0,0.2,1)",
   }
 
   return (
     <aside style={asideStyle}>
       <style>{`
-        .recent-chat-item {
+        /* ── Conversation items ── */
+        .sb-conv-item {
           width: 100%;
-          max-width: 100%;
           display: flex;
           align-items: center;
-          gap: 8px;
-          overflow: hidden;
-          padding: 8px 10px;
-          border-radius: 8px;
+          gap: 0;
+          padding: 0 6px 0 10px;
+          min-height: 32px;
+          border-radius: 7px;
           position: relative;
-          background: transparent;
-          color: var(--ink-2);
-          transition: background-color 200ms ease, color 200ms ease;
+          color: rgba(255,255,255,0.42);
+          cursor: pointer;
+          transition: background 140ms ease, color 140ms ease;
         }
-        .recent-chat-item.active {
-          background: var(--bg-2) !important;
-          color: var(--ink-0) !important;
+        .sb-conv-item:hover {
+          background: rgba(255,255,255,0.05);
+          color: rgba(255,255,255,0.78);
         }
-        .recent-chat-item:hover {
-          background: rgba(255,255,255,0.06);
-          color: var(--ink-0);
+        .sb-conv-item.active {
+          background: rgba(80,42,12,0.38) !important;
+          color: rgba(255,210,170,1) !important;
+          box-shadow: inset 2px 0 0 rgba(200,120,50,0.75);
         }
-        .chat-title {
+        .sb-conv-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.15);
+          flex-shrink: 0;
+          margin-right: 8px;
+          transition: background 140ms ease;
+        }
+        .sb-conv-item.active .sb-conv-dot {
+          background: rgba(200,120,50,0.8);
+        }
+        .sb-conv-item:hover .sb-conv-dot {
+          background: rgba(255,255,255,0.3);
+        }
+        .sb-conv-title {
           flex: 1;
           min-width: 0;
           overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;
+          font-size: 12.5px;
+          font-weight: 450;
+          color: inherit;
+          text-decoration: none;
+          padding: 6px 0;
         }
-        .chat-actions-button {
+        .sb-conv-actions {
           flex-shrink: 0;
-          width: 28px;
-          height: 28px;
+          width: 26px;
+          height: 26px;
           display: flex;
           align-items: center;
           justify-content: center;
           opacity: 0;
           border: 0;
-          border-radius: 7px;
+          border-radius: 6px;
           background: transparent;
-          color: var(--ink-3);
+          color: rgba(255,255,255,0.4);
           cursor: pointer;
-          font-size: 16px;
-          transition: opacity 160ms ease, background-color 160ms ease, color 160ms ease;
+          transition: opacity 140ms ease, background 140ms ease, color 140ms ease;
         }
-        .recent-chat-item:hover .chat-actions-button {
+        .sb-conv-item:hover .sb-conv-actions,
+        .sb-conv-actions.open {
           opacity: 1;
         }
-        .chat-actions-button:hover {
+        .sb-conv-actions:hover,
+        .sb-conv-actions.open {
           background: rgba(255,255,255,0.08) !important;
-          color: var(--ink-0) !important;
+          color: rgba(255,255,255,0.8) !important;
         }
-        @media (hover: none) {
-          .chat-actions-button {
-            opacity: 1;
-          }
+        @media (hover: none) { .sb-conv-actions { opacity: 1; } }
+
+        /* ── Context menu items ── */
+        .sb-menu-item:hover {
+          background: rgba(255,255,255,0.07) !important;
+          color: rgba(255,255,255,0.88) !important;
         }
+        .sb-menu-item-danger:hover {
+          background: rgba(180,40,40,0.18) !important;
+          color: rgba(250,110,110,1) !important;
+        }
+
+        /* ── Scrollbar ── */
+        .sb-scroll::-webkit-scrollbar { width: 3px; }
+        .sb-scroll::-webkit-scrollbar-track { background: transparent; }
+        .sb-scroll::-webkit-scrollbar-thumb { background: rgba(139,90,43,0.2); border-radius: 4px; }
+        .sb-scroll::-webkit-scrollbar-thumb:hover { background: rgba(139,90,43,0.4); }
       `}</style>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, margin: "8px 0 16px" }}>
-        <Link href="/dashboard" onClick={handleNewChat} style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0, padding: collapsed ? 0 : "4px 8px" }}>
-          <BrandMark size={20} withWordmark={!collapsed} />
+
+      {/* ── Header ── */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "space-between",
+        gap: 8, padding: collapsed ? "16px 0 12px" : "14px 14px 12px",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        flexShrink: 0,
+      }}>
+        <Link href="/dashboard" onClick={handleNewChat} style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0, textDecoration: "none" }}>
+          <BrandMark size={22} withWordmark={!collapsed} />
         </Link>
         {!collapsed && (
-          <div style={{ display: "flex", gap: 6 }}>
+          <div style={{ display: "flex", gap: 4 }}>
             {onToggle && (
-              <button type="button" onClick={onToggle} className="max-md:hidden" style={{ width: 32, height: 32, borderRadius: 8, border: 0, background: "transparent", color: "var(--ink-2)", cursor: "pointer" }} aria-label="Réduire la sidebar">
-                <Icon name="layoutSidebar" size={18} />
+              <button type="button" onClick={onToggle} className="max-md:hidden" aria-label="Réduire" style={{
+                width: 28, height: 28, borderRadius: 7, border: 0,
+                background: "transparent", color: "rgba(255,255,255,0.3)",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "background 140ms ease, color 140ms ease",
+              }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.3)" }}
+              >
+                <Icon name="layoutSidebar" size={16} />
               </button>
             )}
             {mobile && (
-              <button type="button" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: 0, background: "transparent", color: "var(--ink-2)", cursor: "pointer" }} aria-label="Fermer la navigation">
-                <Icon name="x" size={18} />
+              <button type="button" onClick={onClose} aria-label="Fermer" style={{
+                width: 28, height: 28, borderRadius: 7, border: 0,
+                background: "transparent", color: "rgba(255,255,255,0.3)",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Icon name="x" size={16} />
               </button>
             )}
           </div>
         )}
       </div>
 
-      <div style={{ display: "grid", gap: 6, marginBottom: 10 }}>
-        <SidebarItem icon="edit" label="Nouveau visuel" collapsed={collapsed} onClick={handleNewChat} itemPadding="8px 0" itemGap={6} fillLabel={false} />
-        {collapsed ? (
-          <SidebarItem icon="folder" label="Projets" href="/dashboard/projects" collapsed={collapsed} onClick={closeMobile} />
-        ) : (
-          <div style={{ display: "grid", gap: 4 }}>
+      {/* ── New Visual CTA ── */}
+      <div style={{ padding: collapsed ? "10px 8px" : "10px 10px 6px", flexShrink: 0 }}>
+        <button
+          type="button"
+          onClick={handleNewChat}
+          style={{
+            width: "100%",
+            display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start",
+            gap: 8,
+            height: collapsed ? 36 : 34,
+            padding: collapsed ? "0" : "0 12px",
+            borderRadius: 9,
+            border: "1px solid rgba(200,120,50,0.35)",
+            background: "linear-gradient(135deg, rgba(100,55,15,0.55), rgba(70,35,8,0.45))",
+            color: "rgba(255,200,140,0.92)",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 550,
+            letterSpacing: "-0.01em",
+            transition: "background 180ms ease, border-color 180ms ease",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.3)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "linear-gradient(135deg, rgba(120,65,15,0.7), rgba(85,42,8,0.6))"
+            e.currentTarget.style.borderColor = "rgba(200,120,50,0.55)"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "linear-gradient(135deg, rgba(100,55,15,0.55), rgba(70,35,8,0.45))"
+            e.currentTarget.style.borderColor = "rgba(200,120,50,0.35)"
+          }}
+          title={collapsed ? "Nouveau visuel" : undefined}
+        >
+          <Icon name="edit" size={14} style={{ flexShrink: 0 }} />
+          {!collapsed && <span>Nouveau visuel</span>}
+        </button>
+      </div>
+
+      {/* ── Primary nav ── */}
+      <div style={{ padding: collapsed ? "4px 8px" : "4px 10px", flexShrink: 0 }}>
+        <NavItem
+          icon="palette"
+          label="Mémoires de marque"
+          href="/dashboard/projects"
+          active={pathname.startsWith("/dashboard/projects")}
+          collapsed={collapsed}
+          onClick={closeMobile}
+        />
+
+        {/* Projects accordion */}
+        {!collapsed && (
+          <div style={{ marginTop: 2 }}>
             <button
               type="button"
-              onClick={() => setProjectsMenuOpen((value) => !value)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                minHeight: 36,
-                width: "100%",
-                padding: "8px 0",
-                borderRadius: 8,
-                border: 0,
-                background: pathname.startsWith("/dashboard/projects") ? "var(--bg-2)" : isProjectsButtonHovered ? "rgba(255,255,255,0.06)" : "transparent",
-                color: pathname.startsWith("/dashboard/projects") || isProjectsButtonHovered ? "var(--ink-0)" : "var(--ink-2)",
-                cursor: "pointer",
-                fontSize: 13,
-                fontWeight: pathname.startsWith("/dashboard/projects") ? 650 : 500,
-                textAlign: "left",
-                transition: "background-color 200ms ease, color 200ms ease",
-              }}
-              onMouseEnter={() => setIsProjectsButtonHovered(true)}
-              onMouseLeave={() => setIsProjectsButtonHovered(false)}
+              onClick={() => setProjectsMenuOpen((v) => !v)}
               aria-expanded={projectsMenuOpen}
-              aria-label="Afficher les projets"
+              style={{
+                display: "flex", alignItems: "center", gap: 9,
+                minHeight: 34, width: "100%",
+                padding: "6px 10px",
+                borderRadius: 8, border: 0,
+                background: pathname.startsWith("/dashboard/projects") ? "rgba(80,42,12,0.38)" : "transparent",
+                color: pathname.startsWith("/dashboard/projects") ? "rgba(255,210,170,1)" : "rgba(255,255,255,0.48)",
+                cursor: "pointer", fontSize: 13, fontWeight: 450, textAlign: "left",
+                transition: "background 160ms ease, color 160ms ease",
+                boxShadow: pathname.startsWith("/dashboard/projects") ? "inset 2px 0 0 rgba(200,120,50,0.75)" : "none",
+              }}
+              onMouseEnter={(e) => {
+                if (!pathname.startsWith("/dashboard/projects")) {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.05)"
+                  e.currentTarget.style.color = "rgba(255,255,255,0.82)"
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!pathname.startsWith("/dashboard/projects")) {
+                  e.currentTarget.style.background = "transparent"
+                  e.currentTarget.style.color = "rgba(255,255,255,0.48)"
+                }
+              }}
             >
-              <Icon name="folder" size={16} />
+              <Icon name="folder" size={15} style={{ flexShrink: 0, opacity: 0.65 }} />
               <span style={{ flex: 1, minWidth: 0 }}>Projets</span>
-              <Icon name={projectsMenuOpen ? "chevronD" : "chevronR"} size={12} style={{ color: "var(--ink-3)" }} />
+              <Icon
+                name={projectsMenuOpen ? "chevronD" : "chevronR"}
+                size={11}
+                style={{ color: "rgba(255,255,255,0.25)", transition: "transform 180ms ease", flexShrink: 0 }}
+              />
             </button>
 
             {projectsMenuOpen && (
-              <div style={{ display: "grid", gap: 3, paddingLeft: 0 }}>
-                <SidebarItem icon="folderPlus" label="Nouveau projet" onClick={() => setCreateModalOpen(true)} itemPadding="8px 0" itemGap={6} fillLabel={false} />
+              <div style={{ display: "grid", gap: 1, paddingLeft: 4, marginTop: 1 }}>
+                <NavItem
+                  icon="folderPlus"
+                  label="Nouveau projet"
+                  onClick={() => setCreateModalOpen(true)}
+                  indent
+                />
                 {projectsLoading ? (
                   <SidebarMessage>Chargement...</SidebarMessage>
                 ) : projectsError ? (
                   <SidebarMessage>{projectsError}</SidebarMessage>
                 ) : projects.length > 0 ? (
                   projects.map((project) => (
-                    <SidebarItem
+                    <NavItem
                       key={project.id}
                       icon="folder"
                       label={project.title}
                       href={`/dashboard/projects/${project.id}`}
                       active={pathname === `/dashboard/projects/${project.id}`}
                       onClick={closeMobile}
+                      indent
                     />
                   ))
                 ) : null}
@@ -534,68 +635,110 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
             )}
           </div>
         )}
+
+        {collapsed && (
+          <NavItem icon="folder" label="Projets" href="/dashboard/projects" collapsed={collapsed} onClick={closeMobile} />
+        )}
       </div>
 
-      <nav style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", display: "grid", alignContent: "start", gap: 3, paddingRight: collapsed ? 0 : 4 }}>
-        <SidebarItem icon="palette" label="Mémoires de marque" href="/dashboard/projects" active={false} collapsed={collapsed} onClick={closeMobile} />
+      {/* ── Divider ── */}
+      {!collapsed && (
+        <div style={{ margin: "4px 10px 0", height: 1, background: "rgba(255,255,255,0.05)", flexShrink: 0 }} />
+      )}
 
+      {/* ── Conversations ── */}
+      <nav className="sb-scroll" style={{
+        flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden",
+        padding: collapsed ? "8px 8px" : "0 10px 8px",
+      }}>
         {!collapsed && (
           <>
-            <SectionLabel>Conversations récentes</SectionLabel>
+            <SectionLabel>Récents</SectionLabel>
             {isLoadingHistory ? (
               <SidebarMessage>Chargement...</SidebarMessage>
             ) : recentConversations.length === 0 ? (
-              <SidebarMessage>Aucune conversation.</SidebarMessage>
+              <SidebarMessage>Aucune conversation pour l'instant.</SidebarMessage>
             ) : (
-              recentConversations.map((conversation) => (
-                <RecentConversationItem
-                  key={conversation.id}
-                  active={pathname === `/dashboard/c/${conversation.id}`}
-                  conversation={conversation}
-                  editing={renamingConversationId === conversation.id}
-                  menuOpen={conversationMenuId === conversation.id}
-                  onArchive={() => void handleArchiveConversation(conversation.id)}
-                  onCloseMobile={closeMobile}
-                  onDelete={() => void handleDeleteConversation(conversation.id)}
-                  onMenuToggle={() => setConversationMenuId((value) => value === conversation.id ? null : conversation.id)}
-                  onRenameCancel={() => setRenamingConversationId(null)}
-                  onRenameStart={() => {
-                    setConversationMenuId(null)
-                    setRenamingConversationId(conversation.id)
-                  }}
-                  onRenameSubmit={(title) => void handleRenameConversation(conversation.id, title)}
-                />
-              ))
+              <div style={{ display: "grid", gap: 1 }}>
+                {recentConversations.map((conversation) => (
+                  <RecentConversationItem
+                    key={conversation.id}
+                    active={pathname === `/dashboard/c/${conversation.id}`}
+                    conversation={conversation}
+                    editing={renamingConversationId === conversation.id}
+                    menuOpen={conversationMenuId === conversation.id}
+                    onArchive={() => void handleArchiveConversation(conversation.id)}
+                    onCloseMobile={closeMobile}
+                    onDelete={() => void handleDeleteConversation(conversation.id)}
+                    onMenuToggle={() => setConversationMenuId((v) => v === conversation.id ? null : conversation.id)}
+                    onRenameCancel={() => setRenamingConversationId(null)}
+                    onRenameStart={() => { setConversationMenuId(null); setRenamingConversationId(conversation.id) }}
+                    onRenameSubmit={(title) => void handleRenameConversation(conversation.id, title)}
+                  />
+                ))}
+              </div>
             )}
-
           </>
         )}
       </nav>
 
       <CreateProjectModal isOpen={isCreateModalOpen} onClose={() => setCreateModalOpen(false)} />
 
-      <div style={{ position: "relative", borderTop: "1px solid var(--line-1)", paddingTop: 12, marginTop: 12 }}>
+      {/* ── Profile ── */}
+      <div style={{ flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.05)", padding: collapsed ? "10px 8px" : "8px 10px", position: "relative" }}>
+
+        {/* Profile flyout menu */}
         {profileMenuOpen && !collapsed && (
-          <div style={{ position: "fixed", bottom: 70, left: 12, width: 262, padding: 8, zIndex: 60, display: "grid", gap: 2, background: "var(--bg-1)", border: "1px solid var(--line-2)", borderRadius: 12, boxShadow: "var(--sh-2)" }}>
-            <SidebarItem icon="user" label="Profil" href="/dashboard/profile" onClick={closeMobile} />
-            <SidebarItem icon="credit" label="Abonnement" href="/dashboard/billing" onClick={closeMobile} />
-            <SidebarItem icon="bell" label="Notifications" href="/dashboard/notifications" onClick={closeMobile} />
-            <SidebarItem icon="settings" label="Paramètres" href="/dashboard/settings" onClick={closeMobile} />
-            <SidebarItem icon="help" label="Support" href="/dashboard/support" onClick={closeMobile} />
-            <SidebarItem icon="logout" label="Se déconnecter" onClick={() => void logout()} />
+          <div style={{
+            position: "absolute", bottom: "calc(100% + 6px)", left: 10, right: 10,
+            padding: 6, zIndex: 60,
+            display: "grid", gap: 1,
+            background: "rgba(14,9,5,0.97)",
+            border: "1px solid rgba(139,90,43,0.3)",
+            borderRadius: 11,
+            boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
+            backdropFilter: "blur(16px)",
+          }}>
+            <NavItem icon="user" label="Profil" href="/dashboard/profile" onClick={closeMobile} />
+            <NavItem icon="credit" label="Abonnement" href="/dashboard/billing" onClick={closeMobile} />
+            <NavItem icon="bell" label="Notifications" href="/dashboard/notifications" onClick={closeMobile} />
+            <NavItem icon="settings" label="Paramètres" href="/dashboard/settings" onClick={closeMobile} />
+            <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "2px 0" }} />
+            <NavItem icon="help" label="Support" href="/dashboard/support" onClick={closeMobile} />
+            <NavItem icon="logout" label="Se déconnecter" onClick={() => void logout()} />
           </div>
         )}
+
         <button
           type="button"
-          onClick={() => setProfileMenuOpen((value) => !value)}
-          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 10, padding: collapsed ? "4px 0" : "8px 10px", borderRadius: 10, border: 0, background: profileMenuOpen ? "var(--bg-2)" : "transparent", cursor: "pointer", textAlign: "left" }}
+          onClick={(e) => { e.stopPropagation(); setProfileMenuOpen((v) => !v) }}
+          style={{
+            width: "100%",
+            display: "flex", alignItems: "center",
+            justifyContent: collapsed ? "center" : "flex-start",
+            gap: 9,
+            padding: collapsed ? "4px 0" : "7px 8px",
+            borderRadius: 9, border: 0,
+            background: profileMenuOpen ? "rgba(80,42,12,0.35)" : "transparent",
+            cursor: "pointer", textAlign: "left",
+            transition: "background 160ms ease",
+          }}
+          onMouseEnter={(e) => { if (!profileMenuOpen) e.currentTarget.style.background = "rgba(255,255,255,0.05)" }}
+          onMouseLeave={(e) => { if (!profileMenuOpen) e.currentTarget.style.background = "transparent" }}
         >
-          <Avatar name={user?.fullName || user?.email || "Utilisateur"} size={collapsed ? 34 : 36} />
+          <Avatar name={user?.fullName || user?.email || "U"} size={collapsed ? 32 : 30} />
           {!collapsed && (
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 650, color: "var(--ink-0)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.fullName || "Utilisateur"}</div>
-              <div style={{ fontSize: 11, color: "var(--ink-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,0.82)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {user?.fullName || "Utilisateur"}
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.28)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {user?.email}
+              </div>
             </div>
+          )}
+          {!collapsed && (
+            <Icon name={profileMenuOpen ? "chevronD" : "chevronU"} size={11} style={{ color: "rgba(255,255,255,0.2)", flexShrink: 0 }} />
           )}
         </button>
       </div>

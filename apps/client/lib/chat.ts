@@ -14,6 +14,7 @@ export interface SendChatMessageInput {
   conversationId?: string
   projectId?: string
   history?: ChatHistoryMessage[]
+  visualConfig?: Record<string, unknown>
 }
 
 export interface SendChatMessageResult {

@@ -1,7 +1,7 @@
 "use client"
 
-import { ChatConversation } from "@/components/app/ChatConversation"
+import { DashboardHome } from "@/components/app/DashboardHome"
 
 export default function DashboardPage() {
-  return <ChatConversation />
+  return <DashboardHome />
 }
