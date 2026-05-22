@@ -132,13 +132,34 @@ export function PromptChip({ children, onClick }: { children: ReactNode; onClick
 
 export function EmptyState({ icon = "sparkles", title, body, action }: { icon?: string; title: string; body?: string; action?: ReactNode }) {
   return (
-    <div style={{ padding: 36, textAlign: "center", color: "var(--ink-2)" }}>
-      <span style={{ width: 42, height: 42, borderRadius: 12, margin: "0 auto 14px", background: "var(--bg-1)", border: "1px solid var(--line-1)", color: "var(--acc-bright)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Icon name={icon} size={18} />
-      </span>
-      <div style={{ fontSize: 15, fontWeight: 650, color: "var(--ink-0)" }}>{title}</div>
-      {body && <p style={{ margin: "7px auto 0", maxWidth: 380, fontSize: 13, lineHeight: 1.5, color: "var(--ink-3)" }}>{body}</p>}
-      {action && <div style={{ marginTop: 16 }}>{action}</div>}
+    <div style={{ 
+      padding: "64px 32px", 
+      textAlign: "center", 
+      background: "linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0) 100%)",
+      border: "1px dashed rgba(255,255,255,0.1)",
+      borderRadius: 24,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 16,
+      marginTop: 20
+    }}>
+      <div style={{ 
+        width: 56, height: 56, 
+        borderRadius: 16, 
+        background: "rgba(255,255,255,0.03)", 
+        border: "1px solid rgba(255,255,255,0.08)", 
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color: "rgba(255,255,255,0.6)"
+      }}>
+        <Icon name={icon} size={24} />
+      </div>
+      <div>
+        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "var(--ink-0)", letterSpacing: "-0.01em" }}>{title}</h3>
+        {body && <p style={{ margin: "8px auto 0", fontSize: 14, color: "rgba(255,255,255,0.4)", maxWidth: 380, lineHeight: 1.5 }}>{body}</p>}
+      </div>
+      {action && <div style={{ marginTop: 8 }}>{action}</div>}
     </div>
   )
 }

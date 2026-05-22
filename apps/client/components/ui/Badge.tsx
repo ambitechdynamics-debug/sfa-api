@@ -7,13 +7,13 @@ export type BadgeTone = "neutral" | "acc" | "sage" | "plum" | "gold" | "rose" | 
 export type BadgeSize = "sm" | "md"
 
 const TONES: Record<BadgeTone, { bg: string; color: string; line: string }> = {
-  neutral: { bg: "var(--bg-3)",    color: "var(--ink-1)",    line: "var(--line-2)" },
-  acc:     { bg: "var(--acc-soft)",color: "var(--acc-bright)",line: "var(--acc-line)" },
-  sage:    { bg: "var(--sage-soft)",color: "var(--sage)",    line: "rgba(138,165,122,0.3)" },
-  plum:    { bg: "var(--plum-soft)",color: "var(--plum)",    line: "rgba(176,139,199,0.3)" },
-  gold:    { bg: "var(--gold-soft)",color: "var(--gold)",    line: "rgba(216,168,90,0.3)" },
-  rose:    { bg: "var(--rose-soft)",color: "var(--rose)",    line: "rgba(217,112,112,0.3)" },
-  sky:     { bg: "var(--sky-soft)", color: "var(--sky)",     line: "rgba(122,163,201,0.3)" },
+  neutral: { bg: "rgba(255,255,255,0.03)",    color: "rgba(255,255,255,0.5)",    line: "rgba(255,255,255,0.06)" },
+  acc:     { bg: "rgba(255,255,255,0.08)",    color: "rgba(255,255,255,0.9)",    line: "rgba(255,255,255,0.15)" },
+  sage:    { bg: "rgba(255,255,255,0.04)",    color: "rgba(255,255,255,0.7)",    line: "rgba(255,255,255,0.1)" },
+  plum:    { bg: "rgba(255,255,255,0.04)",    color: "rgba(255,255,255,0.7)",    line: "rgba(255,255,255,0.1)" },
+  gold:    { bg: "rgba(255,255,255,0.06)",    color: "rgba(255,255,255,0.8)",    line: "rgba(255,255,255,0.12)" },
+  rose:    { bg: "rgba(255,50,50,0.1)",       color: "rgba(255,100,100,0.9)",    line: "rgba(255,50,50,0.2)" },
+  sky:     { bg: "rgba(255,255,255,0.06)",    color: "rgba(255,255,255,0.8)",    line: "rgba(255,255,255,0.12)" },
 }
 
 interface BadgeProps {

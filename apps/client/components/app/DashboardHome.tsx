@@ -66,15 +66,29 @@ function ProjectCard({ project, onOpen, onRename, onDelete }: {
   return (
     <div
       onClick={onOpen}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setMenuOpen(false); }}
+      onMouseEnter={(e) => {
+        setHovered(true)
+        e.currentTarget.style.transform = "translateY(-4px)"
+        e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.4)"
+        e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)"
+        e.currentTarget.style.background = "rgba(255,255,255,0.035)"
+      }}
+      onMouseLeave={(e) => {
+        setHovered(false)
+        setMenuOpen(false)
+        e.currentTarget.style.transform = "translateY(0)"
+        e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.15)"
+        e.currentTarget.style.border = "1px solid rgba(255,255,255,0.06)"
+        e.currentTarget.style.background = "rgba(255,255,255,0.02)"
+      }}
       style={{
-        borderRadius: 12,
-        background: hovered ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.015)",
-        border: `1px solid ${hovered ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)"}`,
+        borderRadius: 16,
+        background: "rgba(255,255,255,0.02)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
         overflow: "hidden",
         cursor: "pointer",
-        transition: "all 0.2s ease",
+        transition: "all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)",
         position: "relative",
       }}
     >

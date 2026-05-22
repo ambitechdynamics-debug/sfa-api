@@ -156,7 +156,7 @@ export default function BillingPage() {
   return (
     <PageContainer width={1180}>
       {/* Current plan card */}
-      <Card padding={28} style={{ background: "linear-gradient(135deg, var(--acc-soft), transparent 60%)", borderColor: "var(--acc-line)", position: "relative" }}>
+      <Card padding={28} style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.04), transparent 80%)", borderColor: "rgba(255,255,255,0.1)", position: "relative" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 24 }}>
           <div>
             <Badge tone="acc" icon="zap">Plan actuel · {currentPlanObj.name}</Badge>
@@ -175,8 +175,8 @@ export default function BillingPage() {
               </div>
             )}
             
-            <div style={{ height: 6, width: 280, background: "var(--bg-3)", borderRadius: 3, marginTop: 14, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.min(100, (used / totalCredits) * 100)}%`, background: "var(--acc)" }} />
+            <div style={{ height: 6, width: 280, background: "rgba(255,255,255,0.05)", borderRadius: 3, marginTop: 14, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.min(100, (used / totalCredits) * 100)}%`, background: "rgba(255,255,255,0.9)" }} />
             </div>
           </div>
 
@@ -252,8 +252,8 @@ export default function BillingPage() {
               key={p.name}
               padding={24}
               style={{
-                borderColor: isCurrent ? "var(--acc-line)" : "var(--line-1)",
-                boxShadow: isCurrent ? "0 0 0 2px var(--acc-soft)" : "var(--sh-1)",
+                borderColor: isCurrent ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.06)",
+                boxShadow: isCurrent ? "0 0 0 1px rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.2)" : undefined,
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,

@@ -95,7 +95,7 @@ function Setting({ label, hint, children }: { label: string; hint?: string; chil
 
 function Segmented({ value, options, onChange }: { value: string; options: Array<{ value: string; label: string }>; onChange: (v: string) => void }) {
   return (
-    <div style={{ display: "inline-flex", gap: 2, padding: 3, background: "var(--bg-2)", border: "1px solid var(--line-1)", borderRadius: 9 }}>
+    <div style={{ display: "inline-flex", gap: 2, padding: 3, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 9 }}>
       {options.map((o) => {
         const active = o.value === value
         return (
@@ -104,9 +104,9 @@ function Segmented({ value, options, onChange }: { value: string; options: Array
             onClick={() => onChange(o.value)}
             style={{
               padding: "6px 12px",
-              background: active ? "var(--bg-4)" : "transparent",
+              background: active ? "rgba(255,255,255,0.08)" : "transparent",
               border: 0,
-              color: active ? "var(--ink-0)" : "var(--ink-2)",
+              color: active ? "#fff" : "rgba(255,255,255,0.5)",
               fontSize: 13, fontWeight: 500,
               borderRadius: 6, cursor: "pointer",
             }}
@@ -124,9 +124,9 @@ function InfoRow({ label, hint, icon, danger }: { label: string; hint?: string; 
     <div
       style={{
         display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
-        padding: 14, background: "var(--bg-1)", border: "1px solid var(--line-1)",
+        padding: 14, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)",
         borderRadius: 8,
-        color: danger ? "var(--rose)" : "var(--ink-1)",
+        color: danger ? "rgba(255,100,100,0.9)" : "rgba(255,255,255,0.8)",
       }}
     >
       <div>

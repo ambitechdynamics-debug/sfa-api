@@ -11,28 +11,32 @@ export function Card({ children, padding, hover, style, ...rest }: CardProps) {
   return (
     <div
       style={{
-        background: "var(--bg-2)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--r-3)",
+        background: "rgba(255,255,255,0.02)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 16,
         padding: padding === undefined ? "var(--pad-card)" : padding,
-        boxShadow: "var(--sh-1)",
-        transition: "border-color 200ms, transform 200ms, box-shadow 200ms",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+        transition: "all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)",
         ...(hover && { cursor: "pointer" }),
         ...(style as CSSProperties),
       }}
       onMouseEnter={
         hover
           ? (e) => {
-              e.currentTarget.style.borderColor = "var(--line-3)"
-              e.currentTarget.style.transform = "translateY(-1px)"
+              e.currentTarget.style.transform = "translateY(-4px)"
+              e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.4)"
+              e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)"
+              e.currentTarget.style.background = "rgba(255,255,255,0.035)"
             }
           : undefined
       }
       onMouseLeave={
         hover
           ? (e) => {
-              e.currentTarget.style.borderColor = "var(--line-1)"
-              e.currentTarget.style.transform = ""
+              e.currentTarget.style.transform = "translateY(0)"
+              e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.15)"
+              e.currentTarget.style.border = "1px solid rgba(255,255,255,0.06)"
+              e.currentTarget.style.background = "rgba(255,255,255,0.02)"
             }
           : undefined
       }
