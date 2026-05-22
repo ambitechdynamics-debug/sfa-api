@@ -129,7 +129,7 @@ export default function CreationOptionsPage() {
     setIsLoading(true)
     try {
       const res = await fetchCreationOptions(true)
-      setOptions(res || [])
+      setOptions(Array.isArray(res) ? res : [])
     } catch (e) {
       toastLoadError(e, 'Impossible de charger les types de création')
     } finally {
@@ -162,9 +162,9 @@ export default function CreationOptionsPage() {
 
   async function handleToggle(option: any) {
     try {
-      const updated = await updateCreationOption(option.id, { isActive: !option.isActive })
+      const updated = await updateCreationOption(option.id, { isActive: !option.isActive }) as any
       setOptions((prev) => prev.map((r) => r.id === option.id ? updated : r))
-      toastSuccess(updated.isActive ? 'Option activée' : 'Option désactivée')
+      toastSuccess(updated?.isActive ? 'Option activée' : 'Option désactivée')
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Erreur'
       toastError(msg)

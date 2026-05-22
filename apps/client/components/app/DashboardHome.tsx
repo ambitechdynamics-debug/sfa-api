@@ -212,6 +212,7 @@ export function DashboardHome() {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState("")
   const { options, isLoading: isLoadingOptions, fetchOptions } = useCreationOptionsStore()
+  const { sendMessage, isSending, error } = useChatStore()
 
   useEffect(() => {
     loadProjects()
@@ -223,9 +224,12 @@ export function DashboardHome() {
     .filter((p) => filterType === "all" || p.posterType === filterType)
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
 
-  function handleGenerate() {
-    if (!promptInput.trim()) return
-    router.push(`/dashboard/chat?q=${encodeURIComponent(promptInput.trim())}`)
+  async function handleGenerate() {
+    if (!promptInput.trim() || !user?.id || isSending) return
+    const conversationId = await sendMessage(promptInput.trim(), user.id)
+    if (conversationId) {
+      router.push(`/dashboard/c/${conversationId}`)
+    }
   }
 
   function handleShortcut(type: string) {
@@ -312,22 +316,37 @@ export function DashboardHome() {
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={!promptInput.trim()}
+                disabled={!promptInput.trim() || isSending}
                 style={{
                   width: 44, height: 44, borderRadius: "50%",
                   background: promptInput.trim() ? "#fff" : "rgba(255,255,255,0.06)",
                   color: promptInput.trim() ? "#000" : "rgba(255,255,255,0.2)",
                   border: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: promptInput.trim() ? "pointer" : "default",
+                  cursor: promptInput.trim() && !isSending ? "pointer" : "default",
                   transition: "all 0.2s ease",
-                  transform: promptInput.trim() ? "scale(1)" : "scale(0.95)",
+                  transform: promptInput.trim() && !isSending ? "scale(1)" : "scale(0.95)",
+                  opacity: isSending ? 0.7 : 1,
                 }}
-                onMouseEnter={(e) => { if (promptInput.trim()) e.currentTarget.style.transform = "scale(1.05)" }}
-                onMouseLeave={(e) => { if (promptInput.trim()) e.currentTarget.style.transform = "scale(1)" }}
+                onMouseEnter={(e) => { if (promptInput.trim() && !isSending) e.currentTarget.style.transform = "scale(1.05)" }}
+                onMouseLeave={(e) => { if (promptInput.trim() && !isSending) e.currentTarget.style.transform = "scale(1)" }}
               >
-                <Icon name="arrowUp" size={18} />
+                {isSending ? (
+                  <div style={{
+                    width: 18, height: 18, borderRadius: "50%",
+                    border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#000",
+                    animation: "spin 1s linear infinite"
+                  }} />
+                ) : (
+                  <Icon name="arrowUp" size={18} />
+                )}
               </button>
             </div>
+            {error && (
+              <div style={{ marginTop: 12, color: "#ff4a4a", fontSize: 13, textAlign: "center" }}>
+                <Icon name="warn" size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                {error}
+              </div>
+            )}
           </div>
 
           {/* Shortcut Chips */}
