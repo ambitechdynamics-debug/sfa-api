@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { Card } from "@/components/ui/Card"
 import { Badge, type BadgeTone } from "@/components/ui/Badge"
 import { Poster, type PosterKind } from "@/components/poster/Poster"
 import { Icon } from "@/components/ui/Icon"
@@ -10,11 +9,11 @@ import type { Project, ProjectStatus } from "@/types/project"
 
 const STATUS_LABELS: Record<ProjectStatus, { label: string; tone: BadgeTone }> = {
   DRAFT:            { label: "Brouillon",     tone: "neutral" },
-  QUESTIONING:      { label: "Brief en cours",tone: "acc" },
+  QUESTIONING:      { label: "Brief en cours",tone: "neutral" },
   ANALYZING:        { label: "Analyse",       tone: "sky" },
-  READY_FOR_PROMPT: { label: "Prêt à générer",tone: "gold" },
-  PROMPT_READY:     { label: "Prompt prêt",   tone: "gold" },
-  GENERATING:       { label: "En génération", tone: "acc" },
+  READY_FOR_PROMPT: { label: "Prêt à générer",tone: "neutral" },
+  PROMPT_READY:     { label: "Prompt prêt",   tone: "neutral" },
+  GENERATING:       { label: "En génération", tone: "sky" },
   GENERATED:        { label: "Validé",        tone: "sage" },
   FAILED:           { label: "Échec",         tone: "rose" },
 }
@@ -40,26 +39,62 @@ export function ProjectCard({ project }: { project: Project }) {
 
   return (
     <Link href={`/dashboard/projects/${project.id}`}>
-      <Card hover style={{ overflow: "hidden", padding: 0, display: "flex", flexDirection: "column", gap: 0 }}>
-        <div style={{ padding: 14, background: "var(--bg-3)" }}>
-          <Poster kind={kind} brief={brief} ratio="3/4" />
+      <div
+        className="project-card"
+        style={{
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          gap: 0,
+          background: "rgba(255,255,255,0.02)",
+          border: "1px solid rgba(255,255,255,0.06)",
+          borderRadius: 16,
+          cursor: "pointer",
+          transition: "all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "translateY(-4px)"
+          e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.4)"
+          e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)"
+          e.currentTarget.style.background = "rgba(255,255,255,0.035)"
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "translateY(0)"
+          e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.15)"
+          e.currentTarget.style.border = "1px solid rgba(255,255,255,0.06)"
+          e.currentTarget.style.background = "rgba(255,255,255,0.02)"
+        }}
+      >
+        <div style={{ padding: 12, background: "transparent", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+          <div style={{ borderRadius: 8, overflow: "hidden" }}>
+            <Poster kind={kind} brief={brief} ratio="3/4" />
+          </div>
         </div>
-        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid var(--line-1)" }}>
+        <div style={{ padding: "16px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-            <div style={{ minWidth: 0 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-0)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{project.title}</h3>
-              <p style={{ fontSize: 12, color: "var(--ink-3)", margin: "4px 0 0" }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 600, color: "var(--ink-0)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: "-0.01em" }}>
+                {project.title}
+              </h3>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: "4px 0 0", fontWeight: 400 }}>
                 {project.posterType || "Affiche"}{project.format ? ` · ${project.format}` : ""}
               </p>
             </div>
-            <Badge size="sm" tone={status.tone}>{status.label}</Badge>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid var(--line-1)" }}>
-            <span style={{ fontSize: 11, color: "var(--ink-3)", fontFamily: "var(--font-mono)" }}>{relativeTime(project.updatedAt)}</span>
-            <Icon name="chevronR" size={14} style={{ color: "var(--ink-3)" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+            <Badge size="sm" tone={status.tone} style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.05)" }}>
+              {status.label}
+            </Badge>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "var(--font-mono)" }}>
+                {relativeTime(project.updatedAt)}
+              </span>
+              <Icon name="chevronR" size={14} style={{ color: "rgba(255,255,255,0.3)" }} />
+            </div>
           </div>
         </div>
-      </Card>
+      </div>
     </Link>
   )
 }
