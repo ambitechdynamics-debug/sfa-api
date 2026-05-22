@@ -174,10 +174,6 @@ export const settingsService = {
   resolve: async (dbKey: string, envFallback?: string): Promise<string | null> => {
     const fromDb = await settingsService.getRaw(dbKey);
     if (fromDb && fromDb.trim().length > 0) {
-      // Ignorer l'ancien prompt système par défaut pour forcer le nouveau prompt interactif pas-à-pas
-      if (dbKey === 'chat_agent_system_prompt' && fromDb.includes('Tu es l’assistant IA de Flyer Studio.')) {
-        return null;
-      }
       return fromDb;
     }
     if (envFallback) {

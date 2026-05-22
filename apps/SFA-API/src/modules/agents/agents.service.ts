@@ -22,8 +22,9 @@ import { BRAND_AGENT_SYSTEM_PROMPT } from './system-prompts/brandAgent.prompt';
 import { ARTISTIC_BASE_SYSTEM_PROMPT } from './system-prompts/artisticBase.prompt';
 import { PROMPT_ARCHITECT_SYSTEM_PROMPT } from './system-prompts/promptArchitect.prompt';
 import { QUALITY_AGENT_SYSTEM_PROMPT } from './system-prompts/qualityAgent.prompt';
+import { SAFETY_AGENT_SYSTEM_PROMPT } from './system-prompts/safetyAgent.prompt';
 
-import { buildAgentContext, saveAgentOutputs } from './dynamic-context.service';
+import { buildAgentContext, saveAgentOutputs, type MemorySnapshot } from './dynamic-context.service';
 
 // ─── Types de sortie de chaque agent ────────────────────
 
@@ -140,6 +141,23 @@ export interface QualityAgentOutput {
   recommendations: string[];
 }
 
+export interface SafetyAgentViolation {
+  rule_key: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  category?: string;
+  evidence?: string;
+  action?: 'blocked' | 'amended_remove' | 'amended_replace';
+}
+
+export interface SafetyAgentOutput {
+  decision: 'approved' | 'amended' | 'blocked';
+  violations: SafetyAgentViolation[];
+  amended_prompt?: string | null;
+  amended_negative_prompt_additions?: string[];
+  client_message?: string | null;
+  ready_for_next_step: boolean;
+}
+
 // ─── Utilitaire de sauvegarde AgentRun ──────────────────
 
 interface SaveAgentRunParams {
@@ -191,6 +209,7 @@ export interface RunPlannerParams {
   projectId: string;
   provider?: AIProvider;
   model?: string;
+  memorySnapshot?: MemorySnapshot;
 }
 
 export async function runPlannerAgent(params: RunPlannerParams): Promise<PlannerOutput> {
@@ -251,6 +270,7 @@ export interface RunImageAnalystParams {
   files: FileInfo[];
   provider?: AIProvider;
   model?: string;
+  memorySnapshot?: MemorySnapshot;
 }
 
 export async function runImageAnalystAgent(params: RunImageAnalystParams): Promise<ImageAnalystOutput[]> {
@@ -314,6 +334,7 @@ export interface RunTextAnalystParams {
   plannerResult: PlannerOutput;
   provider?: AIProvider;
   model?: string;
+  memorySnapshot?: MemorySnapshot;
 }
 
 export async function runTextAnalystAgent(params: RunTextAnalystParams): Promise<TextAnalystOutput> {
@@ -376,6 +397,7 @@ export interface RunBrandAgentParams {
   imageAnalystResult?: ImageAnalystOutput | null;
   provider?: AIProvider;
   model?: string;
+  memorySnapshot?: MemorySnapshot;
 }
 
 export async function runBrandAgent(params: RunBrandAgentParams): Promise<BrandAgentOutput> {
@@ -448,6 +470,7 @@ export interface RunArtisticBaseParams {
   artisticResources: ArtisticResourceInfo[];
   provider?: AIProvider;
   model?: string;
+  memorySnapshot?: MemorySnapshot;
 }
 
 export async function runArtisticBaseAgent(params: RunArtisticBaseParams): Promise<ArtisticBaseOutput> {
@@ -524,6 +547,7 @@ export interface RunPromptArchitectParams {
   artisticBaseResult: ArtisticBaseOutput;
   provider?: AIProvider;
   model?: string;
+  memorySnapshot?: MemorySnapshot;
 }
 
 export async function runPromptArchitectAgent(params: RunPromptArchitectParams): Promise<PromptArchitectOutput> {
@@ -646,6 +670,87 @@ ${JSON.stringify(params.mPrompt1, null, 2)}
   }
 
   return result!.parsed as QualityAgentOutput;
+}
+
+// ─── AGENT 8 : SAFETY AGENT ─────────────────────────────
+
+export interface RunSafetyAgentParams {
+  projectId: string;
+  mPrompt1: PromptArchitectOutput;
+  /** Règles interdites actives (depuis ForbiddenRule en DB) à injecter en contexte */
+  forbiddenRules?: Array<{
+    key: string;
+    title: string;
+    category: string;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    description?: string | null;
+    negativePrompt?: string | null;
+  }>;
+  provider?: AIProvider;
+  model?: string;
+}
+
+export async function runSafetyAgent(params: RunSafetyAgentParams): Promise<SafetyAgentOutput> {
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('SAFETY_AGENT', params.projectId);
+
+  const rulesBlock = (params.forbiddenRules ?? [])
+    .map(
+      (r) => `- [${r.severity}] ${r.key} (${r.category}) — ${r.title}${r.description ? ` :: ${r.description}` : ''}`,
+    )
+    .join('\n');
+
+  const userPrompt = `
+${promptText}
+
+## Prompt final M_PROMPT1 à filtrer
+${JSON.stringify(params.mPrompt1, null, 2)}
+
+## Règles interdites actives (ForbiddenRule)
+${rulesBlock || '(aucune règle active)'}
+
+Analyse le prompt ci-dessus. Bloque si violation CRITICAL, amende si HIGH/MEDIUM/LOW. Retourne le JSON conforme au schéma demandé.
+  `.trim();
+
+  let agentRunStatus: 'SUCCESS' | 'FAILED' = 'SUCCESS';
+  let agentError: string | undefined;
+  let result: AIResponse | null = null;
+
+  try {
+    result = await callTextAI({
+      provider: params.provider || agentProvider,
+      model: params.model || agentModel,
+      systemPrompt: SAFETY_AGENT_SYSTEM_PROMPT,
+      userPrompt,
+      temperature: 0.2,
+      responseFormat: 'json',
+    });
+  } catch (err) {
+    agentRunStatus = 'FAILED';
+    agentError = err instanceof Error ? err.message : 'Unknown error';
+  }
+
+  await saveAgentRun({
+    projectId: params.projectId,
+    agentName: 'SafetyAgent',
+    provider: result?.provider ?? params.provider ?? 'mock',
+    model: result?.model ?? params.model ?? 'mock-text',
+    input: {
+      ruleCount: params.forbiddenRules?.length ?? 0,
+      dynamicContext: true,
+    } as unknown as Prisma.InputJsonValue,
+    output: (result?.parsed ?? null) as unknown as Prisma.InputJsonValue,
+    status: agentRunStatus,
+    error: agentError,
+    durationMs: result?.durationMs,
+  });
+
+  if (agentRunStatus === 'FAILED') throw new Error(`SafetyAgent failed: ${agentError}`);
+
+  if (result && result.parsed) {
+    await saveAgentOutputs('SAFETY_AGENT', params.projectId, result.parsed);
+  }
+
+  return result!.parsed as SafetyAgentOutput;
 }
 
 // Exports des helpers pour l'orchestrateur

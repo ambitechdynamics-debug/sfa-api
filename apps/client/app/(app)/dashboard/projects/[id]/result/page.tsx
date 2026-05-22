@@ -230,13 +230,13 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
 
       {/* Generation progress */}
       {!ready && !genError && (
-        <Card padding={28} style={{ marginBottom: 24, background: "linear-gradient(135deg, var(--acc-soft), transparent 70%)", borderColor: "var(--acc-line)" }}>
+        <Card padding={28} style={{ marginBottom: 24, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span
                 style={{
-                  width: 36, height: 36, borderRadius: 10, background: "var(--acc)",
-                  color: "var(--acc-ink)", display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  width: 36, height: 36, borderRadius: 10, background: "#fff",
+                  color: "#131314", display: "inline-flex", alignItems: "center", justifyContent: "center",
                   animation: "pulse 1.4s ease-in-out infinite",
                 }}
               >
@@ -250,7 +250,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             <span style={{ fontSize: 14, fontWeight: 600, color: "var(--acc)" }}>{Math.round(progress * 100)}%</span>
           </div>
           <div style={{ height: 6, background: "var(--bg-3)", borderRadius: 3, overflow: "hidden" }}>
-            <div style={{ width: `${progress * 100}%`, height: "100%", background: "linear-gradient(90deg, var(--acc-bright), var(--acc-deep))", transition: "width 400ms" }} />
+            <div style={{ width: `${progress * 100}%`, height: "100%", background: "#fff", transition: "width 400ms" }} />
           </div>
           <div style={{ marginTop: 16, display: "flex", gap: 6, fontSize: 11, color: "var(--ink-3)", fontFamily: "var(--font-mono)", flexWrap: "wrap" }}>
             {PHASES.map((p, i) => (
@@ -383,7 +383,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
       {retouchOpen && (
         <div
           onClick={() => setRetouchOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(16,12,8,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24 }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24 }}
           className="anim-fade-in"
         >
           <div

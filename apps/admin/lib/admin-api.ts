@@ -68,6 +68,38 @@ export async function updateSubscription(
   return apiFetch(`/api/admin/subscriptions/${planId}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
+export async function cancelSubscription(subscriptionId: string) {
+  return apiFetch(`/api/admin/stripe/subscriptions/${subscriptionId}/cancel`, { method: 'POST' })
+}
+
+// ==========================================
+// CREATION OPTIONS
+// ==========================================
+
+export async function fetchCreationOptions(includeInactive = true) {
+  return apiFetch(`/api/creation-options?includeInactive=${includeInactive}`);
+}
+
+export async function createCreationOption(data: any) {
+  return apiFetch('/api/creation-options', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCreationOption(id: string, data: any) {
+  return apiFetch(`/api/creation-options/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCreationOption(id: string) {
+  return apiFetch(`/api/creation-options/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // ─── STATS ────────────────────────────────────────────────────────────────────
 export async function fetchStats(): Promise<AdminStats> {
   return apiFetch('/api/admin/stats')

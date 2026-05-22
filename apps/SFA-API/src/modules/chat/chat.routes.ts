@@ -20,6 +20,7 @@ function chatAuthMiddleware(req: Request, res: Response, next: NextFunction) {
 }
 
 router.post('/', chatAuthMiddleware, asyncHandler(chatController.sendMessage));
+router.post('/opening', chatAuthMiddleware, asyncHandler(chatController.generateOpening));
 
 router.all('/', (_req, res) => {
   res.status(405).json({ success: false, error: 'Method not allowed' });

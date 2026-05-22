@@ -69,6 +69,8 @@ const ICONS: Record<string, React.ReactElement> = {
   expand: (<><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></>),
   trend: (<><path d="M22 7l-9 9-4-4-7 7" /><path d="M16 7h6v6" /></>),
   spinner: (<><path d="M21 12a9 9 0 1 1-6.2-8.6" /></>),
+  clock: (<><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></>),
+  arrowUpRight: (<><path d="M7 17L17 7M7 7h10v10" /></>),
 }
 
 export type IconName = keyof typeof ICONS

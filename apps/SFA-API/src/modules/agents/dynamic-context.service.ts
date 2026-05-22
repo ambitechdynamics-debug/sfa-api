@@ -10,7 +10,18 @@ export interface AgentContextData {
   model: string;
 }
 
-export async function buildAgentContext(agentKey: string, projectId: string): Promise<AgentContextData> {
+/**
+ * Snapshot mémoire pré-chargé (par exemple par l'orchestrateur, qui le partage
+ * entre les 7 agents pour éviter 7 queries `MemoryEntry.findMany`). Map de
+ * `memoryKey` → `content`.
+ */
+export type MemorySnapshot = Map<string, unknown>;
+
+export async function buildAgentContext(
+  agentKey: string,
+  projectId: string,
+  snapshot?: MemorySnapshot,
+): Promise<AgentContextData> {
   // 1. Récupérer l'agent et ses liaisons INPUT / BOTH
   const agent = await prisma.agentDefinition.findUnique({
     where: { key: agentKey },
@@ -29,7 +40,7 @@ export async function buildAgentContext(agentKey: string, projectId: string): Pr
 
   // 2. Récupérer les mémoires du projet correspondant
   const memoryKeys = agent.memoryLinks.map(link => link.memory.key);
-  
+
   if (memoryKeys.length === 0) {
     return {
       promptText: "Aucune mémoire en entrée pour cet agent.",
@@ -38,21 +49,31 @@ export async function buildAgentContext(agentKey: string, projectId: string): Pr
     };
   }
 
-  const memoryEntries = await prisma.memoryEntry.findMany({
-    where: {
-      OR: [
-        { projectId: projectId },
-        { projectId: null }
-      ],
-      memoryDefinition: { key: { in: memoryKeys } }
-    },
-    include: { memoryDefinition: true }
-  });
+  // Si un snapshot est fourni par l'orchestrateur, on l'utilise — sinon on
+  // tombe sur une query DB (mode legacy, agent invoqué seul).
+  let entriesByKey: Map<string, unknown>;
+  if (snapshot) {
+    entriesByKey = new Map();
+    for (const key of memoryKeys) {
+      const content = snapshot.get(key);
+      if (content !== undefined) entriesByKey.set(key, content);
+    }
+  } else {
+    const memoryEntries = await prisma.memoryEntry.findMany({
+      where: {
+        OR: [
+          { projectId: projectId },
+          { projectId: null }
+        ],
+        memoryDefinition: { key: { in: memoryKeys } }
+      },
+      include: { memoryDefinition: true }
+    });
 
-  // Créer un dictionnaire pour accès rapide
-  const entriesByKey = new Map(
-    memoryEntries.map(entry => [entry.memoryDefinition.key, entry.content])
-  );
+    entriesByKey = new Map(
+      memoryEntries.map(entry => [entry.memoryDefinition.key, entry.content])
+    );
+  }
 
   // 3. Vérifier les mémoires requises
   for (const link of agent.memoryLinks) {
@@ -75,6 +96,21 @@ export async function buildAgentContext(agentKey: string, projectId: string): Pr
     provider: agent.provider as AIProvider,
     model: agent.model
   };
+}
+
+/**
+ * Construit un snapshot mémoire (key → content) à partir d'un tableau de
+ * MemoryEntry déjà chargé (typiquement par l'orchestrateur via
+ * `project.memoryEntries`). Évite N queries Prisma supplémentaires en aval.
+ */
+export function buildMemorySnapshot(
+  entries: Array<{ memoryDefinition: { key: string }; content: unknown }>,
+): MemorySnapshot {
+  const snapshot: MemorySnapshot = new Map();
+  for (const e of entries) {
+    snapshot.set(e.memoryDefinition.key, e.content);
+  }
+  return snapshot;
 }
 
 export async function saveAgentOutputs(agentKey: string, projectId: string, aiResult: any): Promise<void> {

@@ -40,12 +40,12 @@ export function ChatInput({
         gridTemplateColumns: "minmax(0, 1fr) auto",
         gap: 10,
         alignItems: "end",
-        padding: 12,
-        background: active ? "rgba(18,8,2,0.97)" : "var(--bg-2)",
-        border: highlighted ? "2.5px solid rgba(139,90,43,0.85)" : "1px solid var(--line-2)",
-        borderRadius: 16,
-        boxShadow: "var(--sh-2)",
-        transition: "background 0.35s ease, border-color 0.2s ease",
+        padding: "8px 8px 8px 16px",
+        background: active ? "rgba(255,255,255,0.06)" : "var(--bg-2)",
+        border: highlighted ? "1.5px solid rgba(255,255,255,0.3)" : "1px solid var(--line-2)",
+        borderRadius: 24,
+        boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+        transition: "background 0.35s ease, border-color 0.2s ease, box-shadow 0.2s ease",
       }}
       className="max-sm:!grid-cols-1"
     >
@@ -64,7 +64,7 @@ export function ChatInput({
         aria-label="Message à envoyer à l'agent"
         style={{
           width: "100%",
-          minHeight: 44,
+          minHeight: 28,
           maxHeight: 180,
           resize: "none",
           overflowY: "auto",
@@ -76,7 +76,7 @@ export function ChatInput({
           fontSize: 15,
           lineHeight: 1.5,
           fontFamily: "var(--font-sans)",
-          padding: "4px 2px",
+          padding: "10px 0",
         }}
       />
       <button
@@ -86,20 +86,24 @@ export function ChatInput({
         aria-label="Envoyer"
         aria-busy={loading ? "true" : undefined}
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 12,
-          border: "1px solid var(--acc-line)",
-          background: sendDisabled ? "rgba(60,35,12,0.55)" : "linear-gradient(180deg, var(--acc-bright), var(--acc-deep))",
-          color: sendDisabled ? "var(--ink-3)" : "var(--acc-ink)",
+          width: 40,
+          height: 40,
+          borderRadius: "50%",
+          border: "none",
+          background: sendDisabled ? "rgba(255,255,255,0.05)" : "#fff",
+          color: sendDisabled ? "rgba(255,255,255,0.2)" : "#000",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
           cursor: sendDisabled ? "not-allowed" : "pointer",
           justifySelf: "end",
+          transition: "background 0.2s ease, color 0.2s ease, transform 0.1s ease",
+          transform: sendDisabled ? "scale(0.95)" : "scale(1)",
         }}
+        onMouseEnter={(e) => { if (!sendDisabled) e.currentTarget.style.transform = "scale(1.05)" }}
+        onMouseLeave={(e) => { if (!sendDisabled) e.currentTarget.style.transform = "scale(1)" }}
       >
-        {loading ? <span style={{ fontSize: 18, lineHeight: 1, transform: "translateY(-2px)" }}>...</span> : <Icon name="send" size={17} />}
+        {loading ? <span style={{ fontSize: 18, lineHeight: 1, transform: "translateY(-2px)" }}>...</span> : <Icon name="arrowUp" size={18} />}
       </button>
     </div>
   )

@@ -394,9 +394,10 @@ export const adminService = {
     if (payment.provider !== 'STRIPE') throw new AppError('Remboursement uniquement disponible pour Stripe', 400);
 
     const invoice = await stripe.invoices.retrieve(payment.reference);
-    if (!invoice.charge) throw new AppError('Aucun charge associé à ce paiement', 400);
+    const chargeId = (invoice as unknown as { charge?: string | null }).charge;
+    if (!chargeId) throw new AppError('Aucun charge associé à ce paiement', 400);
 
-    await stripe.refunds.create({ charge: invoice.charge as string });
+    await stripe.refunds.create({ charge: chargeId });
     return prisma.payment.update({ where: { id: paymentId }, data: { status: 'CANCELLED' } });
   },
 
@@ -567,5 +568,54 @@ export const adminService = {
     }
 
     return [...standardProviders, ...customList];
-  }
+  },
+
+  /**
+   * Détecte et reset les projets coincés dans un état transitoire :
+   *   - GENERATING  → coincé si pas de mise à jour depuis > 5 min (image-gen ne reprend pas seule)
+   *   - QUESTIONING → coincé si pas de mise à jour depuis > 60 min (utilisateur a abandonné le brief)
+   *   - ANALYZING   → coincé si pas de mise à jour depuis > 10 min (orchestrateur crashé)
+   *
+   * Action : remise du status à FAILED (pour GENERATING/ANALYZING) ou DRAFT (pour QUESTIONING)
+   * afin que l'utilisateur puisse relancer ou abandonner sans avoir un projet zombie.
+   */
+  cleanupStaleProjects: async (params?: {
+    generatingMaxMinutes?: number;
+    analyzingMaxMinutes?: number;
+    questioningMaxMinutes?: number;
+  }) => {
+    const generatingMax = params?.generatingMaxMinutes ?? 5;
+    const analyzingMax = params?.analyzingMaxMinutes ?? 10;
+    const questioningMax = params?.questioningMaxMinutes ?? 60;
+
+    const now = Date.now();
+    const generatingThreshold = new Date(now - generatingMax * 60_000);
+    const analyzingThreshold = new Date(now - analyzingMax * 60_000);
+    const questioningThreshold = new Date(now - questioningMax * 60_000);
+
+    const [resetGenerating, resetAnalyzing, resetQuestioning] = await Promise.all([
+      prisma.project.updateMany({
+        where: { status: 'GENERATING', updatedAt: { lt: generatingThreshold } },
+        data: { status: 'FAILED' },
+      }),
+      prisma.project.updateMany({
+        where: { status: 'ANALYZING', updatedAt: { lt: analyzingThreshold } },
+        data: { status: 'FAILED' },
+      }),
+      prisma.project.updateMany({
+        where: { status: 'QUESTIONING', updatedAt: { lt: questioningThreshold } },
+        data: { status: 'DRAFT' },
+      }),
+    ]);
+
+    return {
+      thresholds: { generatingMax, analyzingMax, questioningMax },
+      reset: {
+        generating_to_failed: resetGenerating.count,
+        analyzing_to_failed: resetAnalyzing.count,
+        questioning_to_draft: resetQuestioning.count,
+      },
+      total: resetGenerating.count + resetAnalyzing.count + resetQuestioning.count,
+    };
+  },
 };

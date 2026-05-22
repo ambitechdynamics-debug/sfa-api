@@ -25,3 +25,11 @@ export const chatRequestSchema = z
   });
 
 export type ChatRequestSchema = z.infer<typeof chatRequestSchema>;
+
+export const chatOpeningRequestSchema = z
+  .object({
+    projectId: z.string().trim().min(1).max(160),
+  })
+  .strict();
+
+export type ChatOpeningRequestSchema = z.infer<typeof chatOpeningRequestSchema>;

@@ -13,6 +13,7 @@
 import { createHash } from 'node:crypto';
 import { AppError } from '../../utils/appError';
 import { settingsService } from '../settings/settings.service';
+import { fetchAIWithTimeout } from '../ai/ai.providers';
 import type { ImageGenAdapter, ImageGenInput, ImageGenProvider, ImageGenResult } from './imageGen.types';
 
 // ─── Utility to fetch image and convert to base64 ─────────────────────────────
@@ -30,7 +31,11 @@ async function fetchImageAsBase64(url: string): Promise<{ mimeType: string; data
   };
 }
 
-// ─── Aspect ratio → pixel dimensions (used by the mock provider) ─────────────
+// ─── Aspect ratio → pixel dimensions ────────────────────────────────────────
+// Utilisé uniquement par MockImageProvider (placeholder picsum.photos). Gemini
+// reçoit l'aspectRatio brut via `generationConfig.imageConfig` et choisit lui-
+// même la résolution finale, donc ces dimensions n'ont aucun effet sur la
+// génération réelle.
 const RATIO_DIMS: Record<string, { w: number; h: number }> = {
   '1:1':  { w: 1024, h: 1024 },
   '9:16': { w: 1080, h: 1920 },
@@ -155,7 +160,7 @@ class GeminiImageProvider implements ImageGenAdapter {
 
     let res: Response;
     try {
-      res = await fetch(url, {
+      res = await fetchAIWithTimeout(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

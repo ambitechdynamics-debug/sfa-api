@@ -87,19 +87,19 @@ export default function RegisterPage() {
               justifyContent: "center",
               gap: 10,
               padding: "11px 16px",
-              background: "var(--bg-1)",
-              border: "1px solid var(--line-1)",
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: "var(--r-2)",
               fontSize: 14,
               fontWeight: 500,
-              color: "var(--ink-1)",
+              color: "#fff",
               cursor: loadingGoogle ? "not-allowed" : "pointer",
               opacity: loadingGoogle ? 0.7 : 1,
               transition: "background 0.15s, border-color 0.15s",
               fontFamily: "var(--font-sans)",
             }}
-            onMouseEnter={(e) => { if (!loadingGoogle) (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-2)" }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-1)" }}
+            onMouseEnter={(e) => { if (!loadingGoogle) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.08)" }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)" }}
           >
             {loadingGoogle ? (
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation: "spin 0.8s linear infinite" }}>
@@ -162,11 +162,11 @@ export default function RegisterPage() {
                 role="alert"
                 style={{
                   padding: "10px 12px",
-                  background: "var(--rose-soft)",
-                  border: "1px solid rgba(217,112,112,0.3)",
+                  background: "rgba(255,50,50,0.1)",
+                  border: "1px solid rgba(255,50,50,0.3)",
                   borderRadius: "var(--r-2)",
                   fontSize: 13,
-                  color: "var(--rose)",
+                  color: "rgba(255,100,100,0.9)",
                 }}
               >
                 {error}

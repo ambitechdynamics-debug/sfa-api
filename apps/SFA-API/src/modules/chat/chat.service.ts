@@ -4,10 +4,16 @@ import { prisma } from '../../config/database';
 import { createProvider } from '../ai/ai.providers';
 import type { AIProvider } from '../ai/ai.types';
 import { settingsService } from '../settings/settings.service';
-import type { ChatHistoryMessage, ChatRequestInput, ChatResponsePayload } from './chat.types';
+import type {
+  ChatHistoryMessage,
+  ChatOpeningInput,
+  ChatOpeningPayload,
+  ChatRequestInput,
+  ChatResponsePayload,
+} from './chat.types';
 
-const DEFAULT_CHAT_AGENT_NAME = 'Studio Flyer AI';
-const DEFAULT_CHAT_SYSTEM_PROMPT = [
+export const DEFAULT_CHAT_AGENT_NAME = 'Studio Flyer AI';
+export const DEFAULT_CHAT_SYSTEM_PROMPT = [
   `TU ES L'ASSISTANT DE CRÉATION DE FLYERS DE STUDIO FLYER AI.`,
   `Ton rôle UNIQUE : guider l'utilisateur étape par étape pour créer un flyer, en posant UNE SEULE QUESTION À LA FOIS avec des choix cliquables.`,
 
@@ -307,8 +313,26 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
   let lastError: unknown;
 
   let resolvedSystemPrompt = agentProfile.systemPrompt;
+
+  if (input.visualConfig?.creationType) {
+    try {
+      const option = await prisma.creationOption.findUnique({
+        where: { slug: input.visualConfig.creationType as string }
+      });
+      if (option && option.isActive) {
+        resolvedSystemPrompt += `\n\n═══════════════════════════════════════\nCONTEXTE SPÉCIFIQUE (TYPE DE CRÉATION : ${option.name})\n═══════════════════════════════════════\n${option.contextPrompt}`;
+      }
+    } catch (err) {
+      logger.warn('[chat] Failed to load creation option context', err);
+    }
+  }
+
   if (input.visualConfig && Object.keys(input.visualConfig).length > 0) {
-    resolvedSystemPrompt += `\n\n═══════════════════════════════════════\nCONFIGURATION CRÉATIVE ACTIVE (utilise ces paramètres en priorité)\n═══════════════════════════════════════\n${JSON.stringify(input.visualConfig, null, 2)}`;
+    // Exclude creationType from the raw JSON dump to avoid confusion
+    const { creationType, ...restConfig } = input.visualConfig;
+    if (Object.keys(restConfig).length > 0) {
+      resolvedSystemPrompt += `\n\n═══════════════════════════════════════\nCONFIGURATION CRÉATIVE ACTIVE (utilise ces paramètres en priorité)\n═══════════════════════════════════════\n${JSON.stringify(restConfig, null, 2)}`;
+    }
   }
 
   for (const provider of providers) {
@@ -415,16 +439,23 @@ export const chatService = {
       return currentConversationId;
     });
 
-    // Save first user message as M_SMS so orchestrator agents have context
+    // Save first user message as M_SMS so orchestrator agents have context.
+    // Awaité (et erreurs loguées) pour éviter la race avec un déclenchement
+    // immédiat de /generate-final-prompt (cf. AUDIT.md §3).
     if (projectId && isNewConversation) {
-      prisma.memoryDefinition.findUnique({ where: { key: 'M_SMS' } })
-        .then((def) => {
-          if (!def) return;
-          return prisma.memoryEntry.upsert({
-            where: { projectId_memoryDefinitionId: { projectId: projectId!, memoryDefinitionId: def.id } },
+      try {
+        const def = await prisma.memoryDefinition.findUnique({ where: { key: 'M_SMS' } });
+        if (def) {
+          await prisma.memoryEntry.upsert({
+            where: {
+              projectId_memoryDefinitionId: {
+                projectId,
+                memoryDefinitionId: def.id,
+              },
+            },
             update: {},
             create: {
-              projectId: projectId!,
+              projectId,
               userId,
               memoryDefinitionId: def.id,
               content: {
@@ -433,8 +464,10 @@ export const chatService = {
               },
             },
           });
-        })
-        .catch(() => {});
+        }
+      } catch (err) {
+        logger.warn('[chat] failed to persist M_SMS', err instanceof Error ? err.message : err);
+      }
     }
 
     return {
@@ -448,5 +481,169 @@ export const chatService = {
       projectId,
       title: isNewConversation ? title : undefined
     };
-  }
+  },
+
+  /**
+   * Generate the opening assistant message for a fresh conversation,
+   * adapted to the assets the user uploaded in the "éléments importants" panel.
+   *
+   * Idempotent : if a conversation already exists for this project AND it already
+   * has at least one assistant message, the existing first assistant message is
+   * returned without calling the AI again.
+   */
+  async generateOpening(input: ChatOpeningInput, userId: string): Promise<ChatOpeningPayload> {
+    const { projectId } = input;
+
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId },
+      include: { files: true },
+    });
+    if (!project) {
+      throw new Error('Project not found or unauthorized');
+    }
+
+    // Group files by usage type, mapping FileUsageType enum → French label.
+    const USAGE_LABEL: Record<string, string> = {
+      LOGO: 'Logo',
+      PRODUCT_IMAGE: 'Produit',
+      REFERENCE_IMAGE: 'Inspiration',
+      GENERATED_POSTER: 'Affiche',
+      PERSON_IMAGE: 'Personnage principal',
+      MODEL: 'Modèle',
+      BRAND_GUIDELINE: 'Charte graphique',
+      OTHER: 'Autre',
+    };
+
+    const assetSummary: Record<string, number> = {};
+    const assetsByLabel: Record<string, string[]> = {};
+    for (const f of project.files) {
+      const label = USAGE_LABEL[f.usageType] ?? f.usageType;
+      assetSummary[label] = (assetSummary[label] ?? 0) + 1;
+      assetsByLabel[label] = assetsByLabel[label] ?? [];
+      assetsByLabel[label].push(f.originalName);
+    }
+    const hasAssets = project.files.length > 0;
+
+    // Find or create the active conversation for this project.
+    let conversation = await prisma.conversation.findFirst({
+      where: { projectId, userId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+      include: { messages: { orderBy: { createdAt: 'asc' }, take: 1 } },
+    });
+
+    if (conversation && conversation.messages.length > 0) {
+      const first = conversation.messages[0];
+      if (first.role === 'ASSISTANT') {
+        // Already generated — return the existing opening, do not re-call AI.
+        return {
+          success: true,
+          opening: first.content,
+          message: {
+            id: first.id,
+            role: 'assistant',
+            content: first.content,
+            createdAt: first.createdAt.toISOString(),
+          },
+          conversationId: conversation.id,
+          projectId,
+          hasAssets,
+          assetSummary,
+          reused: true,
+        };
+      }
+    }
+
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: {
+          userId,
+          projectId,
+          title: 'Nouvelle conversation',
+        },
+        include: { messages: { take: 0 } },
+      });
+    }
+
+    // Build a context block describing what the user uploaded (or didn't).
+    const assetLines = hasAssets
+      ? Object.entries(assetSummary)
+          .map(([label, count]) => {
+            const names = (assetsByLabel[label] ?? []).slice(0, 3).join(', ');
+            return `- ${label} : ${count} fichier(s)${names ? ` (${names})` : ''}`;
+          })
+          .join('\n')
+      : 'Aucun fichier importé pour l’instant.';
+
+    const openingInstruction = hasAssets
+      ? `L'utilisateur a importé les fichiers suivants dans le panneau "Éléments importants" :\n${assetLines}\n\nDémarre la conversation en une seule prise. Format strict :\n1. Une phrase d'accueil très courte qui mentionne explicitement les types de fichiers détectés (ex: "Parfait, j'ai bien votre logo et 2 photos produit.").\n2. UNE seule question adaptée à ces fichiers pour avancer le brief (ex: si logo → demander couleurs/style ; si produit → demander objectif de promotion ; si affiche → demander ce qu'il faut améliorer).\n3. 4 à 6 choix au format [Choix] avec [Autre] en dernier.\n\nNe pas reformuler la liste complète des fichiers. Ne pas poser plusieurs questions. Ne pas écrire de paragraphe.`
+      : `L'utilisateur n'a importé AUCUN fichier dans le panneau "Éléments importants". Démarre la conversation en une seule prise. Format strict :\n1. Une phrase d'accueil très courte qui signale gentiment qu'aucun fichier n'a été détecté et qu'il pourra en ajouter à tout moment (Logo, Produit, Inspiration, Affiche, Personnage principal).\n2. UNE seule question pour cadrer le projet : "Souhaitez-vous d'abord importer des éléments visuels, ou commencer directement par décrire votre projet ?"\n3. Choix : [Importer un Logo] [Importer un Produit] [Importer une Inspiration] [Décrire le projet] [Autre]`;
+
+    const primaryProvider = await resolveChatProvider();
+    const agentProfile = await resolveChatAgentProfile();
+    const providers = await resolveFallbackProviders(primaryProvider);
+    const systemPrompt =
+      `${agentProfile.systemPrompt}\n\n═══════════════════════════════════════\nINSTRUCTION SPÉCIALE — OUVERTURE\n═══════════════════════════════════════\n${openingInstruction}`;
+
+    let opening = '';
+    let lastError: unknown;
+    for (const provider of providers) {
+      const model = await resolveChatModel(provider);
+      try {
+        const adapter = await createProvider(provider);
+        opening = (
+          await adapter.callText({
+            provider,
+            model,
+            systemPrompt,
+            userPrompt:
+              'Tu démarres maintenant. Produis uniquement la réponse demandée, sans préambule.',
+            temperature: 0.4,
+            responseFormat: 'text',
+          })
+        ).trim();
+        if (opening) break;
+      } catch (err) {
+        lastError = err;
+        logger.error('[chat/opening] provider failed; trying fallback', {
+          provider,
+          error: err instanceof Error ? err.message : err,
+        });
+      }
+    }
+
+    if (!opening) {
+      throw lastError instanceof Error
+        ? lastError
+        : new Error('AI provider returned an empty opening');
+    }
+
+    const savedMessage = await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: 'ASSISTANT',
+        content: opening,
+      },
+    });
+
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { lastMessageAt: new Date(), updatedAt: new Date() },
+    });
+
+    return {
+      success: true,
+      opening,
+      message: {
+        id: savedMessage.id,
+        role: 'assistant',
+        content: savedMessage.content,
+        createdAt: savedMessage.createdAt.toISOString(),
+      },
+      conversationId: conversation.id,
+      projectId,
+      hasAssets,
+      assetSummary,
+      reused: false,
+    };
+  },
 };

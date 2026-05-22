@@ -10,6 +10,7 @@ import { useChatStore, type Message } from "@/store/chat-store"
 import { relativeTime } from "@/lib/utils"
 import { useAuth } from "@/hooks/useAuth"
 import { fetchGeneratedPosters, generateImages, generateFinalPrompt, deleteGeneratedPoster, uploadProjectFile, upsertProjectMemory, getProjectMemory, extractColorsFromLogo } from "@/lib/projects"
+import { fetchChatOpening } from "@/lib/chat"
 import type { GeneratedPoster } from "@/types/project"
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
@@ -85,7 +86,7 @@ const FORMATS = [
 const ASSET_TYPE_LABELS: Record<UploadedAsset["type"], string> = {
   logo: "Logo",
   product: "Produit",
-  reference: "Référence",
+  reference: "Inspiration",
   poster: "Affiche",
   other: "Autre",
 }
@@ -152,44 +153,34 @@ function ChatBubble({
         <span
           className="anim-logo-breathe"
           style={{
-            width: 34,
-            height: 34,
+            width: 32,
+            height: 32,
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 10,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
-            backdropFilter: "blur(8px)",
+            background: "linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02))",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: "50%",
           }}
         >
-          <BrandMark size={20} withWordmark={false} />
+          <BrandMark size={16} withWordmark={false} />
         </span>
       )}
       <article
         style={{
           width: "fit-content",
           maxWidth: "min(720px, 84%)",
-          padding: isUser ? "11px 16px" : "14px 18px",
-          borderRadius: isUser ? "18px 18px 6px 18px" : "6px 18px 18px 18px",
-          border: isUser
-            ? "1px solid rgba(224,138,100,0.25)"
-            : "1px solid rgba(255,255,255,0.06)",
-          background: isUser
-            ? "linear-gradient(135deg, rgba(224,138,100,0.14), rgba(180,90,50,0.08))"
-            : "rgba(255,255,255,0.04)",
-          backdropFilter: isUser ? "none" : "blur(12px)",
-          WebkitBackdropFilter: isUser ? "none" : "blur(12px)",
+          padding: isUser ? "12px 18px" : "4px 8px 14px 4px",
+          borderRadius: isUser ? "20px 20px 4px 20px" : "0",
+          border: isUser ? "1px solid rgba(255,255,255,0.1)" : "none",
+          background: isUser ? "rgba(255,255,255,0.06)" : "transparent",
           color: "var(--ink-0)",
-          boxShadow: isUser
-            ? "0 2px 16px rgba(224,138,100,0.1)"
-            : "0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)",
+          boxShadow: isUser ? "0 4px 20px rgba(0,0,0,0.15)" : "none",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 650, color: isUser ? "var(--acc-bright)" : "rgba(255,255,255,0.45)", letterSpacing: "0.02em" }}>
+          <span style={{ fontSize: 11.5, fontWeight: 650, color: isUser ? "#fff" : "rgba(255,255,255,0.45)", letterSpacing: "0.02em" }}>
             {isUser ? "Vous" : "Studio Flyer AI"}
           </span>
           <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.22)" }}>{relativeTime(message.createdAt)}</span>
@@ -214,24 +205,27 @@ function ChatBubble({
                 onClick={() => isLatest && onChoiceClick?.(choice)}
                 disabled={!isLatest}
                 style={{
-                  padding: "9px 16px",
+                  padding: "8px 16px",
                   fontSize: 13,
                   fontWeight: 500,
-                  borderRadius: 14,
+                  borderRadius: 100,
                   background: isLatest
                     ? choice === "[Autre]" || choice.toLowerCase().includes("autre")
-                      ? "rgba(120,120,130,0.10)"
-                      : "linear-gradient(135deg, rgba(224,138,100,0.08), rgba(224,138,100,0.04))"
-                    : "var(--bg-2)",
-                  border: `1.5px solid ${isLatest ? "var(--acc-line)" : "var(--line-2)"}`,
+                      ? "rgba(255,255,255,0.03)"
+                      : "rgba(255,255,255,0.08)"
+                    : "transparent",
+                  border: `1px solid ${isLatest ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)"}`,
                   color: isLatest ? "var(--ink-0)" : "var(--ink-3)",
                   cursor: isLatest ? "pointer" : "default",
                   opacity: isLatest ? 1 : 0.5,
                   textAlign: "left",
                   letterSpacing: "-0.01em",
                   lineHeight: 1.3,
+                  transition: "background 0.2s ease, transform 0.1s ease",
                 }}
                 className={isLatest ? "choice-chip" : ""}
+                onMouseEnter={e => { if (isLatest) { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.transform = "scale(1.02)"; } }}
+                onMouseLeave={e => { if (isLatest) { e.currentTarget.style.background = choice.toLowerCase().includes("autre") ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.08)"; e.currentTarget.style.transform = "scale(1)"; } }}
               >
                 {choice}
               </button>
@@ -249,31 +243,26 @@ function LoadingBubble() {
       <span
         className="anim-logo-breathe"
         style={{
-          width: 34, height: 34,
+          width: 32, height: 32,
           display: "inline-flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 10,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
-          backdropFilter: "blur(8px)",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02))",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: "50%",
         }}
       >
-        <BrandMark size={20} withWordmark={false} />
+        <BrandMark size={16} withWordmark={false} />
       </span>
       <div style={{
         display: "inline-flex", alignItems: "center", gap: 10,
-        padding: "10px 16px", borderRadius: "6px 18px 18px 18px",
-        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
-        backdropFilter: "blur(12px)", minHeight: 44,
-        color: "rgba(255,255,255,0.4)", fontSize: 13,
+        padding: "4px 8px", minHeight: 32,
+        color: "rgba(255,255,255,0.5)", fontSize: 13.5,
       }}>
         <span style={{ display: "flex", gap: 4 }}>
           {[0, 1, 2].map((i) => (
             <span key={i} className="anim-dot-bounce" style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(255,255,255,0.35)", display: "inline-block", animationDelay: `${i * 0.18}s` }} />
           ))}
         </span>
-        L'agent orchestre votre visuel...
       </div>
     </div>
   )
@@ -354,8 +343,8 @@ function PanelSection({
             ? "linear-gradient(180deg, rgba(255,255,255,0.048) 0%, rgba(255,255,255,0.022) 100%)"
             : "rgba(255,255,255,0.026)",
           borderBottom: isOpen ? "1px solid rgba(255,255,255,0.055)" : "none",
-          // Warm left accent when open — Photoshop active-section cue
-          boxShadow: isOpen ? "inset 3px 0 0 rgba(200,120,50,0.32)" : "none",
+          // Subtle left accent when open
+          boxShadow: isOpen ? "inset 3px 0 0 rgba(255,255,255,0.2)" : "none",
           transition: "background 0.2s ease, box-shadow 0.2s ease",
         }}
       >
@@ -425,27 +414,26 @@ function EmptyConversationState({ onPrompt }: { onPrompt: (value: string) => voi
         zIndex: 2,
       }}
     >
-      {/* Center dot accent */}
       <div style={{
         position: "absolute", top: "28%", left: "50%", transform: "translate(-50%,-50%)",
         width: 280, height: 280, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(255,255,255,0.025) 0%, transparent 70%)",
+        background: "radial-gradient(circle, rgba(255,255,255,0.035) 0%, transparent 70%)",
         pointerEvents: "none",
       }} />
 
       <div
         className="anim-logo-breathe"
         style={{
-          width: 64,
-          height: 64,
+          width: 56,
+          height: 56,
           marginBottom: 24,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 18,
-          boxShadow: "0 2px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: 16,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
           backdropFilter: "blur(12px)",
         }}
       >
@@ -486,11 +474,13 @@ export function ChatConversation({
   projectId,
   initialTitle,
   initialPrompt,
+  initialType,
 }: {
   conversationId?: string
   projectId?: string
   initialTitle?: string
   initialPrompt?: string
+  initialType?: string
 }) {
   const router = useRouter()
   const { user } = useAuth()
@@ -501,6 +491,7 @@ export function ChatConversation({
   const [hasSubmittedInView, setHasSubmittedInView] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const pendingFilesRef = useRef<{ file: File; tempId: string; assetType: UploadedAsset["type"] }[]>([])
+  const openingFetchedRef = useRef<string | null>(null)
 
   // Responsive state
   const [activeTab, setActiveTab] = useState<"settings" | "chat" | "preview">("chat")
@@ -567,6 +558,7 @@ export function ChatConversation({
     loadConversation,
     retryFailedMessage,
     sendMessage,
+    injectAssistantMessage,
   } = useChatStore()
 
   const messages = (activeConversation?.messages ?? []).filter((message) => message.role !== "system")
@@ -711,6 +703,38 @@ export function ChatConversation({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProjectId])
 
+  // Auto-generate the assistant opening when a project is opened with no
+  // existing conversation messages. The backend reads project.files, summarises
+  // them and (if needed) creates the conversation + persists the opening.
+  useEffect(() => {
+    if (!currentProjectId) return
+    if (loadingConversation || isSending) return
+    if (messages.length > 0) return
+    if (openingFetchedRef.current === currentProjectId) return
+
+    openingFetchedRef.current = currentProjectId
+    fetchChatOpening(currentProjectId)
+      .then((result) => {
+        injectAssistantMessage(
+          {
+            id: result.message.id,
+            role: "assistant",
+            content: result.message.content,
+            createdAt: result.message.createdAt,
+          },
+          {
+            conversationId: result.conversationId,
+            projectId: result.projectId,
+          },
+        )
+      })
+      .catch(() => {
+        // Allow retry on next render if the call failed.
+        openingFetchedRef.current = null
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProjectId, loadingConversation, isSending, messages.length])
+
   // Drain pending file uploads once a projectId is available
   useEffect(() => {
     if (!currentProjectId || pendingFilesRef.current.length === 0) return
@@ -734,6 +758,7 @@ export function ChatConversation({
 
   function buildVisualConfigPayload(): Record<string, unknown> {
     return {
+      creationType: initialType,
       format: config.format,
       colors: config.colors,
       quality: config.quality,
@@ -1039,7 +1064,6 @@ export function ChatConversation({
       })
     }
   }
-
   const activeVisual = visuals.find((v) => v.id === selectedVisualId)
   const qualityDetails = QUALITY_LEVELS.find((q) => q.value === config.quality)
 
@@ -1047,291 +1071,6 @@ export function ChatConversation({
     <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column", background: "var(--bg-0)", position: "relative" }}>
       {/* 3-Frame Grid Content Wrapper */}
       <div style={{ flex: 1, minHeight: 0, display: "flex", position: "relative", width: "100%" }}>
-
-        {/* ─── FRAME 1 — LEFT CREATION PANEL ─── */}
-        <aside
-          style={{
-            width: conversationStarted ? (leftOpen ? "clamp(340px, 30%, 480px)" : "28px") : "0px",
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "row",
-            overflow: "hidden",
-            borderRight: conversationStarted ? "1px solid rgba(255,255,255,0.07)" : "none",
-            background: "rgba(10,10,12,0.78)",
-            backdropFilter: "blur(20px) saturate(160%)",
-            WebkitBackdropFilter: "blur(20px) saturate(160%)",
-            transition: "width 0.35s cubic-bezier(0.4,0,0.2,1)",
-            zIndex: 10,
-          }}
-          className="frame-left-panel max-md:!w-full max-md:!min-w-0"
-        >
-          {/* Content column */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-          {/* Internal scroll wrapper */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 5 }}>
-
-            {/* Header */}
-            <div style={{ marginBottom: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h2 style={{ fontSize: 10, fontWeight: 650, margin: 0, color: "rgba(255,255,255,0.5)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Configuration Créative</h2>
-              </div>
-            </div>
-
-            {/* Format & Style */}
-            <PanelSection
-              title="Format & Style"
-              isOpen={isSectionOpen("format")}
-              onToggle={() => toggleSection("format")}
-              headerRight={
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleLibre("format") }}
-                  style={{
-                    padding: "3px 8px", marginRight: 8, fontSize: 9, borderRadius: 5, cursor: "pointer",
-                    background: isSectionFilled("format") ? "rgba(30,110,55,0.38)" : "rgba(110,30,30,0.38)",
-                    border: `1px solid ${isSectionFilled("format") ? "rgba(50,180,80,0.5)" : "rgba(200,50,50,0.5)"}`,
-                    color: isSectionFilled("format") ? "rgba(100,230,130,1)" : "rgba(230,100,100,1)",
-                    fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" as const,
-                  }}
-                >Libre</button>
-              }
-            >
-
-              {/* Sub-title: Format */}
-              <div style={{ fontSize: 9.5, fontWeight: 650, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
-                Format
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>
-                {FORMATS.map((f) => (
-                  <button
-                    key={f.value}
-                    onClick={() => { setConfig((prev) => ({ ...prev, format: f.value })); markTouched("format") }}
-                    className="panel-chip"
-                    style={{
-                      padding: "5px 10px", fontSize: 11, borderRadius: 8, cursor: "pointer",
-                      background: config.format === f.value ? "rgba(80,42,12,0.48)" : "var(--bg-2)",
-                      border: `1px solid ${config.format === f.value ? "rgba(139,90,43,0.45)" : "var(--line-2)"}`,
-                      color: config.format === f.value ? "var(--ink-0)" : "var(--ink-2)",
-                      fontWeight: config.format === f.value ? 600 : 400,
-                    }}
-                  >
-                    {f.value}
-                  </button>
-                ))}
-              </div>
-
-              {/* Sub-title: Style visuel */}
-              <div style={{ fontSize: 9.5, fontWeight: 650, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
-                Style visuel
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                {STYLES.map((style) => (
-                  <button
-                    key={style}
-                    onClick={() => { setConfig((prev) => ({ ...prev, style })); markTouched("format") }}
-                    className="panel-chip"
-                    style={{
-                      padding: "5px 10px", fontSize: 11, borderRadius: 8, cursor: "pointer",
-                      background: config.style === style ? "rgba(80,42,12,0.48)" : "var(--bg-2)",
-                      border: `1px solid ${config.style === style ? "rgba(139,90,43,0.45)" : "var(--line-2)"}`,
-                      color: config.style === style ? "var(--ink-0)" : "var(--ink-2)",
-                      fontWeight: config.style === style ? 600 : 400,
-                    }}
-                  >
-                    {style}
-                  </button>
-                ))}
-              </div>
-            </PanelSection>
-
-            {/* C. Palette de couleurs */}
-            <PanelSection
-              title="Palette de couleurs"
-              isOpen={isSectionOpen("colors")}
-              onToggle={() => toggleSection("colors")}
-              headerRight={
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleLibre("colors") }}
-                  style={{
-                    padding: "3px 8px", marginRight: 8, fontSize: 9, borderRadius: 5, cursor: "pointer",
-                    background: isSectionFilled("colors") ? "rgba(30,110,55,0.38)" : "rgba(110,30,30,0.38)",
-                    border: `1px solid ${isSectionFilled("colors") ? "rgba(50,180,80,0.5)" : "rgba(200,50,50,0.5)"}`,
-                    color: isSectionFilled("colors") ? "rgba(100,230,130,1)" : "rgba(230,100,100,1)",
-                    fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" as const,
-                  }}
-                >Libre</button>
-              }
-            >
-              
-              {/* Color pickers grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6, marginBottom: 12 }}>
-                {[
-                  { key: "primary", label: "Prim." },
-                  { key: "secondary", label: "Sec." },
-                  { key: "accent", label: "Accent" },
-                  { key: "background", label: "Fond" },
-                  { key: "text", label: "Texte" },
-                ].map((col) => (
-                  <div key={col.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                    <div style={{
-                      position: "relative", width: 28, height: 28, borderRadius: "50%",
-                      border: "1px solid var(--line-3)", overflow: "hidden", cursor: "pointer",
-                      background: (config.colors as any)[col.key] || "#ffffff"
-                    }}>
-                      <input
-                        type="color"
-                        value={(config.colors as any)[col.key] || "#ffffff"}
-                        onChange={(e) => { setConfig((prev) => ({
-                          ...prev,
-                          colors: { ...prev.colors, [col.key]: e.target.value }
-                        })); markTouched("colors") }}
-                        style={{
-                          position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer"
-                        }}
-                      />
-                    </div>
-                    <span style={{ fontSize: 9.5, color: "var(--ink-3)" }}>{col.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Extract from logo */}
-              <button
-                onClick={extractColors}
-                disabled={isExtractingColors}
-                style={{
-                  width: "100%", padding: "7px 10px", fontSize: 11, borderRadius: 8,
-                  background: isExtractingColors ? "rgba(60,35,12,0.55)" : "var(--bg-2)",
-                  border: "1px solid rgba(139,90,43,0.35)",
-                  color: isExtractingColors ? "var(--ink-3)" : "var(--ink-1)",
-                  cursor: isExtractingColors ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", gap: 6, justifyContent: "center",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                {isExtractingColors
-                  ? <><span className="anim-shimmer" style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--acc-bright)", display: "inline-block" }} /> Analyse en cours...</>
-                  : <><Icon name="image" size={11} /> Extraire de l&apos;élément ★</>
-                }
-              </button>
-            </PanelSection>
-
-            {/* D. Qualité & Objectif */}
-            <PanelSection
-              title="Qualité & Objectif"
-              isOpen={isSectionOpen("quality")}
-              onToggle={() => toggleSection("quality")}
-              headerRight={
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleLibre("quality") }}
-                  style={{
-                    padding: "3px 8px", marginRight: 8, fontSize: 9, borderRadius: 5, cursor: "pointer",
-                    background: isSectionFilled("quality") ? "rgba(30,110,55,0.38)" : "rgba(110,30,30,0.38)",
-                    border: `1px solid ${isSectionFilled("quality") ? "rgba(50,180,80,0.5)" : "rgba(200,50,50,0.5)"}`,
-                    color: isSectionFilled("quality") ? "rgba(100,230,130,1)" : "rgba(230,100,100,1)",
-                    fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" as const,
-                  }}
-                >Libre</button>
-              }
-            >
-
-              {/* Sub-title: Qualité */}
-              <div style={{ fontSize: 9.5, fontWeight: 650, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
-                Niveau de qualité
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>
-                {QUALITY_LEVELS.map((q) => (
-                  <button
-                    key={q.value}
-                    onClick={() => { setConfig((prev) => ({ ...prev, quality: q.value })); markTouched("quality") }}
-                    className="panel-chip"
-                    style={{
-                      padding: "5px 10px", fontSize: 11, borderRadius: 8, cursor: "pointer",
-                      background: config.quality === q.value ? "rgba(80,42,12,0.48)" : "var(--bg-2)",
-                      border: `1px solid ${config.quality === q.value ? "rgba(139,90,43,0.45)" : "var(--line-2)"}`,
-                      color: config.quality === q.value ? "var(--ink-0)" : "var(--ink-2)",
-                      fontWeight: config.quality === q.value ? 600 : 400,
-                    }}
-                  >
-                    {q.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Sub-title: Objectif */}
-              <div style={{ fontSize: 9.5, fontWeight: 650, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
-                Objectif de l&apos;affiche
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                {OBJECTIVES.map((obj) => (
-                  <button
-                    key={obj}
-                    onClick={() => { setConfig((prev) => ({ ...prev, objective: obj })); markTouched("quality") }}
-                    className="panel-chip"
-                    style={{
-                      padding: "5px 10px", fontSize: 11, borderRadius: 8, cursor: "pointer",
-                      background: config.objective === obj ? "rgba(80,42,12,0.48)" : "var(--bg-2)",
-                      border: `1px solid ${config.objective === obj ? "rgba(139,90,43,0.45)" : "var(--line-2)"}`,
-                      color: config.objective === obj ? "var(--ink-0)" : "var(--ink-2)",
-                      fontWeight: config.objective === obj ? 600 : 400,
-                    }}
-                  >
-                    {obj}
-                  </button>
-                ))}
-              </div>
-            </PanelSection>
-
-          </div>
-
-          {/* H. Action button at bottom */}
-          <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.065)", background: "linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.012) 100%)", backdropFilter: "blur(8px)" }}>
-            <Button
-              onClick={applyToChatContext}
-              style={{
-                width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                background: "linear-gradient(135deg, rgba(224,138,100,0.92), rgba(180,100,70,0.8))",
-                backdropFilter: "blur(8px)",
-                borderRadius: 16,
-                border: "1px solid rgba(255,255,255,0.15)",
-                boxShadow: "0 4px 16px rgba(224,138,100,0.25), inset 0 1px 0 rgba(255,255,255,0.12)",
-                color: "#fff",
-              }}
-            >
-              <Icon name="wand" size={15} /> Appliquer
-            </Button>
-          </div>
-          </div>{/* end content column */}
-
-          {/* Left panel toggle — always 28px, right edge */}
-          {conversationStarted && (
-            <button
-              onClick={() => setLeftOpen(!leftOpen)}
-              title={leftOpen ? "Réduire" : "Configuration Créative"}
-              style={{
-                width: 28, flexShrink: 0,
-                background: "rgba(255,255,255,0.02)",
-                border: 0, borderLeft: "1px solid rgba(255,255,255,0.06)",
-                cursor: "pointer",
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                gap: 10, color: "var(--ink-4)",
-                padding: "16px 0",
-              }}
-            >
-              {!leftOpen && (
-                <>
-                  <Icon name="palette" size={13} style={{ color: "var(--acc-bright)" }} />
-                  <span style={{
-                    fontSize: 8.5, fontWeight: 600, letterSpacing: "0.12em",
-                    writingMode: "vertical-rl", transform: "rotate(180deg)",
-                    color: "var(--ink-3)", textTransform: "uppercase",
-                  }}>Config</span>
-                </>
-              )}
-              <Icon name={leftOpen ? "chevronL" : "chevronR"} size={11} />
-            </button>
-          )}
-        </aside>
 
         {/* ─── FRAME 2 — CENTER CONVERSATIONAL CHAT ─── */}
         <section
@@ -1341,14 +1080,7 @@ export function ChatConversation({
             flexDirection: "column",
             minWidth: 0,
             height: "100%",
-            backgroundColor: "#080809",
-            backgroundImage: [
-              "linear-gradient(rgba(255,255,255,0.032) 1px, transparent 1px)",
-              "linear-gradient(90deg, rgba(255,255,255,0.032) 1px, transparent 1px)",
-              "linear-gradient(rgba(255,255,255,0.016) 1px, transparent 1px)",
-              "linear-gradient(90deg, rgba(255,255,255,0.016) 1px, transparent 1px)",
-            ].join(", "),
-            backgroundSize: "64px 64px, 64px 64px, 16px 16px, 16px 16px",
+            backgroundColor: "#0a0a0c",
             position: "relative",
           }}
           className="frame-center-panel max-md:!w-full"
@@ -1356,7 +1088,7 @@ export function ChatConversation({
           {/* Top vignette for legibility */}
           <div style={{
             position: "absolute", top: 0, left: 0, right: 0, height: 60,
-            background: "linear-gradient(to bottom, rgba(8,8,9,0.85), transparent)",
+            background: "linear-gradient(to bottom, #0a0a0c, transparent)",
             pointerEvents: "none", zIndex: 1,
           }} />
 
@@ -1404,9 +1136,7 @@ export function ChatConversation({
           {/* Bottom vignette above input */}
           <div style={{
             position: "absolute", bottom: 0, left: 0, right: 0, height: 110,
-            background: configAttached
-              ? "linear-gradient(to top, rgba(20,9,2,0.97) 50%, transparent)"
-              : "linear-gradient(to top, rgba(8,8,9,0.96) 45%, transparent)",
+            background: "linear-gradient(to top, rgba(10,10,12,0.98) 45%, transparent)",
             transition: "background 0.35s ease",
             pointerEvents: "none", zIndex: 2,
           }} />
@@ -1534,8 +1264,8 @@ export function ChatConversation({
                     {/* Footer controls */}
                     <div style={{
                       display: "flex", alignItems: "center",
-                      borderTop: `1px solid ${asset.isPrimary ? "rgba(224,138,100,0.3)" : "var(--line-2)"}`,
-                      background: asset.isPrimary ? "rgba(224,138,100,0.08)" : "var(--bg-3)",
+                      borderTop: `1px solid ${asset.isPrimary ? "rgba(255,255,255,0.15)" : "var(--line-2)"}`,
+                      background: asset.isPrimary ? "rgba(255,255,255,0.05)" : "var(--bg-3)",
                       height: 26,
                       transition: "background 0.2s ease, border-color 0.2s ease",
                     }}>
@@ -1545,7 +1275,7 @@ export function ChatConversation({
                         title={asset.isPrimary ? "Élément principal ★" : "Définir comme élément principal"}
                         className="asset-star-btn"
                         style={{
-                          border: 0, borderRight: `1px solid ${asset.isPrimary ? "rgba(224,138,100,0.3)" : "var(--line-2)"}`,
+                          border: 0, borderRight: `1px solid ${asset.isPrimary ? "rgba(255,255,255,0.15)" : "var(--line-2)"}`,
                           background: "transparent",
                           color: asset.isPrimary ? "var(--acc-bright)" : "rgba(255,255,255,0.22)",
                           width: 26, height: "100%", flexShrink: 0,
@@ -1624,13 +1354,13 @@ export function ChatConversation({
                     title={`Uploader en tant que: ${ASSET_TYPE_LABELS[type]}`}
                     style={{
                       padding: "4px 2px", fontSize: 9.5, borderRadius: 6,
-                      background: activeAssetType === type ? "rgba(80,42,12,0.48)" : "rgba(60,35,12,0.55)",
-                      border: `1px solid ${activeAssetType === type ? "rgba(139,90,43,0.45)" : "rgba(139,90,43,0.3)"}`,
+                      background: activeAssetType === type ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${activeAssetType === type ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)"}`,
                       color: activeAssetType === type ? "var(--ink-0)" : "var(--ink-3)",
                       cursor: "pointer",
                     }}
                   >
-                    {type === "reference" ? "Insp." : type === "product" ? "Prod." : ASSET_TYPE_LABELS[type]}
+                    {type === "reference" ? "Inspir." : type === "product" ? "Prod." : ASSET_TYPE_LABELS[type]}
                   </button>
                 ))}
               </div>
@@ -1914,9 +1644,9 @@ export function ChatConversation({
           transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
         }
         .panel-chip:hover {
-          background: rgba(80,42,12,0.48) !important;
+          background: rgba(255,255,255,0.08) !important;
           color: var(--ink-0) !important;
-          border-color: rgba(139,90,43,0.45) !important;
+          border-color: rgba(255,255,255,0.15) !important;
         }
 
         .asset-star-btn:hover {

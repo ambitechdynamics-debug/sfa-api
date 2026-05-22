@@ -2,15 +2,11 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from "react"
-import { createPortal } from "react-dom"
-import { Avatar } from "@/components/ui/Avatar"
-import { BrandMark } from "@/components/ui/BrandMark"
+import { useEffect, useState, type CSSProperties } from "react"
 import { Icon } from "@/components/ui/Icon"
 import { useAuth } from "@/hooks/useAuth"
-import { type Conversation, useChatStore } from "@/store/chat-store"
 import { useProjectStore } from "@/store/project-store"
-import { CreateProjectModal } from "./CreateProjectModal"
+import { useChatStore } from "@/store/chat-store"
 
 interface SidebarProps {
   collapsed?: boolean
@@ -19,729 +15,410 @@ interface SidebarProps {
   onToggle?: () => void
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: ReactNode }) {
-  return (
-    <div style={{
-      padding: "14px 12px 5px",
-      fontSize: 10,
-      fontWeight: 700,
-      color: "rgba(255,255,255,0.28)",
-      textTransform: "uppercase",
-      letterSpacing: "0.08em",
-    }}>
-      {children}
-    </div>
-  )
+function formatTimeAgo(dateString?: string) {
+  if (!dateString) return ""
+  const date = new Date(dateString)
+  if (isNaN(date.getTime())) return ""
+  const diffMs = Date.now() - date.getTime()
+  if (diffMs < 0) return "now"
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return "now"
+  if (diffMins < 60) return `${diffMins}m`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h`
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays}d`
 }
 
 function NavItem({
   icon,
   label,
-  href,
+  rightText,
+  rightIcon,
   active,
-  collapsed,
-  onClick,
-  rightAction,
   indent,
+  onClick,
+  onRename,
+  onArchive,
+  onDelete,
 }: {
-  icon: string
+  icon?: string
   label: string
-  href?: string
+  rightText?: string
+  rightIcon?: string
   active?: boolean
-  collapsed?: boolean
-  onClick?: () => void
-  rightAction?: ReactNode
   indent?: boolean
+  onClick?: () => void
+  onRename?: (newLabel: string) => void
+  onArchive?: () => void
+  onDelete?: () => void
 }) {
   const [hovered, setHovered] = useState(false)
-
-  const style: CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: collapsed ? "center" : "flex-start",
-    gap: 9,
-    minHeight: 34,
-    width: "100%",
-    padding: collapsed ? "8px 0" : indent ? "6px 10px 6px 28px" : "6px 10px",
-    borderRadius: 8,
-    border: 0,
-    position: "relative",
-    background: active
-      ? "rgba(80,42,12,0.38)"
-      : hovered
-      ? "rgba(255,255,255,0.05)"
-      : "transparent",
-    color: active ? "rgba(255,210,170,1)" : hovered ? "rgba(255,255,255,0.82)" : "rgba(255,255,255,0.48)",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: active ? 600 : 450,
-    textDecoration: "none",
-    transition: "background 160ms ease, color 160ms ease",
-    boxShadow: active ? "inset 2px 0 0 rgba(200,120,50,0.75)" : "none",
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState(label)
+  
+  const handleRenameSubmit = () => {
+    if (editValue.trim() && editValue !== label && onRename) {
+      onRename(editValue.trim())
+    }
+    setIsEditing(false)
   }
 
-  const content = (
-    <>
-      <Icon name={icon} size={15} style={{ flexShrink: 0, opacity: active ? 1 : hovered ? 0.85 : 0.6 }} />
-      {!collapsed && (
-        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+  return (
+    <div
+      onClick={!isEditing ? onClick : undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setMenuOpen(false); }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        padding: indent ? "8px 10px 8px 34px" : "8px 10px",
+        borderRadius: 8,
+        cursor: isEditing ? "default" : "pointer",
+        background: active || menuOpen ? "rgba(255,255,255,0.08)" : hovered ? "rgba(255,255,255,0.04)" : "transparent",
+        color: active ? "#fff" : "rgba(255,255,255,0.7)",
+        fontSize: 13,
+        fontWeight: active ? 500 : 400,
+        gap: 12,
+        minHeight: 36,
+        transition: "background 100ms ease, color 100ms ease",
+        position: "relative",
+      }}
+    >
+      {icon && <Icon name={icon} size={16} style={{ color: "rgba(255,255,255,0.5)", flexShrink: 0 }} />}
+      
+      {isEditing ? (
+        <input
+          autoFocus
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleRenameSubmit()
+            if (e.key === "Escape") { setIsEditing(false); setEditValue(label); }
+          }}
+          onBlur={handleRenameSubmit}
+          onClick={(e) => e.stopPropagation()}
+          style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 13, outline: "none", padding: "2px 6px", borderRadius: 4, minWidth: 0 }}
+        />
+      ) : (
+        <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {label}
         </span>
       )}
-      {!collapsed && rightAction}
-    </>
-  )
+      
+      {!isEditing && rightIcon && !menuOpen && !hovered && <Icon name={rightIcon} size={14} style={{ color: "rgba(255,255,255,0.4)" }} />}
+      {!isEditing && rightText && !menuOpen && !hovered && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{rightText}</span>}
 
-  if (href) {
-    return (
-      <Link href={href} onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={style} title={collapsed ? label : undefined}>
-        {content}
-      </Link>
-    )
-  }
-
-  return (
-    <button type="button" onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={style} title={collapsed ? label : undefined}>
-      {content}
-    </button>
-  )
-}
-
-function SidebarMessage({ children }: { children: ReactNode }) {
-  return (
-    <div style={{ padding: "6px 12px", fontSize: 12, color: "rgba(255,255,255,0.25)", lineHeight: 1.5 }}>
-      {children}
-    </div>
-  )
-}
-
-// ─── Conversation actions menu ─────────────────────────────────────────────────
-
-function ConversationActionsMenu({
-  position,
-  onArchive,
-  onDelete,
-  onRename,
-}: {
-  position: { top: number; left: number }
-  onArchive: () => void
-  onDelete: () => void
-  onRename: () => void
-}) {
-  const itemStyle: CSSProperties = {
-    width: "100%",
-    minHeight: 32,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "7px 10px",
-    border: 0,
-    borderRadius: 6,
-    background: "transparent",
-    color: "rgba(255,255,255,0.6)",
-    cursor: "pointer",
-    fontSize: 12,
-    fontWeight: 500,
-    textAlign: "left",
-    transition: "background 130ms ease, color 130ms ease",
-  }
-
-  return (
-    <div
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        position: "fixed",
-        left: position.left,
-        top: position.top,
-        zIndex: 9999,
-        width: 168,
-        padding: 5,
-        display: "grid",
-        gap: 1,
-        background: "rgba(18,12,8,0.96)",
-        border: "1px solid rgba(139,90,43,0.3)",
-        borderRadius: 10,
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
-        backdropFilter: "blur(16px)",
-      }}
-    >
-      <button type="button" onClick={onRename} style={itemStyle} className="sb-menu-item">
-        <Icon name="edit" size={13} />
-        Renommer
-      </button>
-      <button type="button" onClick={onArchive} style={itemStyle} className="sb-menu-item">
-        <Icon name="archive" size={13} />
-        Archiver
-      </button>
-      <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "2px 0" }} />
-      <button type="button" onClick={onDelete} style={{ ...itemStyle, color: "rgba(230,100,100,0.85)" }} className="sb-menu-item-danger">
-        <Icon name="trash" size={13} />
-        Supprimer
-      </button>
-    </div>
-  )
-}
-
-// ─── Conversation item ─────────────────────────────────────────────────────────
-
-function RecentConversationItem({
-  active,
-  conversation,
-  editing,
-  menuOpen,
-  onArchive,
-  onCloseMobile,
-  onDelete,
-  onMenuToggle,
-  onRenameCancel,
-  onRenameStart,
-  onRenameSubmit,
-}: {
-  active: boolean
-  conversation: Conversation
-  editing: boolean
-  menuOpen: boolean
-  onArchive: () => void
-  onCloseMobile: () => void
-  onDelete: () => void
-  onMenuToggle: () => void
-  onRenameCancel: () => void
-  onRenameStart: () => void
-  onRenameSubmit: (title: string) => void
-}) {
-  const [draftTitle, setDraftTitle] = useState(conversation.title)
-  const [hovered, setHovered] = useState(false)
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null)
-
-  useEffect(() => {
-    if (editing) setDraftTitle(conversation.title)
-  }, [conversation.title, editing])
-
-  useEffect(() => {
-    if (!menuOpen) setMenuPosition(null)
-  }, [menuOpen])
-
-  function submitRename(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const clean = draftTitle.trim()
-    if (!clean) return
-    onRenameSubmit(clean)
-  }
-
-  if (editing) {
-    return (
-      <form onSubmit={submitRename} style={{ padding: "3px 6px" }}>
-        <input
-          autoFocus
-          value={draftTitle}
-          onChange={(e) => setDraftTitle(e.target.value)}
-          onBlur={() => {
-            const clean = draftTitle.trim()
-            if (!clean || clean === conversation.title) { onRenameCancel(); return }
-            onRenameSubmit(clean)
-          }}
-          onKeyDown={(e) => { if (e.key === "Escape") onRenameCancel() }}
-          style={{
-            width: "100%",
-            height: 30,
-            border: "1px solid rgba(139,90,43,0.5)",
-            borderRadius: 7,
-            background: "rgba(20,10,4,0.8)",
-            color: "rgba(255,255,255,0.88)",
-            padding: "0 9px",
-            fontSize: 12,
-            outline: "none",
-          }}
-        />
-      </form>
-    )
-  }
-
-  return (
-    <div
-      className={`sb-conv-item ${active ? "active" : ""}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <span className="sb-conv-dot" />
-      <Link
-        href={`/dashboard/c/${conversation.id}`}
-        onClick={onCloseMobile}
-        className="sb-conv-title"
-      >
-        {conversation.title}
-      </Link>
-      <button
-        type="button"
-        aria-label={`Actions pour ${conversation.title}`}
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          if (menuOpen) {
-            onMenuToggle()
-            setMenuPosition(null)
-          } else {
-            const rect = e.currentTarget.getBoundingClientRect()
-            setMenuPosition({ top: rect.bottom + 4, left: rect.right - 168 })
-            onMenuToggle()
-          }
-        }}
-        className={`sb-conv-actions ${menuOpen ? "open" : ""}`}
-      >
-        <Icon name="moreH" size={13} />
-      </button>
-
-      {menuOpen && menuPosition && typeof window !== "undefined" && createPortal(
-        <ConversationActionsMenu
-          position={menuPosition}
-          onRename={onRenameStart}
-          onArchive={onArchive}
-          onDelete={onDelete}
-        />,
-        document.body
+      {!isEditing && (onRename || onArchive || onDelete) && (hovered || menuOpen) && (
+        <div style={{ position: "relative", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            style={{
+              background: menuOpen ? "rgba(255,255,255,0.15)" : "transparent",
+              border: 0,
+              color: "#fff",
+              cursor: "pointer",
+              padding: "4px",
+              borderRadius: 4,
+              display: "flex",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
+            onMouseLeave={e => { if(!menuOpen) e.currentTarget.style.background = "transparent" }}
+          >
+            <Icon name="more" size={14} />
+          </button>
+          
+          {menuOpen && (
+            <div style={{
+              position: "absolute",
+              right: 0,
+              top: 24,
+              background: "#1e1f22",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 8,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+              zIndex: 50,
+              minWidth: 140,
+              overflow: "hidden",
+            }}>
+              {onRename && (
+                <button
+                  onClick={() => { setMenuOpen(false); setIsEditing(true); setEditValue(label); }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", width: "100%", background: "transparent", border: 0, color: "#fff", fontSize: 13, cursor: "pointer", textAlign: "left" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Icon name="edit" size={13} /> Renommer
+                </button>
+              )}
+              {onArchive && (
+                <button
+                  onClick={() => { setMenuOpen(false); onArchive(); }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", width: "100%", background: "transparent", border: 0, color: "#fff", fontSize: 13, cursor: "pointer", textAlign: "left" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Icon name="archive" size={13} /> Archiver
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={() => { 
+                    setMenuOpen(false);
+                    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette conversation ?")) {
+                      onDelete();
+                    }
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", width: "100%", background: "transparent", border: 0, color: "#f87171", fontSize: 13, cursor: "pointer", textAlign: "left" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Icon name="trash" size={13} /> Supprimer
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
 }
-
-// ─── Main Sidebar ──────────────────────────────────────────────────────────────
 
 export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { isAuthenticated, logout, user } = useAuth()
-  const { error: projectsError, isLoading: projectsLoading, loadProjects, projects } = useProjectStore()
-  const { archiveConversation, clearActive, deleteConversation, fetchHistory, history, isLoadingHistory, renameConversation } = useChatStore()
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
-  const [isCreateModalOpen, setCreateModalOpen] = useState(false)
-  const [projectsMenuOpen, setProjectsMenuOpen] = useState(true)
-  const [conversationMenuId, setConversationMenuId] = useState<string | null>(null)
-  const [renamingConversationId, setRenamingConversationId] = useState<string | null>(null)
+  const { isAuthenticated, user } = useAuth()
+  const { projects, loadProjects } = useProjectStore()
+  const { history, fetchHistory, clearActive, renameConversation, archiveConversation, deleteConversation } = useChatStore()
 
   useEffect(() => {
-    if (!isAuthenticated || !user?.id) return
-    void loadProjects()
-    void fetchHistory(user.id)
-  }, [fetchHistory, isAuthenticated, loadProjects, user?.id])
+    if (isAuthenticated && user?.id) {
+      void loadProjects()
+      void fetchHistory(user.id)
+    }
+  }, [isAuthenticated, user?.id, loadProjects, fetchHistory])
 
-  useEffect(() => {
-    if (!conversationMenuId) return
-    function closeMenu() { setConversationMenuId(null) }
-    window.addEventListener("click", closeMenu)
-    return () => window.removeEventListener("click", closeMenu)
-  }, [conversationMenuId])
+  // Dictionnaire pour gérer l'ouverture de chaque dossier de projet
+  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({})
 
-  useEffect(() => {
-    if (!profileMenuOpen) return
-    function closeProfile() { setProfileMenuOpen(false) }
-    window.addEventListener("click", closeProfile)
-    return () => window.removeEventListener("click", closeProfile)
-  }, [profileMenuOpen])
+  const toggleProject = (id: string) => {
+    setExpandedProjects((prev) => ({ ...prev, [id]: prev[id] === undefined ? false : !prev[id] }))
+  }
 
-  const recentConversations = history.slice(0, 14)
-
-  function closeMobile() { if (mobile) onClose?.() }
-
-  function handleNewChat() {
+  const handleNewConversation = () => {
     clearActive()
     router.push("/dashboard")
-    closeMobile()
+    if (mobile && onClose) onClose()
   }
 
-  async function handleRenameConversation(id: string, title: string) {
-    await renameConversation(id, title, user?.id)
-    setRenamingConversationId(null)
-    setConversationMenuId(null)
+  const handleConversationClick = (id: string) => {
+    router.push(`/dashboard/c/${id}`)
+    if (mobile && onClose) onClose()
   }
 
-  async function handleArchiveConversation(id: string) {
-    await archiveConversation(id, user?.id)
-    setConversationMenuId(null)
-    if (pathname === `/dashboard/c/${id}`) { clearActive(); router.push("/dashboard") }
-  }
-
-  async function handleDeleteConversation(id: string) {
-    const confirmed = window.confirm("Supprimer définitivement cette conversation ?")
-    if (!confirmed) return
-    await deleteConversation(id, user?.id)
-    setConversationMenuId(null)
-    if (pathname === `/dashboard/c/${id}`) { clearActive(); router.push("/dashboard") }
+  const handleProjectClick = (id: string) => {
+    router.push(`/dashboard/projects/${id}`)
+    if (mobile && onClose) onClose()
   }
 
   const asideStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    width: collapsed ? 60 : 260,
+    height: "100vh",
+    background: "#131314",
+    color: "#fff",
+    borderRight: "1px solid rgba(255,255,255,0.05)",
+    transition: "width 0.2s cubic-bezier(0.4,0,0.2,1)",
+    overflow: "hidden",
     position: mobile ? "relative" : "sticky",
     top: 0,
     alignSelf: "start",
-    height: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    width: mobile ? "min(88vw, 300px)" : collapsed ? 60 : 272,
-    overflow: "hidden",
-    background: "rgba(10,10,12,0.97)",
-    borderRight: "1px solid rgba(255,255,255,0.07)",
-    transition: "width 0.22s cubic-bezier(0.4,0,0.2,1)",
   }
+
+  // Filtrage des conversations
+  const standaloneConversations = history.filter(c => !c.projectId)
 
   return (
     <aside style={asideStyle}>
       <style>{`
-        /* ── Conversation items ── */
-        .sb-conv-item {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          gap: 0;
-          padding: 0 6px 0 10px;
-          min-height: 32px;
-          border-radius: 7px;
-          position: relative;
-          color: rgba(255,255,255,0.42);
-          cursor: pointer;
-          transition: background 140ms ease, color 140ms ease;
-        }
-        .sb-conv-item:hover {
-          background: rgba(255,255,255,0.05);
-          color: rgba(255,255,255,0.78);
-        }
-        .sb-conv-item.active {
-          background: rgba(80,42,12,0.38) !important;
-          color: rgba(255,210,170,1) !important;
-          box-shadow: inset 2px 0 0 rgba(200,120,50,0.75);
-        }
-        .sb-conv-dot {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: rgba(255,255,255,0.15);
-          flex-shrink: 0;
-          margin-right: 8px;
-          transition: background 140ms ease;
-        }
-        .sb-conv-item.active .sb-conv-dot {
-          background: rgba(200,120,50,0.8);
-        }
-        .sb-conv-item:hover .sb-conv-dot {
-          background: rgba(255,255,255,0.3);
-        }
-        .sb-conv-title {
-          flex: 1;
-          min-width: 0;
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-          font-size: 12.5px;
-          font-weight: 450;
-          color: inherit;
-          text-decoration: none;
-          padding: 6px 0;
-        }
-        .sb-conv-actions {
-          flex-shrink: 0;
-          width: 26px;
-          height: 26px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          opacity: 0;
-          border: 0;
-          border-radius: 6px;
-          background: transparent;
-          color: rgba(255,255,255,0.4);
-          cursor: pointer;
-          transition: opacity 140ms ease, background 140ms ease, color 140ms ease;
-        }
-        .sb-conv-item:hover .sb-conv-actions,
-        .sb-conv-actions.open {
-          opacity: 1;
-        }
-        .sb-conv-actions:hover,
-        .sb-conv-actions.open {
-          background: rgba(255,255,255,0.08) !important;
-          color: rgba(255,255,255,0.8) !important;
-        }
-        @media (hover: none) { .sb-conv-actions { opacity: 1; } }
-
-        /* ── Context menu items ── */
-        .sb-menu-item:hover {
-          background: rgba(255,255,255,0.07) !important;
-          color: rgba(255,255,255,0.88) !important;
-        }
-        .sb-menu-item-danger:hover {
-          background: rgba(180,40,40,0.18) !important;
-          color: rgba(250,110,110,1) !important;
-        }
-
-        /* ── Scrollbar ── */
-        .sb-scroll::-webkit-scrollbar { width: 3px; }
+        .sb-scroll::-webkit-scrollbar { width: 4px; }
         .sb-scroll::-webkit-scrollbar-track { background: transparent; }
-        .sb-scroll::-webkit-scrollbar-thumb { background: rgba(139,90,43,0.2); border-radius: 4px; }
-        .sb-scroll::-webkit-scrollbar-thumb:hover { background: rgba(139,90,43,0.4); }
+        .sb-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+        .sb-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
       `}</style>
 
-      {/* ── Header ── */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "space-between",
-        gap: 8, padding: collapsed ? "16px 0 12px" : "14px 14px 12px",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
-        flexShrink: 0,
-      }}>
-        <Link href="/dashboard" onClick={handleNewChat} style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0, textDecoration: "none" }}>
-          <BrandMark size={22} withWordmark={!collapsed} />
-        </Link>
-        {!collapsed && (
-          <div style={{ display: "flex", gap: 4 }}>
-            {onToggle && (
-              <button type="button" onClick={onToggle} className="max-md:hidden" aria-label="Réduire" style={{
-                width: 28, height: 28, borderRadius: 7, border: 0,
-                background: "transparent", color: "rgba(255,255,255,0.3)",
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "background 140ms ease, color 140ms ease",
-              }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)" }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.3)" }}
-              >
-                <Icon name="layoutSidebar" size={16} />
-              </button>
-            )}
-            {mobile && (
-              <button type="button" onClick={onClose} aria-label="Fermer" style={{
-                width: 28, height: 28, borderRadius: 7, border: 0,
-                background: "transparent", color: "rgba(255,255,255,0.3)",
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <Icon name="x" size={16} />
-              </button>
-            )}
-          </div>
+      {/* Header */}
+      <div style={{ padding: "12px", display: "flex", alignItems: "center", gap: 12 }}>
+        {onToggle && !mobile && (
+          <button
+            onClick={onToggle}
+            style={{
+              background: "transparent",
+              border: 0,
+              color: "#fff",
+              cursor: "pointer",
+              padding: "8px",
+              borderRadius: "50%",
+              display: "flex",
+              transition: "background 150ms ease",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >
+            <Icon name="layoutSidebar" size={18} />
+          </button>
         )}
-      </div>
-
-      {/* ── New Visual CTA ── */}
-      <div style={{ padding: collapsed ? "10px 8px" : "10px 10px 6px", flexShrink: 0 }}>
+        {mobile && onClose && (
+          <button
+            onClick={onClose}
+            style={{
+              background: "transparent",
+              border: 0,
+              color: "#fff",
+              cursor: "pointer",
+              padding: "8px",
+              borderRadius: "50%",
+              display: "flex",
+              transition: "background 150ms ease",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >
+            <Icon name="x" size={18} />
+          </button>
+        )}
         <button
-          type="button"
-          onClick={handleNewChat}
+          onClick={handleNewConversation}
           style={{
-            width: "100%",
-            display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start",
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
             gap: 8,
-            height: collapsed ? 36 : 34,
-            padding: collapsed ? "0" : "0 12px",
-            borderRadius: 9,
-            border: "1px solid rgba(200,120,50,0.35)",
-            background: "linear-gradient(135deg, rgba(100,55,15,0.55), rgba(70,35,8,0.45))",
-            color: "rgba(255,200,140,0.92)",
+            background: "transparent",
+            border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: 20,
+            padding: collapsed ? "8px" : "8px 12px",
+            color: "#fff",
             cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 550,
-            letterSpacing: "-0.01em",
-            transition: "background 180ms ease, border-color 180ms ease",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.3)",
+            fontSize: 14,
+            transition: "background 150ms ease",
+            justifyContent: collapsed ? "center" : "flex-start"
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "linear-gradient(135deg, rgba(120,65,15,0.7), rgba(85,42,8,0.6))"
-            e.currentTarget.style.borderColor = "rgba(200,120,50,0.55)"
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "linear-gradient(135deg, rgba(100,55,15,0.55), rgba(70,35,8,0.45))"
-            e.currentTarget.style.borderColor = "rgba(200,120,50,0.35)"
-          }}
-          title={collapsed ? "Nouveau visuel" : undefined}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
         >
-          <Icon name="edit" size={14} style={{ flexShrink: 0 }} />
-          {!collapsed && <span>Nouveau visuel</span>}
+          <Icon name="plus" size={16} />
+          {!collapsed && "New Conversation"}
         </button>
       </div>
 
-      {/* ── Primary nav ── */}
-      <div style={{ padding: collapsed ? "4px 8px" : "4px 10px", flexShrink: 0 }}>
-        <NavItem
-          icon="palette"
-          label="Mémoires de marque"
-          href="/dashboard/projects"
-          active={pathname.startsWith("/dashboard/projects")}
-          collapsed={collapsed}
-          onClick={closeMobile}
-        />
-
-        {/* Projects accordion */}
-        {!collapsed && (
-          <div style={{ marginTop: 2 }}>
-            <button
-              type="button"
-              onClick={() => setProjectsMenuOpen((v) => !v)}
-              aria-expanded={projectsMenuOpen}
-              style={{
-                display: "flex", alignItems: "center", gap: 9,
-                minHeight: 34, width: "100%",
-                padding: "6px 10px",
-                borderRadius: 8, border: 0,
-                background: pathname.startsWith("/dashboard/projects") ? "rgba(80,42,12,0.38)" : "transparent",
-                color: pathname.startsWith("/dashboard/projects") ? "rgba(255,210,170,1)" : "rgba(255,255,255,0.48)",
-                cursor: "pointer", fontSize: 13, fontWeight: 450, textAlign: "left",
-                transition: "background 160ms ease, color 160ms ease",
-                boxShadow: pathname.startsWith("/dashboard/projects") ? "inset 2px 0 0 rgba(200,120,50,0.75)" : "none",
-              }}
-              onMouseEnter={(e) => {
-                if (!pathname.startsWith("/dashboard/projects")) {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.05)"
-                  e.currentTarget.style.color = "rgba(255,255,255,0.82)"
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!pathname.startsWith("/dashboard/projects")) {
-                  e.currentTarget.style.background = "transparent"
-                  e.currentTarget.style.color = "rgba(255,255,255,0.48)"
-                }
-              }}
-            >
-              <Icon name="folder" size={15} style={{ flexShrink: 0, opacity: 0.65 }} />
-              <span style={{ flex: 1, minWidth: 0 }}>Projets</span>
-              <Icon
-                name={projectsMenuOpen ? "chevronD" : "chevronR"}
-                size={11}
-                style={{ color: "rgba(255,255,255,0.25)", transition: "transform 180ms ease", flexShrink: 0 }}
-              />
-            </button>
-
-            {projectsMenuOpen && (
-              <div style={{ display: "grid", gap: 1, paddingLeft: 4, marginTop: 1 }}>
-                <NavItem
-                  icon="folderPlus"
-                  label="Nouveau projet"
-                  onClick={() => setCreateModalOpen(true)}
-                  indent
-                />
-                {projectsLoading ? (
-                  <SidebarMessage>Chargement...</SidebarMessage>
-                ) : projectsError ? (
-                  <SidebarMessage>{projectsError}</SidebarMessage>
-                ) : projects.length > 0 ? (
-                  projects.map((project) => (
-                    <NavItem
-                      key={project.id}
-                      icon="folder"
-                      label={project.title}
-                      href={`/dashboard/projects/${project.id}`}
-                      active={pathname === `/dashboard/projects/${project.id}`}
-                      onClick={closeMobile}
-                      indent
-                    />
-                  ))
-                ) : null}
-              </div>
-            )}
-          </div>
-        )}
-
-        {collapsed && (
-          <NavItem icon="folder" label="Projets" href="/dashboard/projects" collapsed={collapsed} onClick={closeMobile} />
-        )}
-      </div>
-
-      {/* ── Divider ── */}
-      {!collapsed && (
-        <div style={{ margin: "4px 10px 0", height: 1, background: "rgba(255,255,255,0.05)", flexShrink: 0 }} />
-      )}
-
-      {/* ── Conversations ── */}
-      <nav className="sb-scroll" style={{
-        flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden",
-        padding: collapsed ? "8px 8px" : "0 10px 8px",
-      }}>
+      {/* Scrollable Nav Area */}
+      <div className="sb-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 12px" }}>
         {!collapsed && (
           <>
-            <SectionLabel>Récents</SectionLabel>
-            {isLoadingHistory ? (
-              <SidebarMessage>Chargement...</SidebarMessage>
-            ) : recentConversations.length === 0 ? (
-              <SidebarMessage>Aucune conversation pour l'instant.</SidebarMessage>
-            ) : (
-              <div style={{ display: "grid", gap: 1 }}>
-                {recentConversations.map((conversation) => (
-                  <RecentConversationItem
-                    key={conversation.id}
-                    active={pathname === `/dashboard/c/${conversation.id}`}
-                    conversation={conversation}
-                    editing={renamingConversationId === conversation.id}
-                    menuOpen={conversationMenuId === conversation.id}
-                    onArchive={() => void handleArchiveConversation(conversation.id)}
-                    onCloseMobile={closeMobile}
-                    onDelete={() => void handleDeleteConversation(conversation.id)}
-                    onMenuToggle={() => setConversationMenuId((v) => v === conversation.id ? null : conversation.id)}
-                    onRenameCancel={() => setRenamingConversationId(null)}
-                    onRenameStart={() => { setConversationMenuId(null); setRenamingConversationId(conversation.id) }}
-                    onRenameSubmit={(title) => void handleRenameConversation(conversation.id, title)}
-                  />
-                ))}
+            <NavItem icon="history" label="Conversation History" onClick={() => router.push("/dashboard")} />
+            <NavItem icon="clock" label="Scheduled Tasks" onClick={() => router.push("/dashboard")} />
+
+            {/* Projects Group */}
+            <div style={{ marginTop: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", padding: "8px 10px", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <span style={{ flex: 1 }}>Projects</span>
+                <Icon name="filter" size={14} style={{ cursor: "pointer", marginRight: 12 }} />
+                <Icon name="folderPlus" size={14} style={{ cursor: "pointer" }} onClick={() => router.push("/dashboard/projects")} />
+              </div>
+
+              {projects.map((project) => {
+                // Par défaut ouvert sauf si expressément fermé dans l'état
+                const isExpanded = expandedProjects[project.id] !== false
+                const projectConversations = history.filter((c) => c.projectId === project.id)
+
+                return (
+                  <div key={project.id}>
+                    <div
+                      onClick={() => toggleProject(project.id)}
+                      style={{
+                        display: "flex", alignItems: "center", padding: "8px 10px",
+                        cursor: "pointer", color: "rgba(255,255,255,0.7)", fontSize: 13, gap: 8,
+                        transition: "color 150ms ease"
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.color = "#fff"}
+                      onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}
+                    >
+                      <Icon name="folder" size={16} style={{ color: "rgba(255,255,255,0.5)" }} />
+                      <span style={{ flex: 1, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} onClick={(e) => { e.stopPropagation(); handleProjectClick(project.id); }}>
+                        {project.title}
+                      </span>
+                    </div>
+                    
+                    {isExpanded && projectConversations.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        {projectConversations.map((conv) => (
+                          <NavItem
+                            key={conv.id}
+                            label={conv.title}
+                            rightText={formatTimeAgo(conv.updatedAt || conv.lastMessageAt || conv.createdAt)}
+                            rightIcon={conv.status === "ACTIVE" ? "arrowUpRight" : undefined}
+                            active={pathname === `/dashboard/c/${conv.id}`}
+                            indent
+                            onClick={() => handleConversationClick(conv.id)}
+                            onRename={(newLabel) => {
+                              if (user?.id) renameConversation(conv.id, newLabel, user.id)
+                            }}
+                            onArchive={() => {
+                              if (user?.id) archiveConversation(conv.id, user.id)
+                            }}
+                            onDelete={() => {
+                              if (user?.id) deleteConversation(conv.id, user.id)
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Conversations Group */}
+            {standaloneConversations.length > 0 && (
+              <div style={{ marginTop: 24, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", padding: "8px 10px", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  <span style={{ flex: 1 }}>Conversations</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {standaloneConversations.map((conv) => (
+                    <NavItem
+                      key={conv.id}
+                      label={conv.title}
+                      rightText={formatTimeAgo(conv.updatedAt || conv.lastMessageAt || conv.createdAt)}
+                      active={pathname === `/dashboard/c/${conv.id}`}
+                      onClick={() => handleConversationClick(conv.id)}
+                      onRename={(newLabel) => {
+                        if (user?.id) renameConversation(conv.id, newLabel, user.id)
+                      }}
+                      onArchive={() => {
+                        if (user?.id) archiveConversation(conv.id, user.id)
+                      }}
+                      onDelete={() => {
+                        if (user?.id) deleteConversation(conv.id, user.id)
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </>
         )}
-      </nav>
-
-      <CreateProjectModal isOpen={isCreateModalOpen} onClose={() => setCreateModalOpen(false)} />
-
-      {/* ── Profile ── */}
-      <div style={{ flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.05)", padding: collapsed ? "10px 8px" : "8px 10px", position: "relative" }}>
-
-        {/* Profile flyout menu */}
-        {profileMenuOpen && !collapsed && (
-          <div style={{
-            position: "absolute", bottom: "calc(100% + 6px)", left: 10, right: 10,
-            padding: 6, zIndex: 60,
-            display: "grid", gap: 1,
-            background: "rgba(14,9,5,0.97)",
-            border: "1px solid rgba(139,90,43,0.3)",
-            borderRadius: 11,
-            boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
-            backdropFilter: "blur(16px)",
-          }}>
-            <NavItem icon="user" label="Profil" href="/dashboard/profile" onClick={closeMobile} />
-            <NavItem icon="credit" label="Abonnement" href="/dashboard/billing" onClick={closeMobile} />
-            <NavItem icon="bell" label="Notifications" href="/dashboard/notifications" onClick={closeMobile} />
-            <NavItem icon="settings" label="Paramètres" href="/dashboard/settings" onClick={closeMobile} />
-            <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "2px 0" }} />
-            <NavItem icon="help" label="Support" href="/dashboard/support" onClick={closeMobile} />
-            <NavItem icon="logout" label="Se déconnecter" onClick={() => void logout()} />
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); setProfileMenuOpen((v) => !v) }}
-          style={{
-            width: "100%",
-            display: "flex", alignItems: "center",
-            justifyContent: collapsed ? "center" : "flex-start",
-            gap: 9,
-            padding: collapsed ? "4px 0" : "7px 8px",
-            borderRadius: 9, border: 0,
-            background: profileMenuOpen ? "rgba(80,42,12,0.35)" : "transparent",
-            cursor: "pointer", textAlign: "left",
-            transition: "background 160ms ease",
-          }}
-          onMouseEnter={(e) => { if (!profileMenuOpen) e.currentTarget.style.background = "rgba(255,255,255,0.05)" }}
-          onMouseLeave={(e) => { if (!profileMenuOpen) e.currentTarget.style.background = "transparent" }}
-        >
-          <Avatar name={user?.fullName || user?.email || "U"} size={collapsed ? 32 : 30} />
-          {!collapsed && (
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,0.82)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {user?.fullName || "Utilisateur"}
-              </div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.28)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {user?.email}
-              </div>
-            </div>
-          )}
-          {!collapsed && (
-            <Icon name={profileMenuOpen ? "chevronD" : "chevronU"} size={11} style={{ color: "rgba(255,255,255,0.2)", flexShrink: 0 }} />
-          )}
-        </button>
       </div>
+
+      {/* Bottom Section */}
+      {!collapsed && (
+        <div style={{ padding: "8px 12px", borderTop: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+          <NavItem icon="settings" label="Settings" onClick={() => router.push("/dashboard/settings")} />
+        </div>
+      )}
     </aside>
   )
 }

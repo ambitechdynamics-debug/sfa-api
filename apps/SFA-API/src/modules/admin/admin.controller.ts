@@ -191,4 +191,22 @@ export const adminController = {
       }
     });
   }),
+
+  /**
+   * POST /api/admin/projects/cleanup-stale
+   * Body (optionnel) : { generatingMaxMinutes, analyzingMaxMinutes, questioningMaxMinutes }
+   * Reset les projets bloqués en GENERATING/ANALYZING/QUESTIONING au-delà du seuil.
+   */
+  cleanupStaleProjects: asyncHandler(async (req: Request, res: Response) => {
+    const body = req.body ?? {};
+    const result = await adminService.cleanupStaleProjects({
+      generatingMaxMinutes:
+        typeof body.generatingMaxMinutes === 'number' ? body.generatingMaxMinutes : undefined,
+      analyzingMaxMinutes:
+        typeof body.analyzingMaxMinutes === 'number' ? body.analyzingMaxMinutes : undefined,
+      questioningMaxMinutes:
+        typeof body.questioningMaxMinutes === 'number' ? body.questioningMaxMinutes : undefined,
+    });
+    sendSuccess(res, `${result.total} projet(s) débloqué(s)`, result);
+  }),
 };

@@ -23,31 +23,31 @@ const SIZES: Record<Size, { h: number; px: number; font: number; gap: number; ic
 
 const VARIANTS: Record<Variant, CSSProperties> = {
   primary: {
-    background: "linear-gradient(180deg, var(--acc-bright), var(--acc-deep))",
-    color: "var(--acc-ink)",
-    border: "1px solid var(--acc-deep)",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 6px 18px rgba(224,138,100,0.28)",
+    background: "#fff",
+    color: "#131314",
+    border: "1px solid #fff",
+    boxShadow: "0 2px 8px rgba(255,255,255,0.15)",
   },
   secondary: {
-    background: "rgba(60,35,12,0.55)",
-    color: "var(--ink-0)",
-    border: "1px solid rgba(139,90,43,0.4)",
-    boxShadow: "var(--sh-1)",
+    background: "rgba(255,255,255,0.05)",
+    color: "#fff",
+    border: "1px solid rgba(255,255,255,0.1)",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   },
   ghost: {
     background: "transparent",
-    color: "var(--ink-1)",
+    color: "rgba(255,255,255,0.7)",
     border: "1px solid transparent",
   },
   outline: {
     background: "transparent",
-    color: "var(--ink-0)",
-    border: "1px solid var(--line-3)",
+    color: "#fff",
+    border: "1px solid rgba(255,255,255,0.2)",
   },
   danger: {
-    background: "var(--rose-soft)",
-    color: "var(--rose)",
-    border: "1px solid rgba(217, 112, 112, 0.3)",
+    background: "rgba(255,50,50,0.1)",
+    color: "rgba(255,100,100,0.9)",
+    border: "1px solid rgba(255,50,50,0.2)",
   },
 }
 

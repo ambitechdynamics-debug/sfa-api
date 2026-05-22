@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { label: 'Liaisons Agent/Mémoire', href: '/admin/agent-memory-links', icon: Link2 },
   { label: 'Base Artistique', href: '/admin/artistic-base', icon: Palette },
   { label: 'Éléments Interdits', href: '/admin/forbidden-rules', icon: Ban },
+  { label: 'Types de Création', href: '/admin/creation-options', icon: Sparkles },
   { label: 'Affiches Générées', href: '/admin/generated-posters', icon: Image },
   { label: 'Fichiers', href: '/admin/files', icon: Files },
   { label: 'Prompts Finaux', href: '/admin/prompts', icon: FileText },

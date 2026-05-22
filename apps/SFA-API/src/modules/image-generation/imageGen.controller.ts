@@ -39,4 +39,41 @@ export const imageGenController = {
     const result = await imageGenService.deletePoster(userId, projectId, posterId);
     return sendSuccess(res, 'Poster deleted', result);
   },
+
+  /**
+   * GET /api/projects/:projectId/generated-posters/:posterId/download
+   *   ?format=png|jpg|pdf|webp  (défaut : auto)
+   *   &width=NN                  (défaut : taille originale, plafond 4096)
+   *   &quality=NN                (défaut : auto)
+   *
+   * Redirige vers une URL Cloudinary transformée avec
+   * `fl_attachment` pour déclencher le téléchargement côté navigateur.
+   */
+  download: async (req: Request, res: Response) => {
+    const { projectId, posterId } = req.params;
+    const userId = req.user!.id;
+    const userRole = req.user!.role;
+
+    const rawFormat = typeof req.query.format === 'string' ? req.query.format.toLowerCase() : undefined;
+    const allowedFormats = ['png', 'jpg', 'pdf', 'webp'] as const;
+    const format = (allowedFormats as readonly string[]).includes(rawFormat ?? '')
+      ? (rawFormat as 'png' | 'jpg' | 'pdf' | 'webp')
+      : undefined;
+
+    const width = typeof req.query.width === 'string' ? Number(req.query.width) : undefined;
+    const quality = typeof req.query.quality === 'string' ? Number(req.query.quality) : undefined;
+
+    const { url, filename } = await imageGenService.buildDownloadUrl({
+      userId,
+      userRole,
+      projectId,
+      posterId,
+      format,
+      width: Number.isFinite(width) ? width : undefined,
+      quality: Number.isFinite(quality) ? quality : undefined,
+    });
+
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.redirect(302, url);
+  },
 };

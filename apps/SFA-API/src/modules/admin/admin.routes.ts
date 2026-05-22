@@ -39,6 +39,7 @@ router.delete('/users/:id', adminController.deleteUser);
 
 // ─── Projects ───────────────────────────────────────────────────────────────
 router.get('/projects', adminController.listProjects);
+router.post('/projects/cleanup-stale', adminController.cleanupStaleProjects);
 router.delete('/projects/:id', adminController.deleteProject);
 
 // ─── Generated Posters ──────────────────────────────────────────────────────

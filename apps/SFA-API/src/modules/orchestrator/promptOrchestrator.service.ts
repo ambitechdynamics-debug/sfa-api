@@ -28,6 +28,7 @@ import {
   runArtisticBaseAgent,
   runPromptArchitectAgent,
   runQualityAgent,
+  runSafetyAgent,
   upsertMemory,
   PlannerOutput,
   ImageAnalystOutput,
@@ -35,7 +36,8 @@ import {
   BrandAgentOutput,
   ArtisticBaseOutput,
   PromptArchitectOutput,
-  QualityAgentOutput
+  QualityAgentOutput,
+  SafetyAgentOutput
 } from '../agents/agents.service';
 
 export interface OrchestrationOptions {
@@ -62,15 +64,140 @@ export interface OrchestrationResult {
     layout_reference_url?: string | null;
     style_reference_url?: string | null;
     quality?: QualityAgentOutput;
+    quality_failed?: boolean;
+    safety?: SafetyAgentOutput;
     ready_for_generation: boolean;
     agents_executed: string[];
+    agents_skipped?: string[];
+    agent_failures?: Array<{ agent: string; error: string }>;
     total_duration_ms: number;
   };
+}
+
+// ─── Pipeline déclaratif (orchestration dynamique) ──────────────────────────
+// `AgentDefinition` est désormais la source de vérité pour : isActive,
+// provider et model. Chaque "stage" liste les clés d'agent à invoquer. Si un
+// agent est marqué `required` et qu'il est inactif/manquant en DB, le
+// pre-flight refuse le démarrage. Si un agent est `optional` et inactif, il
+// est ignoré (avec trace dans `agents_skipped`).
+//
+// Modifier ce tableau permet de réordonner ou retirer des étapes sans toucher
+// au code du runner principal. Pour ajouter un nouvel agent, déclarer un
+// runner dans `STAGE_RUNNERS` ci-dessous et l'ajouter au pipeline.
+
+type StageId =
+  | 'analysis'
+  | 'planning'
+  | 'design'
+  | 'composition'
+  | 'safety'
+  | 'validation';
+
+interface PipelineAgent {
+  key: string;
+  required: boolean;
+}
+
+interface PipelineStage {
+  id: StageId;
+  /** `true` ⇒ tous les agents du stage s'exécutent en parallèle */
+  parallel: boolean;
+  agents: PipelineAgent[];
+}
+
+const PIPELINE: PipelineStage[] = [
+  {
+    id: 'analysis',
+    parallel: false,
+    agents: [{ key: 'IMAGE_ANALYST_AGENT', required: false }],
+  },
+  {
+    id: 'planning',
+    parallel: false,
+    agents: [{ key: 'PLANNER_AGENT', required: true }],
+  },
+  {
+    id: 'design',
+    parallel: true,
+    agents: [
+      { key: 'TEXT_ANALYST_AGENT', required: true },
+      { key: 'BRAND_AGENT', required: true },
+      { key: 'ARTISTIC_BASE_AGENT', required: true },
+    ],
+  },
+  {
+    id: 'composition',
+    parallel: false,
+    agents: [{ key: 'PROMPT_ARCHITECT_AGENT', required: true }],
+  },
+  {
+    id: 'safety',
+    parallel: false,
+    agents: [{ key: 'SAFETY_AGENT', required: false }],
+  },
+  {
+    id: 'validation',
+    parallel: false,
+    agents: [{ key: 'QUALITY_AGENT', required: false }],
+  },
+];
+
+/**
+ * Pre-flight check : avant de lancer un cycle, vérifie que tous les agents
+ * marqués `required` dans le pipeline existent en DB et sont actifs. Retourne
+ * la liste des agents optionnels indisponibles (pour info / `agents_skipped`).
+ *
+ * Pour un agent inactif marqué `required`, lève AppError(400) avec la liste
+ * complète des défaillances pour faciliter le debug côté admin.
+ */
+async function validateActiveAgents(): Promise<{ skipped: string[] }> {
+  const allKeys = PIPELINE.flatMap((s) => s.agents.map((a) => a.key));
+  const rows = await prisma.agentDefinition.findMany({
+    where: { key: { in: allKeys } },
+    select: { key: true, isActive: true },
+  });
+  const byKey = new Map(rows.map((r) => [r.key, r] as const));
+
+  const missing: string[] = [];
+  const inactiveRequired: string[] = [];
+  const skipped: string[] = [];
+
+  for (const stage of PIPELINE) {
+    for (const a of stage.agents) {
+      const row = byKey.get(a.key);
+      if (!row) {
+        (a.required ? missing : skipped).push(a.key);
+        continue;
+      }
+      if (!row.isActive) {
+        (a.required ? inactiveRequired : skipped).push(a.key);
+      }
+    }
+  }
+
+  if (missing.length > 0 || inactiveRequired.length > 0) {
+    const parts: string[] = [];
+    if (missing.length) parts.push(`absents : ${missing.join(', ')}`);
+    if (inactiveRequired.length) parts.push(`inactifs : ${inactiveRequired.join(', ')}`);
+    throw new AppError(
+      `Le pipeline ne peut pas démarrer — agents requis ${parts.join(' ; ')}. Activez-les dans /admin/agents.`,
+      400,
+    );
+  }
+
+  return { skipped };
 }
 
 export async function runFullOrchestration(options: OrchestrationOptions): Promise<OrchestrationResult> {
   const startTime = Date.now();
   const agentsExecuted: string[] = [];
+
+  // ─── 0. Pre-flight dynamique : valider le pipeline avant tout coût IA ───
+  // Refuse de démarrer si un agent `required` est manquant ou inactif en DB.
+  // Récupère la liste des `skipped` (agents optionnels désactivés) pour les
+  // sauter explicitement plus bas.
+  const { skipped: agentsSkipped } = await validateActiveAgents();
+  const skipSet = new Set(agentsSkipped);
 
   // ─── 1. Vérification du projet et ownership ───────────
 
@@ -120,7 +247,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
 
   let imageAnalystResults: ImageAnalystOutput[] = [];
 
-  if (project.files.length > 0) {
+  if (project.files.length > 0 && !skipSet.has('IMAGE_ANALYST_AGENT')) {
     try {
       imageAnalystResults = await runImageAnalystAgent({
         projectId: options.projectId,
@@ -199,6 +326,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
         missing_information: plannerResult.missing_information,
         ready_for_generation: false,
         agents_executed: agentsExecuted,
+        agents_skipped: agentsSkipped.length ? agentsSkipped : undefined,
         total_duration_ms: totalDuration
       }
     };
@@ -210,30 +338,32 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     data: { status: 'ANALYZING' }
   });
 
-  // ─── 6. Text Analyst ─────────────────────────────────
+  // ─── 6-8. TextAnalyst + Brand + ArtisticBase en PARALLÈLE ───
+  // Ces trois agents sont indépendants : aucun ne consomme l'output direct
+  // d'un autre avant le Prompt Architect. On gagne 15-25 s par cycle.
 
-  let textAnalystResult: TextAnalystOutput;
+  const logoFile = project.files.find(f => f.usageType === 'LOGO') ?? null;
+  const firstImageAnalysis = imageAnalystResults.find(r => r.logo_analysis?.is_logo_present) ?? imageAnalystResults[0] ?? null;
 
-  try {
-    textAnalystResult = await runTextAnalystAgent({
+  // ArtisticResource query — récupéré une fois, partagé avec ArtisticBase
+  const artisticResources = await prisma.artisticResource.findMany({
+    where: {
+      OR: [
+        { category: { equals: plannerResult.category, mode: 'insensitive' } },
+        { category: { contains: plannerResult.poster_type, mode: 'insensitive' } }
+      ]
+    },
+    take: 20
+  });
+
+  const [textSettled, brandSettled, artisticSettled] = await Promise.allSettled([
+    runTextAnalystAgent({
       projectId: options.projectId,
       plannerResult,
       provider: options.provider,
       model: options.model
-    });
-    agentsExecuted.push('TextAnalystAgent');
-  } catch (err) {
-    throw new AppError(`Text Analyst Agent échoué: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
-  }
-
-  // ─── 7. Brand Agent → M-ID ───────────────────────────
-
-  let brandAgentResult: BrandAgentOutput;
-  const logoFile = project.files.find(f => f.usageType === 'LOGO') ?? null;
-  const firstImageAnalysis = imageAnalystResults.find(r => r.logo_analysis?.is_logo_present) ?? imageAnalystResults[0] ?? null;
-
-  try {
-    brandAgentResult = await runBrandAgent({
+    }),
+    runBrandAgent({
       projectId: options.projectId,
       logoFile: logoFile
         ? {
@@ -247,31 +377,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       imageAnalystResult: firstImageAnalysis,
       provider: options.provider,
       model: options.model
-    });
-    agentsExecuted.push('BrandAgent');
-  } catch (err) {
-    throw new AppError(`Brand Agent échoué: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
-  }
-
-  // Sauvegarder M_ID
-  await upsertMemory(options.projectId, 'M_ID', brandAgentResult as unknown as unknown as Prisma.InputJsonValue);
-
-  // ─── 8. Artistic Base Agent → M-BA ──────────────────
-
-  let artisticBaseResult: ArtisticBaseOutput;
-
-  const artisticResources = await prisma.artisticResource.findMany({
-    where: {
-      OR: [
-        { category: { equals: plannerResult.category, mode: 'insensitive' } },
-        { category: { contains: plannerResult.poster_type, mode: 'insensitive' } }
-      ]
-    },
-    take: 20
-  });
-
-  try {
-    artisticBaseResult = await runArtisticBaseAgent({
+    }),
+    runArtisticBaseAgent({
       projectId: options.projectId,
       plannerResult,
       artisticResources: artisticResources.map(r => ({
@@ -286,14 +393,30 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       })),
       provider: options.provider,
       model: options.model
-    });
-    agentsExecuted.push('ArtisticBaseAgent');
-  } catch (err) {
-    throw new AppError(`Artistic Base Agent échoué: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
-  }
+    })
+  ]);
 
-  // Sauvegarder M_BA
-  await upsertMemory(options.projectId, 'M_BA', artisticBaseResult as unknown as unknown as Prisma.InputJsonValue);
+  const agentFailures: Array<{ agent: string; error: string }> = [];
+
+  if (textSettled.status === 'rejected') {
+    throw new AppError(`Text Analyst Agent échoué: ${textSettled.reason instanceof Error ? textSettled.reason.message : 'Unknown'}`, 500);
+  }
+  const textAnalystResult: TextAnalystOutput = textSettled.value;
+  agentsExecuted.push('TextAnalystAgent');
+
+  if (brandSettled.status === 'rejected') {
+    throw new AppError(`Brand Agent échoué: ${brandSettled.reason instanceof Error ? brandSettled.reason.message : 'Unknown'}`, 500);
+  }
+  const brandAgentResult: BrandAgentOutput = brandSettled.value;
+  agentsExecuted.push('BrandAgent');
+  await upsertMemory(options.projectId, 'M_ID', brandAgentResult as unknown as Prisma.InputJsonValue);
+
+  if (artisticSettled.status === 'rejected') {
+    throw new AppError(`Artistic Base Agent échoué: ${artisticSettled.reason instanceof Error ? artisticSettled.reason.message : 'Unknown'}`, 500);
+  }
+  const artisticBaseResult: ArtisticBaseOutput = artisticSettled.value;
+  agentsExecuted.push('ArtisticBaseAgent');
+  await upsertMemory(options.projectId, 'M_BA', artisticBaseResult as unknown as Prisma.InputJsonValue);
 
   // ─── 9. Prompt Architect → M-PROMPT1 ────────────────
 
@@ -321,13 +444,98 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   }
 
   // Sauvegarder M_PROMPT1
-  await upsertMemory(options.projectId, 'M_PROMPT1', promptArchitectResult as unknown as unknown as Prisma.InputJsonValue);
+  await upsertMemory(options.projectId, 'M_PROMPT1', promptArchitectResult as unknown as Prisma.InputJsonValue);
 
-  // ─── 10. Quality Agent ────────────────────────────────
+  // ─── 10. SAFETY AGENT (entre Prompt Architect et Quality) ─────────────
+  // Filtre M_PROMPT1 contre les ForbiddenRule actives. Peut amender le prompt
+  // ou bloquer la génération. Non bloquant en cas d'erreur agent (faute de
+  // pouvoir évaluer, on laisse passer et on logue). Sauté proprement si
+  // l'admin a désactivé l'agent SAFETY_AGENT (pre-flight l'a déjà détecté).
 
-  let qualityResult: QualityAgentOutput;
+  let safetyResult: SafetyAgentOutput | undefined;
+  if (skipSet.has('SAFETY_AGENT')) {
+    console.warn('[orchestrator] SAFETY_AGENT inactif — étape sautée');
+  } else try {
+    const activeRules = await prisma.forbiddenRule.findMany({
+      where: { isActive: true },
+      select: {
+        key: true,
+        title: true,
+        category: true,
+        severity: true,
+        description: true,
+        negativePrompt: true,
+      },
+    });
+    safetyResult = await runSafetyAgent({
+      projectId: options.projectId,
+      mPrompt1: promptArchitectResult,
+      forbiddenRules: activeRules,
+      provider: options.provider,
+      model: options.model,
+    });
+    agentsExecuted.push('SafetyAgent');
 
-  try {
+    if (safetyResult.decision === 'blocked') {
+      await prisma.project.update({
+        where: { id: options.projectId },
+        data: { status: 'FAILED' },
+      });
+      const totalDuration = Date.now() - startTime;
+      return {
+        success: false,
+        message:
+          safetyResult.client_message ||
+          'La génération a été bloquée car le prompt enfreint des règles de qualité ou de sécurité.',
+        data: {
+          projectId: options.projectId,
+          status: 'FAILED',
+          safety: safetyResult,
+          ready_for_generation: false,
+          agents_executed: agentsExecuted,
+        agents_skipped: agentsSkipped.length ? agentsSkipped : undefined,
+          agent_failures: agentFailures.length ? agentFailures : undefined,
+          total_duration_ms: totalDuration,
+        },
+      };
+    }
+
+    if (safetyResult.decision === 'amended' && safetyResult.amended_prompt) {
+      promptArchitectResult.final_prompt = safetyResult.amended_prompt;
+      if (safetyResult.amended_negative_prompt_additions?.length) {
+        promptArchitectResult.negative_prompt = [
+          promptArchitectResult.negative_prompt || '',
+          safetyResult.amended_negative_prompt_additions.join(', '),
+        ]
+          .filter(Boolean)
+          .join(', ');
+      }
+      // Re-sauvegarder M_PROMPT1 avec les amendements Safety
+      await upsertMemory(
+        options.projectId,
+        'M_PROMPT1',
+        promptArchitectResult as unknown as Prisma.InputJsonValue,
+      );
+    }
+  } catch (err) {
+    // Safety non bloquant : on continue mais on trace la défaillance.
+    agentFailures.push({
+      agent: 'SafetyAgent',
+      error: err instanceof Error ? err.message : 'Unknown',
+    });
+    console.warn('SafetyAgent warning:', err instanceof Error ? err.message : err);
+  }
+
+  // ─── 11. Quality Agent ────────────────────────────────
+  // Échec visible : pas de score factice 75, le client sait que le score est
+  // indisponible et peut décider lui-même de générer ou non.
+
+  let qualityResult: QualityAgentOutput | undefined;
+  let qualityFailed = false;
+
+  if (skipSet.has('QUALITY_AGENT')) {
+    console.warn('[orchestrator] QUALITY_AGENT inactif — étape sautée');
+  } else try {
     qualityResult = await runQualityAgent({
       projectId: options.projectId,
       mPrompt1: promptArchitectResult,
@@ -336,21 +544,31 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     });
     agentsExecuted.push('QualityAgent');
   } catch (err) {
-    // Quality Agent non bloquant : si il échoue, on retourne quand même le résultat
+    qualityFailed = true;
+    agentFailures.push({
+      agent: 'QualityAgent',
+      error: err instanceof Error ? err.message : 'Unknown',
+    });
     console.warn('QualityAgent warning:', err instanceof Error ? err.message : err);
-    qualityResult = {
-      quality_score: 75,
-      is_valid: true,
-      issues: ['Quality Agent non disponible'],
-      recommendations: []
-    };
   }
 
-  // ─── 11. Mise à jour Project.status ──────────────────
+  // Persister le quality_score dans M_PROMPT1 pour la quality gate de imageGen
+  if (qualityResult) {
+    await upsertMemory(
+      options.projectId,
+      'M_PROMPT1',
+      {
+        ...promptArchitectResult,
+        quality_score: qualityResult.quality_score,
+        quality_is_valid: qualityResult.is_valid,
+      } as unknown as Prisma.InputJsonValue,
+    );
+  }
 
-  const finalStatus = qualityResult.is_valid && qualityResult.quality_score >= 70
-    ? 'PROMPT_READY'
-    : 'READY_FOR_PROMPT';
+  // ─── 12. Mise à jour Project.status ──────────────────
+
+  const promptValidated = qualityResult ? qualityResult.is_valid && qualityResult.quality_score >= 70 : false;
+  const finalStatus = promptValidated ? 'PROMPT_READY' : 'READY_FOR_PROMPT';
 
   await prisma.project.update({
     where: { id: options.projectId },
@@ -359,11 +577,18 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
 
   const totalDuration = Date.now() - startTime;
 
+  let messageOut: string;
+  if (qualityFailed) {
+    messageOut = 'M-PROMPT1 généré, mais le Quality Agent est indisponible — la qualité n\'a pas pu être validée automatiquement.';
+  } else if (qualityResult?.is_valid) {
+    messageOut = 'M-PROMPT1 généré avec succès et validé par le Quality Agent.';
+  } else {
+    messageOut = 'M-PROMPT1 généré mais des améliorations sont recommandées.';
+  }
+
   return {
     success: true,
-    message: qualityResult.is_valid
-      ? 'M-PROMPT1 généré avec succès et validé par le Quality Agent.'
-      : 'M-PROMPT1 généré mais des améliorations sont recommandées.',
+    message: messageOut,
     data: {
       projectId: options.projectId,
       status: finalStatus,
@@ -374,8 +599,12 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       layout_reference_url: artisticBaseResult.selected_model_url || null,
       style_reference_url: artisticBaseResult.selected_style_url || null,
       quality: qualityResult,
-      ready_for_generation: qualityResult.is_valid && promptArchitectResult.ready_for_generation,
+      quality_failed: qualityFailed || undefined,
+      safety: safetyResult,
+      ready_for_generation: Boolean(qualityResult?.is_valid && promptArchitectResult.ready_for_generation),
       agents_executed: agentsExecuted,
+        agents_skipped: agentsSkipped.length ? agentsSkipped : undefined,
+      agent_failures: agentFailures.length ? agentFailures : undefined,
       total_duration_ms: totalDuration
     }
   };

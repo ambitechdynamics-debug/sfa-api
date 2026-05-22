@@ -22,7 +22,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         height: isDashboard ? "100vh" : "auto",
         minHeight: "100vh",
         display: "flex",
-        background: "var(--bg-0)",
+        background: "#131314",
         overflow: isDashboard ? "hidden" : "visible",
       }}
     >
@@ -41,7 +41,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               inset: 0,
               width: "100%",
               border: 0,
-              background: "rgba(16, 12, 8, 0.72)",
+              background: "rgba(0, 0, 0, 0.8)",
               cursor: "pointer",
             }}
           />

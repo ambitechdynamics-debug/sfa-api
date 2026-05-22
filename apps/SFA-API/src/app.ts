@@ -24,6 +24,7 @@ import metricsRoutes from './modules/metrics/metrics.routes';
 import chatRoutes from './modules/chat/chat.routes';
 import conversationsRoutes from './modules/conversations/conversations.routes';
 import stripeRoutes from './modules/stripe/stripe.routes';
+import creationOptionsRoutes from './modules/creation-options/creation-options.routes';
 const app = express();
 
 app.use(helmet());
@@ -149,6 +150,7 @@ app.use('/api/metrics', metricsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/conversations', conversationsRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/creation-options', creationOptionsRoutes);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);

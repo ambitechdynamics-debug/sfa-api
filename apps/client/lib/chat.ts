@@ -115,3 +115,94 @@ export async function sendChatMessage(input: SendChatMessageInput): Promise<Send
     fallback: data.fallback,
   }
 }
+
+export interface FetchChatOpeningResult {
+  opening: string
+  message: {
+    id: string
+    role: "assistant"
+    content: string
+    createdAt: string
+  }
+  conversationId: string
+  projectId: string
+  hasAssets: boolean
+  assetSummary: Record<string, number>
+  reused: boolean
+}
+
+type ChatOpeningResponse = {
+  success?: boolean
+  opening?: string
+  message?: {
+    id?: string
+    role?: string
+    content?: string
+    createdAt?: string
+  }
+  conversationId?: string
+  projectId?: string
+  hasAssets?: boolean
+  assetSummary?: Record<string, number>
+  reused?: boolean
+  error?: string
+}
+
+export async function fetchChatOpening(projectId: string): Promise<FetchChatOpeningResult> {
+  const token = await getSessionToken()
+
+  const request = (authToken: string) => fetch("/api/chat/opening", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
+    body: JSON.stringify({ projectId }),
+  })
+
+  let response: Response
+  try {
+    response = await request(token)
+  } catch {
+    throw new ApiError("Une erreur est survenue. Veuillez réessayer.", 0)
+  }
+
+  if (response.status === 401) {
+    const refreshedToken = await refreshSessionToken()
+    if (refreshedToken) {
+      try {
+        response = await request(refreshedToken)
+      } catch {
+        throw new ApiError("Une erreur est survenue. Veuillez réessayer.", 0)
+      }
+    }
+  }
+
+  const data = (await response.json().catch(() => ({}))) as ChatOpeningResponse
+  if (!response.ok || data.success !== true) {
+    if (response.status === 401 || response.status === 403) {
+      emitAuthExpired({ status: response.status, message: SESSION_EXPIRED_MESSAGE })
+    }
+    throw new ApiError(data.error || "Impossible de générer le message d'ouverture.", response.status)
+  }
+
+  if (!data.opening || !data.message?.content || !data.conversationId) {
+    throw new ApiError("Réponse d'ouverture incomplète.", response.status)
+  }
+
+  return {
+    opening: data.opening,
+    message: {
+      id: data.message.id ?? `opening-${Date.now()}`,
+      role: "assistant",
+      content: data.message.content,
+      createdAt: data.message.createdAt ?? new Date().toISOString(),
+    },
+    conversationId: data.conversationId,
+    projectId: data.projectId ?? projectId,
+    hasAssets: Boolean(data.hasAssets),
+    assetSummary: data.assetSummary ?? {},
+    reused: Boolean(data.reused),
+  }
+}

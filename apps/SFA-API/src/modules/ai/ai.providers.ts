@@ -8,6 +8,37 @@ import { AIProviderAdapter, CallTextAIOptions, CallVisionAIOptions, AIProviderCa
 import { settingsService } from '../settings/settings.service';
 
 // ─────────────────────────────────────────────────────────
+//  TIMEOUT helper (cf. AUDIT.md §6 — câblage timeout_ms)
+// ─────────────────────────────────────────────────────────
+const DEFAULT_AI_TIMEOUT_MS = 60_000; // 60 s par appel provider
+
+async function resolveAITimeoutMs(): Promise<number> {
+  const raw = await settingsService.getRaw('timeout_ms');
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_AI_TIMEOUT_MS;
+}
+
+/**
+ * Wrapper fetch avec AbortController + timeout configurable.
+ * Le timeout est lu depuis AppSetting `timeout_ms` (défaut 60 000 ms).
+ */
+export async function fetchAIWithTimeout(input: string, init?: RequestInit): Promise<Response> {
+  const timeoutMs = await resolveAITimeoutMs();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`AI provider timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
 //  MOCK PROVIDER (développement sans clé API)
 // ─────────────────────────────────────────────────────────
 
@@ -219,7 +250,7 @@ class OpenAIProvider implements AIProviderAdapter {
   }
 
   private async fetchOpenAI(body: object): Promise<string> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetchAIWithTimeout('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -290,7 +321,7 @@ class AnthropicProvider implements AIProviderAdapter {
   }
 
   private async fetchClaude(body: object): Promise<string> {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetchAIWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -360,7 +391,7 @@ class GeminiProvider implements AIProviderAdapter {
 
   private async fetchGemini(model: string, body: object): Promise<string> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
-    const response = await fetch(url, {
+    const response = await fetchAIWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -428,7 +459,7 @@ class OpenAICompatibleProvider implements AIProviderAdapter {
   }
 
   private async fetchOpenAI(body: object): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await fetchAIWithTimeout(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -493,7 +524,7 @@ class AnthropicCompatibleProvider implements AIProviderAdapter {
   }
 
   private async fetchClaude(body: object): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/v1/messages`, {
+    const response = await fetchAIWithTimeout(`${this.baseUrl}/v1/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -557,7 +588,7 @@ class GeminiCompatibleProvider implements AIProviderAdapter {
 
   private async fetchGemini(model: string, body: object): Promise<string> {
     const url = `${this.baseUrl}/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
-    const response = await fetch(url, {
+    const response = await fetchAIWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)

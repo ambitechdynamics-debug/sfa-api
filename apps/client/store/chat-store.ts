@@ -42,6 +42,7 @@ interface ChatState {
   fetchHistory: (userId: string) => Promise<void>
   loadConversation: (id: string, userId: string) => Promise<void>
   sendMessage: (content: string, userId: string, projectId?: string, visualConfig?: Record<string, unknown>) => Promise<string | undefined>
+  injectAssistantMessage: (message: Message, options: { conversationId: string; projectId?: string; title?: string }) => void
   retryFailedMessage: (userId: string) => Promise<string | undefined>
   clearActive: () => void
   renameConversation: (id: string, title: string, userId?: string) => Promise<void>
@@ -230,6 +231,47 @@ export const useChatStore = create<ChatState>((set, get) => ({
         failedMessageId: "",
       })
     }
+  },
+
+  injectAssistantMessage: (message, { conversationId, projectId, title }) => {
+    const { activeConversation, history } = get()
+    const createdAt = message.createdAt || now()
+
+    // Deduplicate: if a conversation with this id is active and already contains
+    // a message with the same id, do nothing. This makes the action idempotent.
+    if (activeConversation && activeConversation.id === conversationId) {
+      const existing = (activeConversation.messages ?? []).some((m) => m.id === message.id)
+      if (existing) return
+      const updatedConversation: Conversation = {
+        ...activeConversation,
+        projectId: activeConversation.projectId ?? projectId,
+        title: title || activeConversation.title,
+        lastMessageAt: createdAt,
+        updatedAt: createdAt,
+        messages: [...(activeConversation.messages ?? []), message],
+      }
+      set({
+        activeConversation: updatedConversation,
+        history: mergeConversations([updatedConversation], history),
+      })
+      return
+    }
+
+    // No matching active conversation: create a fresh one with this single message.
+    const fresh: Conversation = {
+      id: conversationId,
+      title: title || "Nouvelle conversation",
+      projectId,
+      status: "ACTIVE",
+      createdAt,
+      updatedAt: createdAt,
+      lastMessageAt: createdAt,
+      messages: [message],
+    }
+    set({
+      activeConversation: fresh,
+      history: mergeConversations([fresh], history),
+    })
   },
 
   sendMessage: async (content: string, userId: string, projectId?: string, visualConfig?: Record<string, unknown>) => {

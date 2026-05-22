@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { logger } from '../../utils/logger';
 import { chatService } from './chat.service';
-import { chatRequestSchema } from './chat.validation';
+import { chatOpeningRequestSchema, chatRequestSchema } from './chat.validation';
 
 function chatErrorResponse(error: unknown) {
   const message = error instanceof Error ? error.message : '';
@@ -67,5 +67,33 @@ export const chatController = {
         error: response.error
       });
     }
-  }
+  },
+
+  generateOpening: async (req: Request, res: Response) => {
+    const parsed = chatOpeningRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      logger.warn('[chat/opening] invalid request body', parsed.error.flatten().fieldErrors);
+      return res.status(400).json({
+        success: false,
+        error: 'projectId requis.',
+      });
+    }
+
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    try {
+      const result = await chatService.generateOpening(parsed.data, userId);
+      return res.json(result);
+    } catch (error) {
+      logger.error('[chat/opening] request failed', error instanceof Error ? error.message : error);
+      const response = chatErrorResponse(error);
+      return res.status(response.status).json({
+        success: false,
+        error: response.error,
+      });
+    }
+  },
 };
