@@ -10,6 +10,7 @@ import { useAuthStore } from "@/store/auth-store"
 import type { Project, ProjectStatus } from "@/types/project"
 
 import { useCreationOptionsStore } from "@/store/creation-options-store"
+import { useChatStore } from "@/store/chat-store"
 
 // Fallback legacy icons si besoin
 const FALLBACK_ICONS: Record<string, string> = {

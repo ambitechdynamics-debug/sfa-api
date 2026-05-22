@@ -121,7 +121,7 @@ export default function BillingPage() {
       })
 
       if (res && res.url) {
-        window.location.href = res.url
+        window.location.assign(res.url)
       } else {
         toast.error("Erreur de redirection vers Stripe Checkout")
       }
