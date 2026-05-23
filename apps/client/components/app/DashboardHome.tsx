@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/Button"
 import { EmptyState } from "@/components/app/dashboard-ui"
 import { useProjectStore } from "@/store/project-store"
 import { useAuthStore } from "@/store/auth-store"
-import { createProject, uploadProjectFile, upsertProjectMemory } from "@/lib/projects"
-import type { Project, ProjectStatus } from "@/types/project"
+import { createProject, createTravail, uploadProjectFile } from "@/lib/projects"
+import type { Project, Travail, TravailStatus } from "@/types/project"
 
 import { useCreationOptionsStore } from "@/store/creation-options-store"
 import { useChatStore } from "@/store/chat-store"
@@ -26,14 +26,15 @@ interface HomeAsset {
   type: HomeAssetType
   url: string
   status: "uploading" | "success" | "error"
+  isPrimary?: boolean
 }
 const HOME_ASSET_LABELS: Record<HomeAssetType, string> = {
   logo: "Logo",
-  product: "Produit",
-  reference: "Inspiration",
-  poster: "Affiche",
-  character: "Personnage",
-  other: "Autre",
+  product: "Product",
+  reference: "Reference",
+  poster: "Poster",
+  character: "Character",
+  other: "Other",
 }
 const HOME_USAGE_MAP: Record<HomeAssetType, string> = {
   logo: "LOGO",
@@ -56,7 +57,7 @@ const FALLBACK_ICONS: Record<string, string> = {
   story: "image",
 }
 
-const STATUS_CONFIG: Record<ProjectStatus, { label: string; bg: string; color: string; border: string }> = {
+const STATUS_CONFIG: Record<TravailStatus, { label: string; bg: string; color: string; border: string }> = {
   DRAFT:            { label: "Brouillon", bg: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.6)", border: "rgba(255,255,255,0.1)" },
   QUESTIONING:      { label: "Dialogue",  bg: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.8)", border: "rgba(255,255,255,0.2)" },
   ANALYZING:        { label: "Analyse",   bg: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.8)", border: "rgba(255,255,255,0.2)" },
@@ -86,6 +87,15 @@ function getProjectIcon(posterType?: string | null) {
   return icon || "image"
 }
 
+function pickLatestTravail(project: Project): Travail | undefined {
+  if (!project.travaux || project.travaux.length === 0) return undefined
+  return [...project.travaux].sort(
+    (a, b) =>
+      new Date(b.lastMessageAt || b.updatedAt).getTime() -
+      new Date(a.lastMessageAt || a.updatedAt).getTime(),
+  )[0]
+}
+
 function ProjectCard({ project, onOpen, onRename, onDelete }: {
   project: Project
   onOpen: () => void
@@ -94,7 +104,8 @@ function ProjectCard({ project, onOpen, onRename, onDelete }: {
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [hovered, setHovered] = useState(false)
-  const statusCfg = STATUS_CONFIG[project.status]
+  const latestTravail = pickLatestTravail(project)
+  const statusCfg = STATUS_CONFIG[latestTravail?.status ?? "DRAFT"]
 
   return (
     <div
@@ -126,7 +137,7 @@ function ProjectCard({ project, onOpen, onRename, onDelete }: {
       }}
     >
       <div style={{ height: 120, background: "rgba(255,255,255,0.02)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-        <Icon name={getProjectIcon(project.posterType)} size={28} style={{ opacity: 0.4, color: "#fff" }} />
+        <Icon name={getProjectIcon(latestTravail?.posterType)} size={28} style={{ opacity: 0.4, color: "#fff" }} />
         
         {/* Status indicator */}
         <div style={{
@@ -210,7 +221,8 @@ function ProjectListRow({ project, onOpen, onRename, onDelete }: {
   onRename: () => void
   onDelete: () => void
 }) {
-  const statusCfg = STATUS_CONFIG[project.status]
+  const latestTravail = pickLatestTravail(project)
+  const statusCfg = STATUS_CONFIG[latestTravail?.status ?? "DRAFT"]
   const [hovered, setHovered] = useState(false)
 
   return (
@@ -227,7 +239,7 @@ function ProjectListRow({ project, onOpen, onRename, onDelete }: {
       }}
     >
       <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(255,255,255,0.05)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Icon name={getProjectIcon(project.posterType)} size={16} style={{ opacity: 0.6, color: "#fff" }} />
+        <Icon name={getProjectIcon(latestTravail?.posterType)} size={16} style={{ opacity: 0.6, color: "#fff" }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{project.title}</div>
@@ -263,6 +275,7 @@ export function DashboardHome() {
   const { sendMessage, isSending, error } = useChatStore()
 
   const [selectedVisualType, setSelectedVisualType] = useState<string>("")
+  const [visualMenuExpanded, setVisualMenuExpanded] = useState(false)
   const [activeArea, setActiveArea] = useState<"upload" | "input" | "none">("none")
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -276,20 +289,39 @@ export function DashboardHome() {
   const [homeAssets, setHomeAssets] = useState<HomeAsset[]>([])
   const [activeHomeAssetType, setActiveHomeAssetType] = useState<HomeAssetType>("logo")
   const [lazyProjectId, setLazyProjectId] = useState<string | null>(null)
+  const [lazyTravailId, setLazyTravailId] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  /** Crée (si besoin) un projet brouillon pour rattacher les fichiers uploadés. */
+  /** Crée (si besoin) un projet (marque) brouillon pour rattacher les fichiers uploadés. */
   async function ensureLazyProject(): Promise<string | null> {
     if (lazyProjectId) return lazyProjectId
     try {
       const draftTitle = promptInput.trim().slice(0, 60) || "Brouillon"
-      const project = await createProject({ title: draftTitle, posterType: selectedVisualType || "flyer" })
+      const project = await createProject({ title: draftTitle })
       const id = (project as { id?: string })?.id ?? null
       if (id) setLazyProjectId(id)
       return id
     } catch (err) {
       console.error("[home] createProject failed", err)
+      return null
+    }
+  }
+
+  /** Crée (si besoin) un travail (livrable) sous le projet brouillon. */
+  async function ensureLazyTravail(projectId: string): Promise<string | null> {
+    if (lazyTravailId) return lazyTravailId
+    try {
+      const draftTitle = promptInput.trim().slice(0, 60) || "Nouveau travail"
+      const travail = await createTravail(projectId, {
+        title: draftTitle,
+        posterType: selectedVisualType || "flyer",
+      })
+      const id = (travail as { id?: string })?.id ?? null
+      if (id) setLazyTravailId(id)
+      return id
+    } catch (err) {
+      console.error("[home] createTravail failed", err)
       return null
     }
   }
@@ -317,17 +349,10 @@ export function DashboardHome() {
       }
     }
 
-    // Met à jour la mémoire M-ASSETS pour que l'orchestrateur la voie
-    setHomeAssets((prev) => {
-      const success = prev.filter((a) => a.status === "success" && !a.url.startsWith("blob:"))
-      if (success.length > 0) {
-        upsertProjectMemory(projectId, "M-ASSETS", {
-          assets: success.map((a) => ({ type: a.type, url: a.url, name: a.name })),
-          updatedAt: new Date().toISOString(),
-        }).catch(() => {})
-      }
-      return prev
-    })
+    // Les assets sont déjà persistés via FileAsset.projectId ; l'orchestrateur
+    // les lit directement (travail.project.files). Pas besoin de matérialiser
+    // une mémoire M-ASSETS (l'API attend un travailId mais on n'en a pas encore
+    // à ce stade — le travail est créé au moment du premier message).
   }
 
   function removeHomeAsset(id: string) {
@@ -336,6 +361,20 @@ export function DashboardHome() {
 
   function updateHomeAssetType(id: string, newType: HomeAssetType) {
     setHomeAssets((prev) => prev.map((a) => (a.id === id ? { ...a, type: newType } : a)))
+  }
+
+  function setPrimaryHomeAsset(id: string) {
+    setHomeAssets((prev) => prev.map((a) => ({ ...a, isPrimary: a.id === id })))
+    // Cf. processHomeFiles — pas de matérialisation M-ASSETS ici.
+  }
+
+  function cycleHomeAssetType(id: string) {
+    setHomeAssets((prev) => prev.map((a) => {
+      if (a.id !== id) return a
+      const idx = HOME_ASSET_TYPES.indexOf(a.type)
+      const nextType = HOME_ASSET_TYPES[(idx + 1) % HOME_ASSET_TYPES.length]
+      return { ...a, type: nextType }
+    }))
   }
 
   useEffect(() => {
@@ -348,22 +387,29 @@ export function DashboardHome() {
   const safeProjects = Array.isArray(projects) ? projects : []
   const filtered = safeProjects
     .filter((p) => (p?.title ?? "").toLowerCase().includes(searchQuery.toLowerCase()))
-    .filter((p) => filterType === "all" || p?.posterType === filterType)
+    .filter((p) => {
+      if (filterType === "all") return true
+      const latest = pickLatestTravail(p)
+      return latest?.posterType === filterType
+    })
     .sort((a, b) => new Date(b?.updatedAt ?? 0).getTime() - new Date(a?.updatedAt ?? 0).getTime())
 
   async function handleGenerate() {
     if (!promptInput.trim() || !user?.id || isSending) return
-    // On crée TOUJOURS le projet avant le premier message, même sans
-    // fichiers attachés. Sans projectId, la conversation est créée orpheline
-    // et toute la chaîne orchestrateur / image-gen est désactivée.
+    // Project (marque) + Travail (livrable) doivent exister avant le 1er message
+    // — sans travailId le chat est bloqué côté API (cf. nouveau modèle Travail-centric).
     const projectId = await ensureLazyProject()
+    if (!projectId) return
+    const travailId = await ensureLazyTravail(projectId)
+    if (!travailId) return
+
     const successAssets = homeAssets
       .filter((a) => a.status === "success" && !a.url.startsWith("blob:"))
-      .map((a) => ({ type: a.type, url: a.url, name: a.name }))
+      .map((a) => ({ type: a.type, url: a.url, name: a.name, isPrimary: a.isPrimary }))
     const visualConfig = successAssets.length > 0 ? { assets: successAssets } : undefined
-    const conversationId = await sendMessage(promptInput.trim(), user.id, projectId ?? undefined, visualConfig)
-    if (conversationId) {
-      router.push(`/dashboard/c/${conversationId}`)
+    const resultTravailId = await sendMessage(promptInput.trim(), user.id, travailId, visualConfig)
+    if (resultTravailId) {
+      router.push(`/dashboard/t/${resultTravailId}`)
     }
   }
 
@@ -382,7 +428,7 @@ export function DashboardHome() {
   const greeting = user?.fullName ? `Bonjour, ${user.fullName.split(" ")[0]}` : "Bonjour"
 
   return (
-    <div style={{ flex: 1, height: "100%", overflowY: "auto", display: "flex", flexDirection: "column", background: "#0a0a0c", color: "#fff" }}>
+    <div style={{ flex: 1, height: "100%", overflowY: "auto", display: "flex", flexDirection: "column", backgroundColor: "#272727", backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E\")", color: "#fff" }}>
       {/* Rename modal */}
       {renamingId && (
         <div
@@ -421,44 +467,74 @@ export function DashboardHome() {
           alignItems: "center", 
           justifyContent: "center",
           textAlign: "center",
-          minHeight: "50vh",
-          paddingTop: "2vh",
-          paddingBottom: "4vh",
+          minHeight: "65vh",
+          paddingTop: "4vh",
+          paddingBottom: "8vh",
         }}>
-          <h1 style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 500, marginBottom: 32, color: "#fff" }}>
-            <span style={{ background: "linear-gradient(90deg, #fff, rgba(255,255,255,0.6))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              {greeting}
-            </span>
-          </h1>
+          <div style={{ marginBottom: 32 }}>
+            <h1 style={{ fontFamily: "var(--font-artistic), serif", fontSize: "clamp(36px, 5vw, 48px)", fontStyle: "italic", fontWeight: 500, marginBottom: 6, color: "#fff" }}>
+              <span style={{ background: "linear-gradient(90deg, #fff, rgba(255,255,255,0.7))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                {greeting}
+              </span>
+            </h1>
+            <p style={{ fontSize: 16, color: "rgba(255,255,255,0.5)", fontWeight: 400, letterSpacing: "0.02em", margin: 0 }}>
+              What are you working on today?
+            </p>
+          </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 760, margin: "0 auto", textAlign: "left" }}>
             {/* VISUAL TYPE SELECTOR */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, alignSelf: "flex-start", marginBottom: 12, paddingLeft: 8 }}>
-              <Icon name="image" size={16} style={{ color: "rgba(255,255,255,0.5)" }} />
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <div 
+              onMouseEnter={() => setVisualMenuExpanded(true)}
+              onMouseLeave={() => setVisualMenuExpanded(false)}
+              style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                alignSelf: "flex-start", 
+                marginBottom: 12, 
+                background: "#131314",
+                borderRadius: 100,
+                padding: "4px",
+                border: "1px solid rgba(255,255,255,0.08)",
+                overflow: "hidden",
+                transition: "max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                maxWidth: visualMenuExpanded ? 800 : 200,
+                whiteSpace: "nowrap"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 12px 4px 8px", cursor: "pointer", flexShrink: 0 }}>
+                <Icon name="image" size={16} style={{ color: "rgba(255,255,255,0.5)" }} />
+                <span style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}>
+                  {options?.find(o => o.slug === selectedVisualType)?.name || "Visual type"}
+                </span>
+                <Icon name={visualMenuExpanded ? "chevronL" : "chevronR"} size={12} style={{ color: "rgba(255,255,255,0.3)", marginLeft: 4 }} />
+              </div>
+              
+              <div style={{ display: "flex", gap: 4, opacity: visualMenuExpanded ? 1 : 0, transition: "opacity 0.2s ease", pointerEvents: visualMenuExpanded ? "auto" : "none" }}>
+                <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)", margin: "0 8px", alignSelf: "center" }} />
                 {options?.map(o => (
                   <button
                     key={o.id}
-                    onClick={() => setSelectedVisualType(o.slug)}
+                    onClick={() => { setSelectedVisualType(o.slug); setVisualMenuExpanded(false); }}
                     style={{
-                      background: "transparent",
+                      background: selectedVisualType === o.slug ? "rgba(255,255,255,0.1)" : "transparent",
                       border: 0,
-                      color: selectedVisualType === o.slug ? "#fff" : "rgba(255,255,255,0.4)",
-                      fontSize: 14,
+                      borderRadius: 100,
+                      color: selectedVisualType === o.slug ? "#fff" : "rgba(255,255,255,0.5)",
+                      fontSize: 13,
                       fontWeight: selectedVisualType === o.slug ? 500 : 400,
                       cursor: "pointer",
-                      padding: "4px 8px",
-                      transition: "color 0.2s"
+                      padding: "6px 14px",
+                      transition: "all 0.2s ease"
                     }}
-                    onMouseEnter={(e) => { if(selectedVisualType !== o.slug) e.currentTarget.style.color = "rgba(255,255,255,0.7)" }}
-                    onMouseLeave={(e) => { if(selectedVisualType !== o.slug) e.currentTarget.style.color = "rgba(255,255,255,0.4)" }}
+                    onMouseEnter={(e) => { if(selectedVisualType !== o.slug) { e.currentTarget.style.color = "rgba(255,255,255,0.8)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)" } }}
+                    onMouseLeave={(e) => { if(selectedVisualType !== o.slug) { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "transparent" } }}
                   >
                     {o.name}
                   </button>
                 ))}
               </div>
             </div>
-
             {/* MAIN CHAT FRAME */}
             <div
               style={{
@@ -483,7 +559,7 @@ export function DashboardHome() {
                   }
                 }}
                 style={{
-                  background: "#1e1f22",
+                  background: "#1a2127",
                   borderTopLeftRadius: 24,
                   borderTopRightRadius: 24,
                   borderBottomLeftRadius: activeArea === "upload" ? 16 : 4,
@@ -517,7 +593,7 @@ export function DashboardHome() {
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#fff"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
-                  title="Joindre un fichier"
+                  title="Attach a file"
                 >
                   <Icon name="plus" size={20} />
                 </button>
@@ -526,52 +602,88 @@ export function DashboardHome() {
                 {homeAssets.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
                     {homeAssets.map((a) => (
-                      <div key={a.id} style={{ display: "flex", flexDirection: "column", gap: 6, width: 64 }}>
-                        <div
-                          title={a.name}
-                          style={{
-                            position: "relative", width: 64, height: 64, borderRadius: 12, overflow: "hidden",
-                            border: "1px solid rgba(255,255,255,0.1)", background: "#1a1a1d",
-                          }}
-                        >
+                      <div
+                        key={a.id}
+                        style={{
+                          borderRadius: 8, overflow: "hidden",
+                          border: `1px solid ${a.isPrimary ? "var(--acc-line)" : "var(--line-2)"}`,
+                          background: "var(--bg-2)",
+                          display: "flex", flexDirection: "column",
+                          width: 120
+                        }}
+                      >
+                        {/* Pure thumbnail — no overlays */}
+                        <div style={{ aspectRatio: "1", overflow: "hidden", position: "relative", background: "var(--bg-3)" }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={a.url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <img src={a.url} alt={a.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
                           {a.status === "uploading" && (
-                            <div style={{
-                              position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                            }}>
-                              <div className="anim-spin" style={{ width: 14, height: 14, borderRadius: 999, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff" }} />
+                            <div style={{ position: "absolute", bottom: 4, left: "50%", transform: "translateX(-50%)" }}>
+                              <span className="anim-shimmer" style={{ display: "block", width: 20, height: 3, borderRadius: 2, background: "var(--acc-bright)" }} />
                             </div>
                           )}
                           {a.status === "error" && (
                             <div style={{ position: "absolute", inset: 0, background: "rgba(255,50,50,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10 }}>!</div>
                           )}
+                        </div>
+
+                        {/* Footer controls */}
+                        <div style={{
+                          display: "flex", alignItems: "center",
+                          borderTop: `1px solid ${a.isPrimary ? "rgba(255,255,255,0.15)" : "var(--line-2)"}`,
+                          background: a.isPrimary ? "rgba(255,255,255,0.05)" : "var(--bg-3)",
+                          height: 26,
+                          transition: "background 0.2s ease, border-color 0.2s ease",
+                        }}>
+                          {/* Star */}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setPrimaryHomeAsset(a.id) }}
+                            title={a.isPrimary ? "Main element ★" : "Set as main element"}
+                            className="asset-star-btn"
+                            style={{
+                              border: 0, borderRight: `1px solid ${a.isPrimary ? "rgba(255,255,255,0.15)" : "var(--line-2)"}`,
+                              background: "transparent",
+                              color: a.isPrimary ? "var(--acc-bright)" : "rgba(255,255,255,0.22)",
+                              width: 26, height: "100%", flexShrink: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              cursor: "pointer", fontSize: 12,
+                              transition: "color 0.15s ease, background 0.15s ease",
+                            }}
+                          >{a.isPrimary ? "★" : "☆"}</button>
+                          {/* Type */}
+                          <button
+                            type="button"
+                            onClick={() => cycleHomeAssetType(a.id)}
+                            title="Change type"
+                            style={{
+                              border: 0, background: "transparent",
+                              color: "var(--ink-3)", fontSize: 9, fontWeight: 600,
+                              flex: 1, height: "100%", cursor: "pointer",
+                              letterSpacing: "0.04em", textTransform: "uppercase",
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                              padding: "0 4px",
+                            }}
+                          >
+                            {HOME_ASSET_LABELS[a.type]}
+                          </button>
+                          {/* Delete */}
                           <button
                             type="button"
                             onClick={() => removeHomeAsset(a.id)}
-                            title="Retirer"
+                            className="asset-del-btn"
                             style={{
-                              position: "absolute", top: 2, right: 2,
-                              width: 16, height: 16, borderRadius: "50%",
-                              background: "rgba(0,0,0,0.7)", color: "#fff",
-                              border: 0, cursor: "pointer", display: "flex",
-                              alignItems: "center", justifyContent: "center",
-                              fontSize: 10, padding: 0,
+                              border: 0, borderLeft: "1px solid var(--line-2)",
+                              background: "transparent",
+                              color: "var(--ink-4)",
+                              width: 24, height: "100%", flexShrink: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              cursor: "pointer",
+                              transition: "color 0.15s ease, background 0.15s ease",
                             }}
-                          >×</button>
+                          >
+                            <Icon name="x" size={9} />
+                          </button>
                         </div>
-                        <select
-                          value={a.type}
-                          onChange={(e) => updateHomeAssetType(a.id, e.target.value as HomeAssetType)}
-                          style={{
-                            background: "transparent", color: "rgba(255,255,255,0.6)", border: 0,
-                            fontSize: 10, cursor: "pointer", outline: "none", width: "100%",
-                            textOverflow: "ellipsis", textAlign: "center", fontWeight: 500
-                          }}
-                        >
-                          {HOME_ASSET_TYPES.map(t => <option key={t} value={t} style={{ background: "#1e1f22" }}>{HOME_ASSET_LABELS[t]}</option>)}
-                        </select>
                       </div>
                     ))}
                   </div>
@@ -631,7 +743,7 @@ export function DashboardHome() {
                       handleGenerate();
                     }
                   }}
-                  placeholder="Décrivez l'affiche, le logo ou le visuel que vous souhaitez créer..."
+                  placeholder="Describe the poster, logo or visual you want to create..."
                   style={{
                     flex: 1,
                     background: "transparent",
@@ -691,7 +803,7 @@ export function DashboardHome() {
         {/* BOTTOM SECTION: Recent Projects */}
         <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 500, color: "#fff", margin: 0 }}>Projets récents</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 500, color: "#fff", margin: 0 }}>Recent Projects</h2>
             
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <div style={{ position: "relative" }}>
@@ -699,7 +811,7 @@ export function DashboardHome() {
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher..."
+                  placeholder="Search..."
                   style={{
                     width: 140, height: 32, padding: "0 10px 0 30px", borderRadius: 6,
                     border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
@@ -713,11 +825,11 @@ export function DashboardHome() {
                 style={{
                   height: 32, padding: "0 10px", borderRadius: 6,
                   border: "1px solid rgba(255,255,255,0.1)",
-                  background: "#0a0a0c", color: "rgba(255,255,255,0.8)",
+                  background: "#131314", color: "rgba(255,255,255,0.8)",
                   fontSize: 13, cursor: "pointer", outline: 0,
                 }}
               >
-                <option value="all">Tout</option>
+                <option value="all">All</option>
                 {(options ?? []).map(s => <option key={s.id} value={s.slug}>{s.name}</option>)}
               </select>
               <button
@@ -744,8 +856,8 @@ export function DashboardHome() {
           ) : filtered.length === 0 ? (
             <EmptyState
               icon="folder"
-              title={searchQuery ? "Aucun projet trouvé" : "Aucun projet récent"}
-              body={searchQuery ? "Modifiez votre recherche." : "Vos créations apparaîtront ici."}
+              title={searchQuery ? "No projects found" : "No recent projects"}
+              body={searchQuery ? "Modify your search." : "Your creations will appear here."}
             />
           ) : viewMode === "grid" ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>

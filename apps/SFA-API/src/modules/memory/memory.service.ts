@@ -3,17 +3,17 @@ import { prisma } from '../../config/database';
 import { AppError } from '../../utils/appError';
 import { CreateMemoryInput, UpdateMemoryInput } from './memory.validation';
 
-const ensureProjectOwner = async (userId: string, projectId: string) => {
-  const project = await prisma.project.findFirst({
+const ensureTravailOwner = async (userId: string, travailId: string) => {
+  const travail = await prisma.travail.findFirst({
     where: {
-      id: projectId,
+      id: travailId,
       userId
     },
     select: { id: true }
   });
 
-  if (!project) {
-    throw new AppError('Project not found', 404);
+  if (!travail) {
+    throw new AppError('Travail not found', 404);
   }
 };
 
@@ -31,32 +31,32 @@ const getMemoryDefByKey = async (memoryKey: string) => {
 };
 
 export const memoryService = {
-  create: async (userId: string, projectId: string, input: CreateMemoryInput) => {
-    await ensureProjectOwner(userId, projectId);
+  create: async (userId: string, travailId: string, input: CreateMemoryInput) => {
+    await ensureTravailOwner(userId, travailId);
     const def = await getMemoryDefByKey(input.memoryKey);
 
     try {
       return await prisma.memoryEntry.create({
         data: {
           userId,
-          projectId,
+          travailId,
           memoryDefinitionId: def.id,
           content: input.content as Prisma.InputJsonValue
         }
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new AppError(`Memory '${input.memoryKey}' already exists for this project`, 409);
+        throw new AppError(`Memory '${input.memoryKey}' already exists for this travail`, 409);
       }
       throw error;
     }
   },
 
-  list: async (userId: string, projectId: string) => {
-    await ensureProjectOwner(userId, projectId);
+  list: async (userId: string, travailId: string) => {
+    await ensureTravailOwner(userId, travailId);
 
     return prisma.memoryEntry.findMany({
-      where: { projectId },
+      where: { travailId },
       include: {
         memoryDefinition: {
           select: {
@@ -71,14 +71,14 @@ export const memoryService = {
     });
   },
 
-  getByKey: async (userId: string, projectId: string, memoryKey: string) => {
-    await ensureProjectOwner(userId, projectId);
+  getByKey: async (userId: string, travailId: string, memoryKey: string) => {
+    await ensureTravailOwner(userId, travailId);
     const def = await getMemoryDefByKey(memoryKey);
 
     const memory = await prisma.memoryEntry.findUnique({
       where: {
-        projectId_memoryDefinitionId: {
-          projectId,
+        travailId_memoryDefinitionId: {
+          travailId,
           memoryDefinitionId: def.id
         }
       },
@@ -90,20 +90,20 @@ export const memoryService = {
     });
 
     if (!memory) {
-      throw new AppError(`Memory '${memoryKey}' not found for this project`, 404);
+      throw new AppError(`Memory '${memoryKey}' not found for this travail`, 404);
     }
 
     return memory;
   },
 
-  updateByKey: async (userId: string, projectId: string, memoryKey: string, input: UpdateMemoryInput) => {
-    await ensureProjectOwner(userId, projectId);
+  updateByKey: async (userId: string, travailId: string, memoryKey: string, input: UpdateMemoryInput) => {
+    await ensureTravailOwner(userId, travailId);
     const def = await getMemoryDefByKey(memoryKey);
 
     const memory = await prisma.memoryEntry.findUnique({
       where: {
-        projectId_memoryDefinitionId: {
-          projectId,
+        travailId_memoryDefinitionId: {
+          travailId,
           memoryDefinitionId: def.id
         }
       },
@@ -111,7 +111,7 @@ export const memoryService = {
     });
 
     if (!memory) {
-      throw new AppError(`Memory '${memoryKey}' not found for this project`, 404);
+      throw new AppError(`Memory '${memoryKey}' not found for this travail`, 404);
     }
 
     return prisma.memoryEntry.update({
@@ -127,14 +127,14 @@ export const memoryService = {
     });
   },
 
-  deleteByKey: async (userId: string, projectId: string, memoryKey: string) => {
-    await ensureProjectOwner(userId, projectId);
+  deleteByKey: async (userId: string, travailId: string, memoryKey: string) => {
+    await ensureTravailOwner(userId, travailId);
     const def = await getMemoryDefByKey(memoryKey);
 
     const memory = await prisma.memoryEntry.findUnique({
       where: {
-        projectId_memoryDefinitionId: {
-          projectId,
+        travailId_memoryDefinitionId: {
+          travailId,
           memoryDefinitionId: def.id
         }
       },
@@ -142,7 +142,7 @@ export const memoryService = {
     });
 
     if (!memory) {
-      throw new AppError(`Memory '${memoryKey}' not found for this project`, 404);
+      throw new AppError(`Memory '${memoryKey}' not found for this travail`, 404);
     }
 
     await prisma.memoryEntry.delete({

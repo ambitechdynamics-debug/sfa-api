@@ -16,7 +16,7 @@ export function ChatInput({
   value,
   onChange,
   onSubmit,
-  placeholder = "Décrivez le visuel à créer...",
+  placeholder = "Describe the visual to create...",
   disabled,
   loading,
   highlighted,
@@ -59,9 +59,9 @@ export function ChatInput({
           }
         }}
         rows={1}
-        placeholder={highlighted ? "Précisez votre choix..." : placeholder}
+        placeholder={highlighted ? "Specify your choice..." : placeholder}
         disabled={disabled || loading}
-        aria-label="Message à envoyer à l'agent"
+        aria-label="Message to send"
         style={{
           width: "100%",
           minHeight: 28,
@@ -83,7 +83,7 @@ export function ChatInput({
         type="button"
         onClick={onSubmit}
         disabled={sendDisabled}
-        aria-label="Envoyer"
+        aria-label="Send"
         aria-busy={loading ? "true" : undefined}
         style={{
           width: 40,

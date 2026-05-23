@@ -5,12 +5,12 @@ import { runDynamicAgent } from './agentsDynamic.service';
 
 export const agentsDynamicController = {
   runAgent: asyncHandler(async (req: Request, res: Response) => {
-    const { agentKey, projectId } = req.params;
+    const { agentKey, travailId } = req.params;
     const userId = req.user!.id;
 
     const result = await runDynamicAgent({
       agentKey,
-      projectId,
+      travailId,
       userId
     });
 

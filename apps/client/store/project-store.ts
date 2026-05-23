@@ -44,7 +44,7 @@ export const useProjectStore = create<ProjectStoreState>((set) => ({
   },
 
   addProject: async (title: string) => {
-    const project = await apiCreateProject({ title, status: "DRAFT" })
+    const project = await apiCreateProject({ title })
     set((state) => ({ projects: [project, ...state.projects] }))
     return project
   },

@@ -5,9 +5,8 @@ import { CreateProjectInput, UpdateProjectInput } from './projects.validation';
 const projectInclude = {
   _count: {
     select: {
-      memoryEntries: true,
-      files: true,
-      generatedPosters: true
+      travaux: true,
+      files: true
     }
   }
 };
@@ -27,25 +26,35 @@ export const projectsService = {
     return prisma.project.findMany({
       where: { userId },
       orderBy: { updatedAt: 'desc' },
-      include: projectInclude
+      include: {
+        travaux: {
+          orderBy: { lastMessageAt: 'desc' },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            posterType: true,
+            format: true,
+            lastMessageAt: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        },
+        _count: { select: { travaux: true, files: true } }
+      }
     });
   },
 
   getById: async (userId: string, projectId: string) => {
     const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId
-      },
+      where: { id: projectId, userId },
       include: {
-        memoryEntries: {
-          orderBy: { updatedAt: 'desc' }
-        },
-        files: {
-          orderBy: { createdAt: 'desc' }
-        },
-        generatedPosters: {
-          orderBy: { createdAt: 'desc' }
+        files: { orderBy: { createdAt: 'desc' } },
+        travaux: {
+          orderBy: { lastMessageAt: 'desc' },
+          include: {
+            _count: { select: { messages: true, generatedPosters: true } }
+          }
         }
       }
     });
@@ -59,10 +68,7 @@ export const projectsService = {
 
   update: async (userId: string, projectId: string, input: UpdateProjectInput) => {
     const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId
-      },
+      where: { id: projectId, userId },
       select: { id: true }
     });
 
@@ -79,10 +85,7 @@ export const projectsService = {
 
   delete: async (userId: string, projectId: string) => {
     const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId
-      },
+      where: { id: projectId, userId },
       select: { id: true }
     });
 
@@ -90,9 +93,7 @@ export const projectsService = {
       throw new AppError('Project not found', 404);
     }
 
-    await prisma.project.delete({
-      where: { id: projectId }
-    });
+    await prisma.project.delete({ where: { id: projectId } });
 
     return { id: projectId };
   }

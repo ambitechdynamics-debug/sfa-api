@@ -9,25 +9,25 @@ const router = Router({ mergeParams: true });
 router.use(authMiddleware);
 
 /**
- * POST /api/projects/:projectId/generate-final-prompt
+ * POST /api/travaux/:travailId/generate-final-prompt
  * Lance l'orchestration complète des 7 agents pour générer M-PROMPT1
  */
 router.post(
-  '/:projectId/generate-final-prompt',
+  '/:travailId/generate-final-prompt',
   validate({ body: GenerateFinalPromptSchema }),
   generateFinalPrompt
 );
 
 /**
- * POST /api/projects/:projectId/extract-colors
+ * POST /api/travaux/:travailId/extract-colors
  * Analyse un logo via le provider vision configuré et retourne une palette hex
  */
-router.post('/:projectId/extract-colors', extractColors);
+router.post('/:travailId/extract-colors', extractColors);
 
 /**
- * GET /api/projects/:projectId/agent-runs
+ * GET /api/travaux/:travailId/agent-runs
  * Récupérer l'historique des runs d'agents
  */
-router.get('/:projectId/agent-runs', getAgentRuns);
+router.get('/:travailId/agent-runs', getAgentRuns);
 
 export default router;

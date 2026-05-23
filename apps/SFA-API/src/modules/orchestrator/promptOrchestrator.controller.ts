@@ -5,17 +5,17 @@ import { callVisionAI } from '../ai/ai.service';
 import { AppError } from '../../utils/appError';
 
 /**
- * POST /api/projects/:projectId/generate-final-prompt
+ * POST /api/travaux/:travailId/generate-final-prompt
  *
  * Endpoint orchestrateur principal.
  * Lance le workflow complet des 7 agents pour générer M-PROMPT1.
  */
 export const generateFinalPrompt = asyncHandler(async (req: Request, res: Response) => {
-  const { projectId } = req.params;
+  const { travailId } = req.params;
   const { provider, model, visionProvider, visionModel, force } = req.body;
 
   const result = await runFullOrchestration({
-    projectId,
+    travailId,
     userId: req.user!.id,
     userRole: req.user!.role,
     provider,
@@ -31,13 +31,13 @@ export const generateFinalPrompt = asyncHandler(async (req: Request, res: Respon
 });
 
 /**
- * POST /api/projects/:projectId/extract-colors
+ * POST /api/travaux/:travailId/extract-colors
  *
  * Uses vision AI to analyze an image and extract a color palette.
  * Returns { primary, secondary, accent, background, text } as hex strings.
  */
 export const extractColors = asyncHandler(async (req: Request, res: Response) => {
-  const { projectId } = req.params;
+  const { travailId } = req.params;
   const { imageUrl } = req.body as { imageUrl?: string };
 
   if (!imageUrl || typeof imageUrl !== 'string') {
@@ -78,35 +78,34 @@ Règles: primary = couleur principale la plus représentative, secondary = coule
   res.json({
     success: true,
     message: 'Couleurs extraites avec succès.',
-    data: { projectId, colors: safeColors, provider: response.provider, model: response.model },
+    data: { travailId, colors: safeColors, provider: response.provider, model: response.model },
   });
 });
 
 /**
- * GET /api/projects/:projectId/agent-runs
+ * GET /api/travaux/:travailId/agent-runs
  *
- * Récupérer l'historique des exécutions d'agents pour un projet.
+ * Récupérer l'historique des exécutions d'agents pour un travail.
  */
 export const getAgentRuns = asyncHandler(async (req: Request, res: Response) => {
   const { prisma } = await import('../../config/database');
-  const { AppError } = await import('../../utils/appError');
 
-  const { projectId } = req.params;
+  const { travailId } = req.params;
   const userId = req.user!.id;
   const role = req.user!.role;
 
-  const whereClause = role === 'ADMIN' ? { id: projectId } : { id: projectId, userId };
-  const project = await prisma.project.findFirst({
+  const whereClause = role === 'ADMIN' ? { id: travailId } : { id: travailId, userId };
+  const travail = await prisma.travail.findFirst({
     where: whereClause,
     select: { id: true }
   });
 
-  if (!project) {
-    throw new AppError('Project not found or access denied', 404);
+  if (!travail) {
+    throw new AppError('Travail not found or access denied', 404);
   }
 
   const agentRuns = await prisma.agentRun.findMany({
-    where: { projectId },
+    where: { travailId },
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
@@ -124,7 +123,7 @@ export const getAgentRuns = asyncHandler(async (req: Request, res: Response) => 
     success: true,
     message: 'Agent runs récupérés avec succès',
     data: {
-      projectId,
+      travailId,
       count: agentRuns.length,
       runs: agentRuns
     }

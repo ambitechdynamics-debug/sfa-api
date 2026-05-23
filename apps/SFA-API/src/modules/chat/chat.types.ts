@@ -7,8 +7,7 @@ export interface ChatHistoryMessage {
 
 export interface ChatRequestInput {
   message: string;
-  conversationId?: string;
-  projectId?: string;
+  travailId: string;
   history?: ChatHistoryMessage[];
   visualConfig?: Record<string, unknown>;
 }
@@ -20,13 +19,12 @@ export interface ChatResponsePayload {
     role: 'assistant';
     content: string;
   };
-  conversationId: string;
-  projectId?: string;
-  title?: string;
+  travailId: string;
+  projectId: string;
 }
 
 export interface ChatOpeningInput {
-  projectId: string;
+  travailId: string;
 }
 
 export interface ChatOpeningPayload {
@@ -38,7 +36,7 @@ export interface ChatOpeningPayload {
     content: string;
     createdAt: string;
   };
-  conversationId: string;
+  travailId: string;
   projectId: string;
   hasAssets: boolean;
   assetSummary: Record<string, number>;

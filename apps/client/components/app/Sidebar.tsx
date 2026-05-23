@@ -67,6 +67,7 @@ function NavItem({
 
   return (
     <div
+      className="sidebar-btn-metallic"
       onClick={!isEditing ? onClick : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setMenuOpen(false); }}
@@ -74,15 +75,13 @@ function NavItem({
         display: "flex",
         alignItems: "center",
         padding: indent ? "8px 10px 8px 34px" : "8px 10px",
-        borderRadius: 8,
         cursor: isEditing ? "default" : "pointer",
-        background: active || menuOpen ? "rgba(255,255,255,0.08)" : hovered ? "rgba(255,255,255,0.04)" : "transparent",
         color: active ? "#fff" : "rgba(255,255,255,0.7)",
         fontSize: 13,
         fontWeight: active ? 500 : 400,
         gap: 12,
         minHeight: 36,
-        transition: "background 100ms ease, color 100ms ease",
+        marginBottom: 6,
         position: "relative",
       }}
     >
@@ -149,7 +148,7 @@ function NavItem({
                   onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <Icon name="edit" size={13} /> Renommer
+                  <Icon name="edit" size={13} /> Rename
                 </button>
               )}
               {onArchive && (
@@ -166,7 +165,7 @@ function NavItem({
                 <button
                   onClick={() => { 
                     setMenuOpen(false);
-                    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette conversation ?")) {
+                    if (window.confirm("Are you sure you want to delete this conversation?")) {
                       onDelete();
                     }
                   }}
@@ -174,7 +173,7 @@ function NavItem({
                   onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <Icon name="trash" size={13} /> Supprimer
+                  <Icon name="trash" size={13} /> Delete
                 </button>
               )}
             </div>
@@ -190,7 +189,7 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
   const router = useRouter()
   const { isAuthenticated, user } = useAuth()
   const { projects, loadProjects } = useProjectStore()
-  const { history, fetchHistory, clearActive, renameConversation, archiveConversation, deleteConversation } = useChatStore()
+  const { travaux, fetchHistory, clearActive, renameTravail, deleteTravail } = useChatStore()
 
   useEffect(() => {
     if (isAuthenticated && user?.id) {
@@ -201,19 +200,20 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
 
   // Dictionnaire pour gérer l'ouverture de chaque dossier de projet
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({})
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   const toggleProject = (id: string) => {
     setExpandedProjects((prev) => ({ ...prev, [id]: prev[id] === undefined ? false : !prev[id] }))
   }
 
-  const handleNewConversation = () => {
+  const handleNewProject = () => {
     clearActive()
     router.push("/dashboard")
     if (mobile && onClose) onClose()
   }
 
-  const handleConversationClick = (id: string) => {
-    router.push(`/dashboard/c/${id}`)
+  const handleTravailClick = (id: string) => {
+    router.push(`/dashboard/t/${id}`)
     if (mobile && onClose) onClose()
   }
 
@@ -227,7 +227,7 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
     flexDirection: "column",
     width: collapsed ? 60 : 260,
     height: "100vh",
-    background: "#131314",
+    background: "#1a2127",
     color: "#fff",
     borderRight: "1px solid rgba(255,255,255,0.05)",
     transition: "width 0.2s cubic-bezier(0.4,0,0.2,1)",
@@ -237,10 +237,15 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
     alignSelf: "start",
   }
 
-  // Garde défensif sur history/projects (peuvent être undefined transitoirement)
-  const safeHistory = Array.isArray(history) ? history : []
+  // Garde défensif sur travaux/projects (peuvent être undefined transitoirement)
+  const safeTravaux = Array.isArray(travaux) ? travaux : []
   const safeProjects = Array.isArray(projects) ? projects : []
-  const standaloneConversations = safeHistory.filter((c) => !c?.projectId)
+  // Source de vérité : travaux nested du Project (chargés via /api/projects),
+  // complétés par les travaux flat du chat-store (chargés via /api/travaux).
+  // Cas où un projectId apparaît dans les travaux mais pas dans projects =
+  // race au montage : on les liste sous "Sans projet" en attendant.
+  const projectsById = new Map(safeProjects.map((p) => [p.id, p]))
+  const orphanTravaux = safeTravaux.filter((t) => !projectsById.has(t.projectId))
 
   return (
     <aside style={asideStyle}>
@@ -249,70 +254,84 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
         .sb-scroll::-webkit-scrollbar-track { background: transparent; }
         .sb-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
         .sb-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+        @keyframes slideUpSettings {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
       {/* Header */}
-      <div style={{ padding: "12px", display: "flex", alignItems: "center", gap: 12 }}>
-        {onToggle && !mobile && (
-          <button
-            onClick={onToggle}
-            style={{
-              background: "transparent",
-              border: 0,
-              color: "#fff",
-              cursor: "pointer",
-              padding: "8px",
-              borderRadius: "50%",
-              display: "flex",
-              transition: "background 150ms ease",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-          >
-            <Icon name="layoutSidebar" size={18} />
-          </button>
-        )}
-        {mobile && onClose && (
-          <button
-            onClick={onClose}
-            style={{
-              background: "transparent",
-              border: 0,
-              color: "#fff",
-              cursor: "pointer",
-              padding: "8px",
-              borderRadius: "50%",
-              display: "flex",
-              transition: "background 150ms ease",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-          >
-            <Icon name="x" size={18} />
-          </button>
-        )}
+      <div style={{ padding: "16px 12px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Line 1: Logo + Dépliant */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 24 }}>
+          {(!collapsed) && (
+            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.02em", color: "#fff", display: "flex", alignItems: "center", gap: 8, paddingLeft: 4 }}>
+              <img src="/logo.png" alt="Studio Flyer AI Logo" style={{ width: 24, height: 24, objectFit: "contain", borderRadius: 4 }} />
+              Studio Flyer AI
+            </div>
+          )}
+          
+          <div style={{ display: "flex", gap: 8, marginLeft: collapsed ? "auto" : 0, marginRight: collapsed ? "auto" : 0 }}>
+            {onToggle && !mobile && (
+              <button
+                onClick={onToggle}
+                style={{
+                  background: "transparent",
+                  border: 0,
+                  color: "#fff",
+                  cursor: "pointer",
+                  padding: "4px",
+                  borderRadius: "6px",
+                  display: "flex",
+                  transition: "background 150ms ease",
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <Icon name="layoutSidebar" size={18} />
+              </button>
+            )}
+            {mobile && onClose && (
+              <button
+                onClick={onClose}
+                style={{
+                  background: "transparent",
+                  border: 0,
+                  color: "#fff",
+                  cursor: "pointer",
+                  padding: "4px",
+                  borderRadius: "6px",
+                  display: "flex",
+                  transition: "background 150ms ease",
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <Icon name="x" size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Line 2: New Project (marque) button */}
         <button
-          onClick={handleNewConversation}
+          className="sidebar-btn-metallic"
+          onClick={handleNewProject}
           style={{
-            flex: 1,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            background: "transparent",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 20,
             padding: collapsed ? "8px" : "8px 12px",
             color: "#fff",
             cursor: "pointer",
             fontSize: 14,
-            transition: "background 150ms ease",
-            justifyContent: collapsed ? "center" : "flex-start"
+            justifyContent: collapsed ? "center" : "flex-start",
+            width: "100%",
+            marginBottom: 16
           }}
-          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
-          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
         >
           <Icon name="plus" size={16} />
-          {!collapsed && "New Conversation"}
+          {!collapsed && "Nouveau projet"}
         </button>
       </div>
 
@@ -320,21 +339,21 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
       <div className="sb-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 12px" }}>
         {!collapsed && (
           <>
-            <NavItem icon="history" label="Conversation History" onClick={() => router.push("/dashboard")} />
-            <NavItem icon="clock" label="Scheduled Tasks" onClick={() => router.push("/dashboard")} />
-
             {/* Projects Group */}
-            <div style={{ marginTop: 24 }}>
+            <div style={{ marginTop: 8 }}>
               <div style={{ display: "flex", alignItems: "center", padding: "8px 10px", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 <span style={{ flex: 1 }}>Projects</span>
-                <Icon name="filter" size={14} style={{ cursor: "pointer", marginRight: 12 }} />
-                <Icon name="folderPlus" size={14} style={{ cursor: "pointer" }} onClick={() => router.push("/dashboard/projects")} />
+                <Icon name="filter" size={14} style={{ cursor: "pointer" }} />
               </div>
 
               {safeProjects.map((project) => {
                 // Par défaut ouvert sauf si expressément fermé dans l'état
                 const isExpanded = expandedProjects[project.id] !== false
-                const projectConversations = safeHistory.filter((c) => c?.projectId === project.id)
+                // Privilégie les travaux nested du Project (frais), fallback sur les travaux flat
+                const projectTravaux =
+                  project.travaux && project.travaux.length > 0
+                    ? project.travaux
+                    : safeTravaux.filter((t) => t.projectId === project.id)
 
                 return (
                   <div key={project.id}>
@@ -348,31 +367,30 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
                       onMouseEnter={e => e.currentTarget.style.color = "#fff"}
                       onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}
                     >
-                      <Icon name="folder" size={16} style={{ color: "rgba(255,255,255,0.5)" }} />
+                      <Icon name={isExpanded ? "chevronDown" : "chevronR"} size={12} style={{ color: "rgba(255,255,255,0.4)", flexShrink: 0 }} />
+                      <Icon name="folder" size={16} style={{ color: "rgba(255,255,255,0.5)", flexShrink: 0 }} />
                       <span style={{ flex: 1, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} onClick={(e) => { e.stopPropagation(); handleProjectClick(project.id); }}>
                         {project.title}
                       </span>
+                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{projectTravaux.length}</span>
                     </div>
-                    
-                    {isExpanded && projectConversations.length > 0 && (
+
+                    {isExpanded && projectTravaux.length > 0 && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        {projectConversations.map((conv) => (
+                        {projectTravaux.map((travail) => (
                           <NavItem
-                            key={conv.id}
-                            label={conv.title}
-                            rightText={formatTimeAgo(conv.updatedAt || conv.lastMessageAt || conv.createdAt)}
-                            rightIcon={conv.status === "ACTIVE" ? "arrowUpRight" : undefined}
-                            active={pathname === `/dashboard/c/${conv.id}`}
+                            key={travail.id}
+                            label={travail.title}
+                            rightText={formatTimeAgo(travail.updatedAt || travail.lastMessageAt || travail.createdAt)}
+                            rightIcon={travail.status === "GENERATED" ? "check" : travail.status === "GENERATING" ? "loader" : undefined}
+                            active={pathname === `/dashboard/t/${travail.id}`}
                             indent
-                            onClick={() => handleConversationClick(conv.id)}
+                            onClick={() => handleTravailClick(travail.id)}
                             onRename={(newLabel) => {
-                              if (user?.id) renameConversation(conv.id, newLabel, user.id)
-                            }}
-                            onArchive={() => {
-                              if (user?.id) archiveConversation(conv.id, user.id)
+                              if (user?.id) renameTravail(travail.id, newLabel, user.id)
                             }}
                             onDelete={() => {
-                              if (user?.id) deleteConversation(conv.id, user.id)
+                              if (user?.id) deleteTravail(travail.id, user.id)
                             }}
                           />
                         ))}
@@ -383,28 +401,25 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
               })}
             </div>
 
-            {/* Conversations Group */}
-            {standaloneConversations.length > 0 && (
+            {/* Travaux orphelins (race au chargement, pas de project parent connu) */}
+            {orphanTravaux.length > 0 && (
               <div style={{ marginTop: 24, marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", padding: "8px 10px", color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  <span style={{ flex: 1 }}>Conversations</span>
+                  <span style={{ flex: 1 }}>Sans projet</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {standaloneConversations.map((conv) => (
+                  {orphanTravaux.map((travail) => (
                     <NavItem
-                      key={conv.id}
-                      label={conv.title}
-                      rightText={formatTimeAgo(conv.updatedAt || conv.lastMessageAt || conv.createdAt)}
-                      active={pathname === `/dashboard/c/${conv.id}`}
-                      onClick={() => handleConversationClick(conv.id)}
+                      key={travail.id}
+                      label={travail.title}
+                      rightText={formatTimeAgo(travail.updatedAt || travail.lastMessageAt || travail.createdAt)}
+                      active={pathname === `/dashboard/t/${travail.id}`}
+                      onClick={() => handleTravailClick(travail.id)}
                       onRename={(newLabel) => {
-                        if (user?.id) renameConversation(conv.id, newLabel, user.id)
-                      }}
-                      onArchive={() => {
-                        if (user?.id) archiveConversation(conv.id, user.id)
+                        if (user?.id) renameTravail(travail.id, newLabel, user.id)
                       }}
                       onDelete={() => {
-                        if (user?.id) deleteConversation(conv.id, user.id)
+                        if (user?.id) deleteTravail(travail.id, user.id)
                       }}
                     />
                   ))}
@@ -417,8 +432,119 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
 
       {/* Bottom Section */}
       {!collapsed && (
-        <div style={{ padding: "8px 12px", borderTop: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
-          <NavItem icon="settings" label="Settings" onClick={() => router.push("/dashboard/settings")} />
+        <div style={{ padding: "12px", position: "relative", flexShrink: 0 }}>
+          {/* Popup Menu */}
+          {userMenuOpen && (
+            <div style={{
+              position: "absolute",
+              bottom: "100%",
+              left: 12,
+              right: 12,
+              marginBottom: 8,
+              background: "#2b2d31",
+              borderRadius: 16,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              padding: "8px 0",
+              zIndex: 100,
+              display: "flex",
+              flexDirection: "column",
+              animation: "slideUpSettings 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards"
+            }}>
+              {/* Header profile */}
+              <div 
+                style={{ padding: "8px 12px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer", transition: "background 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                 <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#10b981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                    {user?.fullName ? user.fullName.substring(0, 2).toUpperCase() : "AD"}
+                 </div>
+                 <div style={{ flex: 1, textAlign: "left", overflow: "hidden" }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: "#fff", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{user?.fullName || "Ambitech Dynamics"}</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>More</div>
+                 </div>
+                 <Icon name="chevronR" size={14} style={{ color: "rgba(255,255,255,0.4)" }} />
+              </div>
+
+              <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "8px 12px" }} />
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", cursor: "pointer", color: "#fff", fontSize: 13, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Icon name="sparkles" size={16} style={{ color: "rgba(255,255,255,0.7)" }} />
+                  Upgrade Plan
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", cursor: "pointer", color: "#fff", fontSize: 13, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Icon name="palette" size={16} style={{ color: "rgba(255,255,255,0.7)" }} />
+                  Customization
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", cursor: "pointer", color: "#fff", fontSize: 13, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Icon name="user" size={16} style={{ color: "rgba(255,255,255,0.7)" }} />
+                  Profile
+                </div>
+                <div 
+                  onClick={() => { router.push("/dashboard/settings"); setUserMenuOpen(false); }}
+                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", cursor: "pointer", color: "#fff", fontSize: 13, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Icon name="settings" size={16} style={{ color: "rgba(255,255,255,0.7)" }} />
+                  Settings
+                </div>
+              </div>
+
+              <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "8px 12px" }} />
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", cursor: "pointer", color: "#fff", fontSize: 13, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Icon name="lifebuoy" size={16} style={{ color: "rgba(255,255,255,0.7)" }} />
+                  <span style={{ flex: 1 }}>Help</span>
+                  <Icon name="chevronR" size={14} style={{ color: "rgba(255,255,255,0.4)" }} />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", cursor: "pointer", color: "#fff", fontSize: 13, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Icon name="logout" size={16} style={{ color: "rgba(255,255,255,0.7)" }} />
+                  Log out
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Trigger Button */}
+          <button
+            className="sidebar-btn-metallic"
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            style={{
+               display: "flex", alignItems: "center", gap: 12,
+               width: "100%", padding: "8px 12px",
+               border: 0, cursor: "pointer"
+            }}
+          >
+             <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#10b981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                {user?.fullName ? user.fullName.substring(0, 2).toUpperCase() : "AD"}
+             </div>
+             <div style={{ flex: 1, textAlign: "left", overflow: "hidden" }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "#fff", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+                   {user?.fullName || "Ambitech Dynamics"}
+                </div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>More</div>
+             </div>
+             <Icon name="grid" size={16} style={{ color: "rgba(255,255,255,0.5)" }} />
+          </button>
         </div>
       )}
     </aside>

@@ -9,11 +9,11 @@ const jsonValueSchema = z.union([
 ]);
 
 export const memoryParamsSchema = z.object({
-  projectId: z.string().min(1, 'projectId is required')
+  travailId: z.string().min(1, 'travailId is required')
 });
 
 export const memoryKeyParamsSchema = z.object({
-  projectId: z.string().min(1, 'projectId is required'),
+  travailId: z.string().min(1, 'travailId is required'),
   memoryKey: z.string().min(1, 'memoryKey is required')
 });
 
@@ -32,4 +32,3 @@ export const updateMemorySchema = z
 
 export type CreateMemoryInput = z.infer<typeof createMemorySchema>;
 export type UpdateMemoryInput = z.infer<typeof updateMemorySchema>;
-

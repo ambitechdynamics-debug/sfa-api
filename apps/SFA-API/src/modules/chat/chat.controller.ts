@@ -27,10 +27,10 @@ function chatErrorResponse(error: unknown) {
     };
   }
 
-  if (message === 'Conversation not found or unauthorized') {
+  if (message === 'Travail not found or unauthorized') {
     return {
       status: 404,
-      error: 'Conversation introuvable.'
+      error: 'Travail introuvable.'
     };
   }
 
@@ -75,7 +75,7 @@ export const chatController = {
       logger.warn('[chat/opening] invalid request body', parsed.error.flatten().fieldErrors);
       return res.status(400).json({
         success: false,
-        error: 'projectId requis.',
+        error: 'travailId requis.',
       });
     }
 

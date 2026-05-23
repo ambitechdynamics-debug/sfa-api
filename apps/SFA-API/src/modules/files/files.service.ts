@@ -68,12 +68,9 @@ export const filesService = {
       },
     });
 
-    // Non-blocking logo memory update
-    if (usageType === FileUsageType.LOGO) {
-      filesService._updateLogoMemory(userId, projectId, result.fileUrl).catch(
-        (err) => console.error('[filesService._updateLogoMemory] silenced error:', err),
-      );
-    }
+    // Note: la pré-écriture de M_ID/brand_identity à l'upload du logo a été
+    // retirée — désormais c'est le BrandAgent (orchestrateur, travail-scoped)
+    // qui analyse le logo et écrit M_ID au bon endroit.
 
     return fileAsset;
   },
@@ -111,89 +108,4 @@ export const filesService = {
     return { id: fileId };
   },
 
-  /**
-   * Upload a generated poster image to Cloudinary and persist it as a GeneratedPoster record.
-   */
-  saveGeneratedPosterImage: async ({
-    userId,
-    projectId,
-    imageBuffer,
-    originalName,
-    promptUsed,
-    variationNumber = 1,
-  }: {
-    userId: string;
-    projectId: string;
-    imageBuffer: Buffer;
-    originalName: string;
-    promptUsed: string;
-    variationNumber?: number;
-  }) => {
-    const storage = getStorageProvider();
-
-    const result = await storage.uploadFile({
-      buffer: imageBuffer,
-      originalName,
-      mimetype: 'image/png',
-      usageType: FileUsageType.GENERATED_POSTER,
-    });
-
-    return prisma.generatedPoster.create({
-      data: {
-        userId,
-        projectId,
-        imageUrl:       result.fileUrl,
-        promptUsed,
-        variationNumber,
-        status:         'GENERATED',
-      },
-    });
-  },
-
-  /**
-   * Non-blocking: inject the uploaded logo URL into the project's M-ID memory entry.
-   * Errors are silenced — an upload succeeds even if this fails.
-   */
-  _updateLogoMemory: async (
-    userId: string,
-    projectId: string,
-    logoUrl: string,
-  ) => {
-    const memoryDef = await prisma.memoryDefinition.findUnique({
-      where: { key: 'M-ID' },
-      select: { id: true },
-    });
-
-    if (!memoryDef) return; // Memory definition not seeded yet
-
-    await prisma.memoryEntry.upsert({
-      where: {
-        projectId_memoryDefinitionId: {
-          projectId,
-          memoryDefinitionId: memoryDef.id,
-        },
-      },
-      create: {
-        memoryDefinitionId: memoryDef.id,
-        userId,
-        projectId,
-        content: {
-          brand_identity: {
-            logo_url: logoUrl,
-            source:   'uploaded_logo',
-            status:   'waiting_analysis',
-          },
-        },
-      },
-      update: {
-        content: {
-          brand_identity: {
-            logo_url: logoUrl,
-            source:   'uploaded_logo',
-            status:   'waiting_analysis',
-          },
-        },
-      },
-    });
-  },
 };

@@ -42,7 +42,7 @@ import {
 } from '../agents/agents.service';
 
 export interface OrchestrationOptions {
-  projectId: string;
+  travailId: string;
   userId: string;
   userRole: string;
   provider?: AIProvider;
@@ -56,7 +56,7 @@ export interface OrchestrationResult {
   success: boolean;
   message: string;
   data: {
-    projectId: string;
+    travailId: string;
     status: string;
     questions_to_user?: string[];
     missing_information?: string[];
@@ -200,34 +200,38 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   const { skipped: agentsSkipped } = await validateActiveAgents();
   const skipSet = new Set(agentsSkipped);
 
-  // ─── 1. Vérification du projet et ownership ───────────
+  // ─── 1. Vérification du travail et ownership ───────────
 
   const whereClause = options.userRole === 'ADMIN'
-    ? { id: options.projectId }
-    : { id: options.projectId, userId: options.userId };
+    ? { id: options.travailId }
+    : { id: options.travailId, userId: options.userId };
 
-  const project = await prisma.project.findFirst({
+  const travail = await prisma.travail.findFirst({
     where: whereClause,
     include: {
       memoryEntries: {
         include: { memoryDefinition: true }
       },
-      files: true
+      files: true,
+      project: { include: { files: true } }
     }
   });
 
-  if (!project) {
-    throw new AppError('Project not found or access denied', 404);
+  if (!travail) {
+    throw new AppError('Travail not found or access denied', 404);
   }
+
+  // Fichiers analysables = assets travail (références) + assets marque (logo, brand book)
+  const allFiles = [...travail.files, ...travail.project.files];
 
   // ─── Snapshot mémoire partagé : évite à chaque agent de re-query Prisma
   // (gain ≈10-15 queries par cycle). Le snapshot est rebuild une fois après
   // chaque écriture orchestrateur (M_SMS, M_QT1, M_ID, M_BA, M_PROMPT1) pour
   // que les agents en aval voient les nouvelles entrées.
-  let memorySnapshot: MemorySnapshot = buildMemorySnapshot(project.memoryEntries);
+  let memorySnapshot: MemorySnapshot = buildMemorySnapshot(travail.memoryEntries);
   const refreshSnapshot = async () => {
     const fresh = await prisma.memoryEntry.findMany({
-      where: { projectId: options.projectId },
+      where: { travailId: options.travailId },
       include: { memoryDefinition: { select: { key: true } } },
     });
     memorySnapshot = buildMemorySnapshot(fresh);
@@ -235,11 +239,11 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
 
   // ─── 2. Auto-peupler M_SMS depuis M-CREATIVE-BRIEF si absent ────
 
-  const mSmsEntry = project.memoryEntries.find(
+  const mSmsEntry = travail.memoryEntries.find(
     (e) => e.memoryDefinition?.key === 'M_SMS'
   );
   if (!mSmsEntry) {
-    const creativeBriefEntry = project.memoryEntries.find(
+    const creativeBriefEntry = travail.memoryEntries.find(
       (e) => e.memoryDefinition?.key === 'M-CREATIVE-BRIEF'
     );
     if (creativeBriefEntry?.content) {
@@ -247,7 +251,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       const history = brief.conversationHistory as Array<{ role: string; content: string }> | undefined;
       const firstUserMessage = history?.find((m) => m.role === 'user')?.content;
       if (firstUserMessage) {
-        await upsertMemory(options.projectId, 'M_SMS', {
+        await upsertMemory(options.travailId, 'M_SMS', {
           request: firstUserMessage,
           conversationHistory: history?.slice(0, 10),
           auto_populated: true,
@@ -262,11 +266,11 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
 
   let imageAnalystResults: ImageAnalystOutput[] = [];
 
-  if (project.files.length > 0 && !skipSet.has('IMAGE_ANALYST_AGENT')) {
+  if (allFiles.length > 0 && !skipSet.has('IMAGE_ANALYST_AGENT')) {
     try {
       imageAnalystResults = await runImageAnalystAgent({
-        projectId: options.projectId,
-        files: project.files.map(f => ({
+        travailId: options.travailId,
+        files: allFiles.map(f => ({
           id: f.id,
           fileUrl: f.fileUrl,
           fileType: f.fileType,
@@ -286,7 +290,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
         file_count: imageAnalystResults.length,
         generated_at: new Date().toISOString()
       };
-      await upsertMemory(options.projectId, 'M_MD', mdContent as unknown as Prisma.InputJsonValue);
+      await upsertMemory(options.travailId, 'M_MD', mdContent as unknown as Prisma.InputJsonValue);
       await refreshSnapshot();
     } catch (err) {
       // Non bloquant : continuer même si l'analyse image échoue
@@ -300,7 +304,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
 
   try {
     plannerResult = await runPlannerAgent({
-      projectId: options.projectId,
+      travailId: options.travailId,
       provider: options.provider,
       model: options.model,
       memorySnapshot
@@ -311,7 +315,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   }
 
   // Sauvegarder M_QT1
-  await upsertMemory(options.projectId, 'M_QT1', {
+  await upsertMemory(options.travailId, 'M_QT1', {
     questions_to_user: plannerResult.questions_to_user,
     missing_information: plannerResult.missing_information,
     generated_at: new Date().toISOString()
@@ -319,14 +323,14 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   await refreshSnapshot();
 
   // Mettre à jour le projet avec les métadonnées extraites
-  await prisma.project.update({
-    where: { id: options.projectId },
+  await prisma.travail.update({
+    where: { id: options.travailId },
     data: {
       status: 'QUESTIONING',
-      posterType: plannerResult.poster_type || project.posterType || null,
-      category: plannerResult.category || project.category || null,
-      format: plannerResult.format || project.format || null,
-      style: plannerResult.style || project.style || null
+      posterType: plannerResult.poster_type || travail.posterType || null,
+      category: plannerResult.category || travail.category || null,
+      format: plannerResult.format || travail.format || null,
+      style: plannerResult.style || travail.style || null
     }
   });
 
@@ -339,7 +343,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       success: true,
       message: 'Informations complémentaires nécessaires pour générer l\'affiche.',
       data: {
-        projectId: options.projectId,
+        travailId: options.travailId,
         status: 'QUESTIONING',
         questions_to_user: plannerResult.questions_to_user,
         missing_information: plannerResult.missing_information,
@@ -352,8 +356,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   }
 
   // Mettre à jour le statut vers ANALYZING
-  await prisma.project.update({
-    where: { id: options.projectId },
+  await prisma.travail.update({
+    where: { id: options.travailId },
     data: { status: 'ANALYZING' }
   });
 
@@ -361,7 +365,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   // Ces trois agents sont indépendants : aucun ne consomme l'output direct
   // d'un autre avant le Prompt Architect. On gagne 15-25 s par cycle.
 
-  const logoFile = project.files.find(f => f.usageType === 'LOGO') ?? null;
+  const logoFile = travail.project.files.find(f => f.usageType === 'LOGO') ?? null;
   const firstImageAnalysis = imageAnalystResults.find(r => r.logo_analysis?.is_logo_present) ?? imageAnalystResults[0] ?? null;
 
   // ArtisticResource query — récupéré une fois, partagé avec ArtisticBase.
@@ -416,14 +420,14 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
 
   const [textSettled, brandSettled, artisticSettled] = await Promise.allSettled([
     runTextAnalystAgent({
-      projectId: options.projectId,
+      travailId: options.travailId,
       plannerResult,
       provider: options.provider,
       model: options.model,
       memorySnapshot
     }),
     runBrandAgent({
-      projectId: options.projectId,
+      travailId: options.travailId,
       logoFile: logoFile
         ? {
             id: logoFile.id,
@@ -439,7 +443,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       memorySnapshot
     }),
     runArtisticBaseAgent({
-      projectId: options.projectId,
+      travailId: options.travailId,
       plannerResult,
       artisticResources: artisticResources.map(r => ({
         id: r.id,
@@ -514,7 +518,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     brandAgentResult = brandSettled.value;
     agentsExecuted.push('BrandAgent');
   }
-  await upsertMemory(options.projectId, 'M_ID', brandAgentResult as unknown as Prisma.InputJsonValue);
+  await upsertMemory(options.travailId, 'M_ID', brandAgentResult as unknown as Prisma.InputJsonValue);
 
   let artisticBaseResult: ArtisticBaseOutput;
   if (artisticSettled.status === 'rejected') {
@@ -536,14 +540,14 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     artisticBaseResult = artisticSettled.value;
     agentsExecuted.push('ArtisticBaseAgent');
   }
-  await upsertMemory(options.projectId, 'M_BA', artisticBaseResult as unknown as Prisma.InputJsonValue);
+  await upsertMemory(options.travailId, 'M_BA', artisticBaseResult as unknown as Prisma.InputJsonValue);
   await refreshSnapshot();
 
   // ─── 9. Prompt Architect → M-PROMPT1 ────────────────
 
   // Mettre à jour le statut
-  await prisma.project.update({
-    where: { id: options.projectId },
+  await prisma.travail.update({
+    where: { id: options.travailId },
     data: { status: 'READY_FOR_PROMPT' }
   });
 
@@ -551,7 +555,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
 
   try {
     promptArchitectResult = await runPromptArchitectAgent({
-      projectId: options.projectId,
+      travailId: options.travailId,
       plannerResult,
       textAnalystResult,
       brandAgentResult,
@@ -566,7 +570,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   }
 
   // Sauvegarder M_PROMPT1
-  await upsertMemory(options.projectId, 'M_PROMPT1', promptArchitectResult as unknown as Prisma.InputJsonValue);
+  await upsertMemory(options.travailId, 'M_PROMPT1', promptArchitectResult as unknown as Prisma.InputJsonValue);
   await refreshSnapshot();
 
   // ─── 10. SAFETY AGENT (entre Prompt Architect et Quality) ─────────────
@@ -591,7 +595,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       },
     });
     safetyResult = await runSafetyAgent({
-      projectId: options.projectId,
+      travailId: options.travailId,
       mPrompt1: promptArchitectResult,
       forbiddenRules: activeRules,
       provider: options.provider,
@@ -601,8 +605,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     agentsExecuted.push('SafetyAgent');
 
     if (safetyResult.decision === 'blocked') {
-      await prisma.project.update({
-        where: { id: options.projectId },
+      await prisma.travail.update({
+        where: { id: options.travailId },
         data: { status: 'FAILED' },
       });
       const totalDuration = Date.now() - startTime;
@@ -612,7 +616,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
           safetyResult.client_message ||
           'La génération a été bloquée car le prompt enfreint des règles de qualité ou de sécurité.',
         data: {
-          projectId: options.projectId,
+          travailId: options.travailId,
           status: 'FAILED',
           safety: safetyResult,
           ready_for_generation: false,
@@ -636,7 +640,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       }
       // Re-sauvegarder M_PROMPT1 avec les amendements Safety
       await upsertMemory(
-        options.projectId,
+        options.travailId,
         'M_PROMPT1',
         promptArchitectResult as unknown as Prisma.InputJsonValue,
       );
@@ -661,7 +665,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     console.warn('[orchestrator] QUALITY_AGENT inactif — étape sautée');
   } else try {
     qualityResult = await runQualityAgent({
-      projectId: options.projectId,
+      travailId: options.travailId,
       mPrompt1: promptArchitectResult,
       provider: options.provider,
       model: options.model,
@@ -680,7 +684,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   // Persister le quality_score dans M_PROMPT1 pour la quality gate de imageGen
   if (qualityResult) {
     await upsertMemory(
-      options.projectId,
+      options.travailId,
       'M_PROMPT1',
       {
         ...promptArchitectResult,
@@ -695,8 +699,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   const promptValidated = qualityResult ? qualityResult.is_valid && qualityResult.quality_score >= 70 : false;
   const finalStatus = promptValidated ? 'PROMPT_READY' : 'READY_FOR_PROMPT';
 
-  await prisma.project.update({
-    where: { id: options.projectId },
+  await prisma.travail.update({
+    where: { id: options.travailId },
     data: { status: finalStatus }
   });
 
@@ -715,7 +719,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     success: true,
     message: messageOut,
     data: {
-      projectId: options.projectId,
+      travailId: options.travailId,
       status: finalStatus,
       questions_to_user: plannerResult.questions_to_user.length > 0 ? plannerResult.questions_to_user : undefined,
       missing_information: promptArchitectResult.missing_information.length > 0 ? promptArchitectResult.missing_information : undefined,

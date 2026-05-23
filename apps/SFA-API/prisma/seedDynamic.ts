@@ -1,4 +1,8 @@
-import { PrismaClient, MemoryScope, AgentProvider, AgentMemoryUsageType } from '@prisma/client';
+import { PrismaClient, MemoryScope, AgentMemoryUsageType } from '@prisma/client';
+
+// provider est un String libre côté schéma (default "mock"). On garde un objet
+// pour préserver la lisibilité des seeds sans dépendre d'un enum inexistant.
+const AgentProvider = { MOCK: 'mock', OPENAI: 'openai', ANTHROPIC: 'anthropic', GEMINI: 'gemini' } as const;
 import { PLANNER_SYSTEM_PROMPT } from '../src/modules/agents/system-prompts/planner.prompt';
 import { IMAGE_ANALYST_SYSTEM_PROMPT } from '../src/modules/agents/system-prompts/imageAnalyst.prompt';
 import { TEXT_ANALYST_SYSTEM_PROMPT } from '../src/modules/agents/system-prompts/textAnalyst.prompt';

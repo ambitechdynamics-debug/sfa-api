@@ -8,16 +8,16 @@ datasource db {
 }
 
 model User {
-  id                 String              @id @default(cuid())
-  fullName           String
-  email              String              @unique
-  phone              String?
+  id                           String              @id @default(cuid())
+  fullName                     String
+  email                        String              @unique
+  phone                        String?
   /// Conservé pour les comptes hérités (bcrypt). Stack gère les nouveaux mots de passe.
-  password           String?
-  role               Role                @default(USER)
-  credits            Int                 @default(0)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  password                     String?
+  role                         Role                @default(USER)
+  credits                      Int                 @default(0)
+  createdAt                    DateTime            @default(now())
+  updatedAt                    DateTime            @updatedAt
   /// Lien vers le compte Stack Auth (neon_auth.users_sync.id). Null pour les
   /// utilisateurs hérités pas encore migrés.
   stackUserId                  String?             @unique
@@ -26,39 +26,72 @@ model User {
   subscriptionPlan             String              @default("free")
   subscriptionStatus           String              @default("free")
   subscriptionCurrentPeriodEnd DateTime?
-  creditTransactions CreditTransaction[]
-  files              FileAsset[]
-  forbiddenRules     ForbiddenRule[]
-  generatedPosters   GeneratedPoster[]
-  memoryEntries      MemoryEntry[]
-  payments           Payment[]
-  projects           Project[]
-  conversations      Conversation[]
-  uxMetricEvents     UxMetricEvent[]
+  creditTransactions           CreditTransaction[]
+  files                        FileAsset[]
+  forbiddenRules               ForbiddenRule[]
+  generatedPosters             GeneratedPoster[]
+  memoryEntries                MemoryEntry[]
+  payments                     Payment[]
+  projects                     Project[]
+  travaux                      Travail[]
+  uxMetricEvents               UxMetricEvent[]
 
   @@index([role])
 }
 
+/// Container "marque / client". Regroupe N Travaux (livrables) et les assets de marque.
 model Project {
-  id               String            @id @default(cuid())
+  id               String      @id @default(cuid())
   userId           String
-  title            String
-  posterType       String?
-  category         String?
-  status           ProjectStatus     @default(DRAFT)
-  format           String?
-  style            String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  agentRuns        AgentRun[]
-  files            FileAsset[]
-  generatedPosters GeneratedPoster[]
-  memoryEntries    MemoryEntry[]
-  conversations    Conversation[]
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String // Nom de la marque ou du client
+  brandDescription String? // Courte description optionnelle de la marque
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  travaux          Travail[]
+  files            FileAsset[] // Assets de marque (logo, brand book, etc.)
 
   @@index([userId])
+}
+
+/// Unité de travail concrète au sein d'un Project (ex: "Menu janvier", "Story promo Noël").
+/// Porte le chat, le brief créatif, les mémoires d'agents, les affiches générées
+/// et les assets spécifiques au livrable.
+model Travail {
+  id               String            @id @default(cuid())
+  projectId        String
+  userId           String // dénormalisé pour requêtes "tous mes travaux" sans join
+  title            String
+  status           TravailStatus     @default(DRAFT)
+  posterType       String?
+  category         String?
+  format           String?
+  style            String?
+  lastMessageAt    DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages         Message[]
+  generatedPosters GeneratedPoster[]
+  memoryEntries    MemoryEntry[]
+  agentRuns        AgentRun[]
+  files            FileAsset[] // Assets propres au livrable (références, mood, etc.)
+
+  @@index([projectId])
+  @@index([userId])
   @@index([status])
+}
+
+enum TravailStatus {
+  DRAFT
+  QUESTIONING
+  ANALYZING
+  READY_FOR_PROMPT
+  PROMPT_READY
+  GENERATING
+  GENERATED
+  FAILED
 }
 
 model MemoryDefinition {
@@ -115,24 +148,25 @@ model MemoryEntry {
   id                 String           @id @default(cuid())
   memoryDefinitionId String
   userId             String
-  projectId          String?
+  travailId          String
   content            Json
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   memoryDefinition   MemoryDefinition @relation(fields: [memoryDefinitionId], references: [id], onDelete: Cascade)
-  project            Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  travail            Travail          @relation(fields: [travailId], references: [id], onDelete: Cascade)
   user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, memoryDefinitionId])
+  @@unique([travailId, memoryDefinitionId])
   @@index([userId])
-  @@index([projectId])
+  @@index([travailId])
   @@index([memoryDefinitionId])
 }
 
 model FileAsset {
   id            String        @id @default(cuid())
   userId        String
-  projectId     String?
+  projectId     String? // brand-level assets (logo, brand book)
+  travailId     String? // travail-specific assets (reference image, mood board)
   fileUrl       String
   fileType      String
   originalName  String
@@ -145,10 +179,12 @@ model FileAsset {
   publicId      String?
   width         Int?
   project       Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  travail       Travail?      @relation(fields: [travailId], references: [id], onDelete: Cascade)
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([projectId])
+  @@index([travailId])
   @@index([usageType])
 }
 
@@ -171,7 +207,7 @@ model ArtisticResource {
 model GeneratedPoster {
   id              String                @id @default(cuid())
   userId          String
-  projectId       String
+  travailId       String
   imageUrl        String
   promptUsed      String
   variationNumber Int                   @default(1)
@@ -180,17 +216,17 @@ model GeneratedPoster {
   isExample       Boolean               @default(false)
   qualityScore    Int?
   updatedAt       DateTime              @updatedAt
-  project         Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  travail         Travail               @relation(fields: [travailId], references: [id], onDelete: Cascade)
   user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([projectId])
+  @@index([travailId])
   @@index([status])
 }
 
 model AgentRun {
   id         String         @id @default(cuid())
-  projectId  String
+  travailId  String
   agentName  String
   provider   String
   model      String
@@ -200,9 +236,9 @@ model AgentRun {
   error      String?
   durationMs Int?
   createdAt  DateTime       @default(now())
-  project    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  travail    Travail        @relation(fields: [travailId], references: [id], onDelete: Cascade)
 
-  @@index([projectId])
+  @@index([travailId])
   @@index([agentName])
   @@index([status])
 }
@@ -303,23 +339,11 @@ enum UxMetricEventType {
   NAVIGATION_ERROR
 }
 
-enum ProjectStatus {
-  DRAFT
-  QUESTIONING
-  ANALYZING
-  READY_FOR_PROMPT
-  PROMPT_READY
-  GENERATING
-  GENERATED
-  FAILED
-}
-
 enum MemoryScope {
   PROJECT
   USER
   GLOBAL
 }
-
 
 enum AgentMemoryUsageType {
   INPUT
@@ -400,40 +424,16 @@ enum ForbiddenRuleScope {
   PROJECT_TYPE
 }
 
-model Conversation {
-  id            String             @id @default(cuid())
-  userId        String
-  projectId     String?
-  title         String
-  status        ConversationStatus @default(ACTIVE)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  lastMessageAt DateTime           @default(now())
-
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project       Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  messages      Message[]
-
-  @@index([userId])
-  @@index([projectId])
-  @@index([status])
-}
-
-enum ConversationStatus {
-  ACTIVE
-  ARCHIVED
-}
-
 model Message {
-  id             String       @id @default(cuid())
-  conversationId String
-  role           MessageRole
-  content        String
-  createdAt      DateTime     @default(now())
+  id        String      @id @default(cuid())
+  travailId String
+  role      MessageRole
+  content   String
+  createdAt DateTime    @default(now())
 
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  travail Travail @relation(fields: [travailId], references: [id], onDelete: Cascade)
 
-  @@index([conversationId])
+  @@index([travailId])
 }
 
 enum MessageRole {

@@ -11,26 +11,23 @@ export interface ChatHistoryMessage {
 
 export interface SendChatMessageInput {
   message: string
-  conversationId?: string
-  projectId?: string
+  travailId: string
   history?: ChatHistoryMessage[]
   visualConfig?: Record<string, unknown>
 }
 
 export interface SendChatMessageResult {
   reply: string
-  conversationId?: string
-  projectId?: string
-  title?: string
+  travailId: string
+  projectId: string
   fallback?: boolean
 }
 
 type ChatEndpointResponse = {
   success?: boolean
   reply?: string
-  conversationId?: string
+  travailId?: string
   projectId?: string
-  title?: string
   error?: string
   message?: string | {
     role?: string
@@ -39,9 +36,8 @@ type ChatEndpointResponse = {
   fallback?: boolean
   data?: {
     reply?: string
-    conversationId?: string
+    travailId?: string
     projectId?: string
-    title?: string
     message?: {
       role?: string
       content?: string
@@ -107,11 +103,13 @@ export async function sendChatMessage(input: SendChatMessageInput): Promise<Send
     throw new ApiError("La réponse de l'agent est vide. Veuillez réessayer.", response.status)
   }
 
+  const travailId = data.travailId ?? data.data?.travailId ?? input.travailId
+  const projectId = data.projectId ?? data.data?.projectId ?? ""
+
   return {
     reply,
-    conversationId: data.conversationId ?? data.data?.conversationId,
-    projectId: data.projectId ?? data.data?.projectId,
-    title: data.title ?? data.data?.title,
+    travailId,
+    projectId,
     fallback: data.fallback,
   }
 }
@@ -124,7 +122,7 @@ export interface FetchChatOpeningResult {
     content: string
     createdAt: string
   }
-  conversationId: string
+  travailId: string
   projectId: string
   hasAssets: boolean
   assetSummary: Record<string, number>
@@ -140,7 +138,7 @@ type ChatOpeningResponse = {
     content?: string
     createdAt?: string
   }
-  conversationId?: string
+  travailId?: string
   projectId?: string
   hasAssets?: boolean
   assetSummary?: Record<string, number>
@@ -148,7 +146,7 @@ type ChatOpeningResponse = {
   error?: string
 }
 
-export async function fetchChatOpening(projectId: string): Promise<FetchChatOpeningResult> {
+export async function fetchChatOpening(travailId: string): Promise<FetchChatOpeningResult> {
   const token = await getSessionToken()
 
   const request = (authToken: string) => fetch("/api/chat/opening", {
@@ -158,7 +156,7 @@ export async function fetchChatOpening(projectId: string): Promise<FetchChatOpen
       "Content-Type": "application/json",
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     },
-    body: JSON.stringify({ projectId }),
+    body: JSON.stringify({ travailId }),
   })
 
   let response: Response
@@ -187,7 +185,7 @@ export async function fetchChatOpening(projectId: string): Promise<FetchChatOpen
     throw new ApiError(data.error || "Impossible de générer le message d'ouverture.", response.status)
   }
 
-  if (!data.opening || !data.message?.content || !data.conversationId) {
+  if (!data.opening || !data.message?.content || !data.travailId) {
     throw new ApiError("Réponse d'ouverture incomplète.", response.status)
   }
 
@@ -199,8 +197,8 @@ export async function fetchChatOpening(projectId: string): Promise<FetchChatOpen
       content: data.message.content,
       createdAt: data.message.createdAt ?? new Date().toISOString(),
     },
-    conversationId: data.conversationId,
-    projectId: data.projectId ?? projectId,
+    travailId: data.travailId,
+    projectId: data.projectId ?? "",
     hasAssets: Boolean(data.hasAssets),
     assetSummary: data.assetSummary ?? {},
     reused: Boolean(data.reused),

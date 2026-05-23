@@ -1,4 +1,4 @@
-export type ProjectStatus =
+export type TravailStatus =
   | "DRAFT"
   | "QUESTIONING"
   | "ANALYZING"
@@ -8,24 +8,60 @@ export type ProjectStatus =
   | "GENERATED"
   | "FAILED"
 
+/**
+ * Backward-compat alias — the schema used to call this `ProjectStatus` before
+ * the Project → Travail split. Code that still imports `ProjectStatus` keeps
+ * working as long as it deals with travail-level state.
+ */
+export type ProjectStatus = TravailStatus
+
+/**
+ * Container "marque / client". Regroupe N Travaux (livrables) et les assets de marque.
+ */
 export interface Project {
   id: string
   userId: string
   title: string
-  posterType?: string | null
-  category?: string | null
-  status: ProjectStatus
-  format?: string | null
-  style?: string | null
+  brandDescription?: string | null
   createdAt: string
   updatedAt: string
+  travaux?: Travail[]
+  _count?: {
+    travaux?: number
+    files?: number
+  }
+}
+
+/**
+ * Unité de travail concrète au sein d'un Project. Porte le chat, les mémoires,
+ * les posters et les assets propres au livrable.
+ */
+export interface Travail {
+  id: string
+  projectId: string
+  userId: string
+  title: string
+  status: TravailStatus
+  posterType?: string | null
+  category?: string | null
+  format?: string | null
+  style?: string | null
+  lastMessageAt: string
+  createdAt: string
+  updatedAt: string
+  project?: { id: string; title: string; brandDescription?: string | null }
+  _count?: {
+    messages?: number
+    generatedPosters?: number
+    files?: number
+  }
 }
 
 export interface MemoryEntry {
   id: string
   memoryDefinitionId: string
   userId: string
-  projectId: string | null
+  travailId: string
   content: Record<string, unknown>
   createdAt: string
   updatedAt: string
@@ -36,6 +72,7 @@ export interface FileAsset {
   id: string
   userId: string
   projectId: string | null
+  travailId: string | null
   fileUrl: string
   publicId?: string | null
   fileType: string
@@ -50,7 +87,7 @@ export interface FileAsset {
 
 export interface AgentRun {
   id: string
-  projectId: string
+  travailId: string
   agentName: string
   provider: string
   model: string
@@ -63,7 +100,7 @@ export interface AgentRun {
 export interface GeneratedPoster {
   id: string
   userId: string
-  projectId: string
+  travailId: string
   imageUrl: string
   promptUsed: string
   variationNumber: number

@@ -19,7 +19,7 @@ export type MemorySnapshot = Map<string, unknown>;
 
 export async function buildAgentContext(
   agentKey: string,
-  projectId: string,
+  travailId: string,
   snapshot?: MemorySnapshot,
 ): Promise<AgentContextData> {
   // 1. Récupérer l'agent et ses liaisons INPUT / BOTH
@@ -38,7 +38,7 @@ export async function buildAgentContext(
     throw new Error(`Agent with key ${agentKey} not found in database.`);
   }
 
-  // 2. Récupérer les mémoires du projet correspondant
+  // 2. Récupérer les mémoires du travail correspondant
   const memoryKeys = agent.memoryLinks.map(link => link.memory.key);
 
   if (memoryKeys.length === 0) {
@@ -61,10 +61,7 @@ export async function buildAgentContext(
   } else {
     const memoryEntries = await prisma.memoryEntry.findMany({
       where: {
-        OR: [
-          { projectId: projectId },
-          { projectId: null }
-        ],
+        travailId,
         memoryDefinition: { key: { in: memoryKeys } }
       },
       include: { memoryDefinition: true }
@@ -78,7 +75,7 @@ export async function buildAgentContext(
   // 3. Vérifier les mémoires requises
   for (const link of agent.memoryLinks) {
     if (link.isRequired && !entriesByKey.has(link.memory.key)) {
-      throw new Error(`Memory ${link.memory.key} (${link.memory.name}) is required for agent ${agentKey} but not found in project.`);
+      throw new Error(`Memory ${link.memory.key} (${link.memory.name}) is required for agent ${agentKey} but not found in travail.`);
     }
   }
 
@@ -101,7 +98,7 @@ export async function buildAgentContext(
 /**
  * Construit un snapshot mémoire (key → content) à partir d'un tableau de
  * MemoryEntry déjà chargé (typiquement par l'orchestrateur via
- * `project.memoryEntries`). Évite N queries Prisma supplémentaires en aval.
+ * `travail.memoryEntries`). Évite N queries Prisma supplémentaires en aval.
  */
 export function buildMemorySnapshot(
   entries: Array<{ memoryDefinition: { key: string }; content: unknown }>,
@@ -113,7 +110,7 @@ export function buildMemorySnapshot(
   return snapshot;
 }
 
-export async function saveAgentOutputs(agentKey: string, projectId: string, aiResult: any): Promise<void> {
+export async function saveAgentOutputs(agentKey: string, travailId: string, aiResult: unknown): Promise<void> {
   const agent = await prisma.agentDefinition.findUnique({
     where: { key: agentKey },
     include: {
@@ -128,6 +125,6 @@ export async function saveAgentOutputs(agentKey: string, projectId: string, aiRe
 
   for (const link of agent.memoryLinks) {
     // Si aiResult est un objet complexe (comme pour Planner), on le sauvegarde en entier dans la mémoire associée
-    await upsertMemory(projectId, link.memory.key, aiResult as Prisma.InputJsonValue);
+    await upsertMemory(travailId, link.memory.key, aiResult as Prisma.InputJsonValue);
   }
 }

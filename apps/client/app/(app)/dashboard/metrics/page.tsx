@@ -68,9 +68,12 @@ export default function MetricsPage() {
   }
 
   const topRoute = useMemo(() => summary?.routeBreakdown[0], [summary])
-  const activeProjects = projects.filter((project) => project.status !== "GENERATED" && project.status !== "FAILED").length
-  const generatedProjects = projects.filter((project) => project.status === "GENERATED").length
-  const failedProjects = projects.filter((project) => project.status === "FAILED").length
+  // Travail status est désormais l'unité de mesure (Project = container marque, sans statut).
+  // On agrège les statuts à travers tous les travaux de tous les projets.
+  const allTravaux = projects.flatMap((project) => project.travaux ?? [])
+  const activeProjects = allTravaux.filter((t) => t.status !== "GENERATED" && t.status !== "FAILED").length
+  const generatedProjects = allTravaux.filter((t) => t.status === "GENERATED").length
+  const failedProjects = allTravaux.filter((t) => t.status === "FAILED").length
   const successRate = generatedProjects + failedProjects === 0
     ? null
     : Math.round((generatedProjects / (generatedProjects + failedProjects)) * 100)

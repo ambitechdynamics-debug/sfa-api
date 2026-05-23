@@ -354,10 +354,16 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
   type AssetSummaryItem = { label: string; count: number; names: string[] };
   let projectAssetSummary: AssetSummaryItem[] = [];
 
-  if (input.projectId) {
+  if (input.travailId) {
     try {
+      // Fichiers visibles = ceux du travail + ceux du projet parent (assets de marque)
       const files = await prisma.fileAsset.findMany({
-        where: { projectId: input.projectId },
+        where: {
+          OR: [
+            { travailId: input.travailId },
+            { project: { travaux: { some: { id: input.travailId } } } },
+          ],
+        },
         select: { originalName: true, usageType: true },
       });
       const LABEL: Record<string, string> = {
@@ -380,7 +386,7 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
       }
       projectAssetSummary = Array.from(byLabel.values());
     } catch (err) {
-      logger.warn('[chat] failed to load project files for context', err);
+      logger.warn('[chat] failed to load travail files for context', err);
     }
   }
 
@@ -410,8 +416,8 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
       `   poser des questions précises, pas génériques.\n\n` +
       `═══════════════════════════════════════\n\n` +
       resolvedSystemPrompt;
-  } else if (input.projectId) {
-    // Projet existe mais 0 fichier — autoriser l'agent à proposer l'upload
+  } else if (input.travailId) {
+    // Travail existe mais 0 fichier — autoriser l'agent à proposer l'upload
     resolvedSystemPrompt =
       `═══════════════════════════════════════\n` +
       `🟡 ÉLÉMENTS IMPORTANTS — AUCUN FICHIER ATTACHÉ\n` +
@@ -485,28 +491,22 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
 
 export const chatService = {
   async sendMessage(input: ChatRequestInput, userId: string): Promise<ChatResponsePayload> {
-    let conversationId = input.conversationId;
-    let isNewConversation = false;
-    let title = 'Nouvelle conversation';
-    let projectId = input.projectId;
+    const { travailId } = input;
 
-    if (!conversationId) {
-      isNewConversation = true;
-      title = input.message.trim().split('\n')[0].slice(0, 50);
-      if (title.length === 50) title += '...';
-    } else {
-      const existingConv = await prisma.conversation.findFirst({
-        where: { id: conversationId, userId }
-      });
+    const travail = await prisma.travail.findFirst({
+      where: { id: travailId, userId },
+      select: { id: true, projectId: true, _count: { select: { messages: true } } }
+    });
 
-      if (!existingConv) {
-        throw new Error('Conversation not found or unauthorized');
-      }
-      projectId = existingConv.projectId ?? projectId;
+    if (!travail) {
+      throw new Error('Travail not found or unauthorized');
     }
 
+    const isFirstMessage = travail._count.messages === 0;
+
     logger.info('[chat] message received', {
-      conversationId,
+      travailId,
+      isFirstMessage,
       historyLength: input.history?.length ?? 0,
       messageLength: input.message.length
     });
@@ -514,64 +514,41 @@ export const chatService = {
     const reply = await callChatProvider(input);
 
     logger.info('[chat] reply generated', {
-      conversationId,
+      travailId,
       replyLength: reply.length
     });
 
-    const persistedConversationId = await prisma.$transaction(async (tx) => {
-      let currentConversationId = conversationId;
-
-      if (!currentConversationId) {
-        const newConversation = await tx.conversation.create({
-          data: {
-            userId,
-            title,
-            projectId: projectId || null
-          }
-        });
-        currentConversationId = newConversation.id;
-      }
-
+    await prisma.$transaction(async (tx) => {
       await tx.message.createMany({
         data: [
-          {
-            conversationId: currentConversationId,
-            role: 'USER',
-            content: input.message.trim()
-          },
-          {
-            conversationId: currentConversationId,
-            role: 'ASSISTANT',
-            content: reply
-          }
+          { travailId, role: 'USER',      content: input.message.trim() },
+          { travailId, role: 'ASSISTANT', content: reply }
         ]
       });
 
-      await tx.conversation.update({
-        where: { id: currentConversationId },
+      await tx.travail.update({
+        where: { id: travailId },
         data: { updatedAt: new Date(), lastMessageAt: new Date() }
       });
-
-      return currentConversationId;
     });
 
     // Save first user message as M_SMS so orchestrator agents have context.
     // Awaité (et erreurs loguées) pour éviter la race avec un déclenchement
-    // immédiat de /generate-final-prompt (cf. AUDIT.md §3).
-    if (projectId && isNewConversation) {
+    // immédiat de /generate-final-prompt.
+    if (isFirstMessage) {
       try {
         const def = await prisma.memoryDefinition.findUnique({ where: { key: 'M_SMS' } });
         if (def) {
           await prisma.memoryEntry.upsert({
             where: {
-              projectId_memoryDefinitionId: {
-                projectId,
+              travailId_memoryDefinitionId: {
+                travailId,
                 memoryDefinitionId: def.id,
               },
             },
             update: {},
             create: {
-              projectId,
+              travailId,
               userId,
               memoryDefinitionId: def.id,
               content: {
@@ -593,9 +570,8 @@ export const chatService = {
         role: 'assistant',
         content: reply
       },
-      conversationId: persistedConversationId,
-      projectId,
-      title: isNewConversation ? title : undefined
+      travailId,
+      projectId: travail.projectId
     };
   },
 
@@ -608,15 +584,23 @@ export const chatService = {
    * returned without calling the AI again.
    */
   async generateOpening(input: ChatOpeningInput, userId: string): Promise<ChatOpeningPayload> {
-    const { projectId } = input;
+    const { travailId } = input;
 
-    const project = await prisma.project.findFirst({
-      where: { id: projectId, userId },
-      include: { files: true },
+    const travail = await prisma.travail.findFirst({
+      where: { id: travailId, userId },
+      include: {
+        files: true,
+        project: { include: { files: true } },
+        messages: { orderBy: { createdAt: 'asc' }, take: 1 },
+      },
     });
-    if (!project) {
-      throw new Error('Project not found or unauthorized');
+    if (!travail) {
+      throw new Error('Travail not found or unauthorized');
     }
+
+    const projectId = travail.projectId;
+    // Combine travail-specific assets + brand-level assets (logo, brand book, …)
+    const allFiles = [...travail.files, ...travail.project.files];
 
     // Group files by usage type, mapping FileUsageType enum → French label.
     const USAGE_LABEL: Record<string, string> = {
@@ -632,52 +616,32 @@ export const chatService = {
 
     const assetSummary: Record<string, number> = {};
     const assetsByLabel: Record<string, string[]> = {};
-    for (const f of project.files) {
+    for (const f of allFiles) {
       const label = USAGE_LABEL[f.usageType] ?? f.usageType;
       assetSummary[label] = (assetSummary[label] ?? 0) + 1;
       assetsByLabel[label] = assetsByLabel[label] ?? [];
       assetsByLabel[label].push(f.originalName);
     }
-    const hasAssets = project.files.length > 0;
+    const hasAssets = allFiles.length > 0;
 
-    // Find or create the active conversation for this project.
-    let conversation = await prisma.conversation.findFirst({
-      where: { projectId, userId, status: 'ACTIVE' },
-      orderBy: { createdAt: 'desc' },
-      include: { messages: { orderBy: { createdAt: 'asc' }, take: 1 } },
-    });
-
-    if (conversation && conversation.messages.length > 0) {
-      const first = conversation.messages[0];
-      if (first.role === 'ASSISTANT') {
-        // Already generated — return the existing opening, do not re-call AI.
-        return {
-          success: true,
-          opening: first.content,
-          message: {
-            id: first.id,
-            role: 'assistant',
-            content: first.content,
-            createdAt: first.createdAt.toISOString(),
-          },
-          conversationId: conversation.id,
-          projectId,
-          hasAssets,
-          assetSummary,
-          reused: true,
-        };
-      }
-    }
-
-    if (!conversation) {
-      conversation = await prisma.conversation.create({
-        data: {
-          userId,
-          projectId,
-          title: 'Nouvelle conversation',
+    // Idempotence : si le travail a déjà un premier message assistant, on le réutilise.
+    const firstMessage = travail.messages[0];
+    if (firstMessage && firstMessage.role === 'ASSISTANT') {
+      return {
+        success: true,
+        opening: firstMessage.content,
+        message: {
+          id: firstMessage.id,
+          role: 'assistant',
+          content: firstMessage.content,
+          createdAt: firstMessage.createdAt.toISOString(),
         },
-        include: { messages: { take: 0 } },
-      });
+        travailId,
+        projectId,
+        hasAssets,
+        assetSummary,
+        reused: true,
+      };
     }
 
     // Build a context block describing what the user uploaded (or didn't).
@@ -735,14 +699,14 @@ export const chatService = {
 
     const savedMessage = await prisma.message.create({
       data: {
-        conversationId: conversation.id,
+        travailId,
         role: 'ASSISTANT',
         content: opening,
       },
     });
 
-    await prisma.conversation.update({
-      where: { id: conversation.id },
+    await prisma.travail.update({
+      where: { id: travailId },
       data: { lastMessageAt: new Date(), updatedAt: new Date() },
     });
 
@@ -755,7 +719,7 @@ export const chatService = {
         content: savedMessage.content,
         createdAt: savedMessage.createdAt.toISOString(),
       },
-      conversationId: conversation.id,
+      travailId,
       projectId,
       hasAssets,
       assetSummary,

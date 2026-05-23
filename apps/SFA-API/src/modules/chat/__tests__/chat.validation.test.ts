@@ -4,13 +4,17 @@ import { chatRequestSchema } from '../chat.validation';
 
 describe('chat module', () => {
   it('rejects an empty message', () => {
-    expect(chatRequestSchema.safeParse({ message: '   ' }).success).toBe(false);
+    expect(chatRequestSchema.safeParse({ message: '   ', travailId: 'trv_1' }).success).toBe(false);
+  });
+
+  it('rejects a missing travailId', () => {
+    expect(chatRequestSchema.safeParse({ message: 'Salut' }).success).toBe(false);
   });
 
   it('accepts a message with conversation history', () => {
     const result = chatRequestSchema.safeParse({
       message: 'Créer une affiche premium',
-      conversationId: 'conv_123',
+      travailId: 'trv_123',
       history: [
         { role: 'user', content: 'Bonjour' },
         { role: 'assistant', content: 'Bonjour, quel visuel souhaitez-vous créer ?' }
@@ -20,18 +24,16 @@ describe('chat module', () => {
     expect(result.success).toBe(true);
   });
 
-  it('defaults missing history and optional ids safely', () => {
+  it('defaults missing history safely', () => {
     const result = chatRequestSchema.safeParse({
       message: 'Créer un flyer professionnel pour mon restaurant',
-      conversationId: null,
-      projectId: ''
+      travailId: 'trv_x'
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.history).toEqual([]);
-      expect(result.data.conversationId).toBeUndefined();
-      expect(result.data.projectId).toBeUndefined();
+      expect(result.data.travailId).toBe('trv_x');
     }
   });
 

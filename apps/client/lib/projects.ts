@@ -1,16 +1,20 @@
 import { apiFetch, apiUpload } from "./api"
 import { getSessionToken } from "@/services/auth.service"
-import type { Project, MemoryEntry, FileAsset, AgentRun, GeneratedPoster } from "@/types/project"
+import type {
+  Project,
+  Travail,
+  MemoryEntry,
+  FileAsset,
+  AgentRun,
+  GeneratedPoster,
+} from "@/types/project"
 
 /**
  * Télécharge une affiche générée via l'endpoint API
- *   GET /api/projects/:projectId/generated-posters/:posterId/download
- * Le backend redirige (302) vers Cloudinary avec fl_attachment, fetch suit
- * automatiquement et nous récupérons le Blob. Le filename vient du
- * Content-Disposition du backend si présent, sinon fallback.
+ *   GET /api/travaux/:travailId/generated-posters/:posterId/download
  */
 export async function downloadGeneratedPoster(
-  projectId: string,
+  travailId: string,
   posterId: string,
   opts: { format?: "png" | "jpg" | "pdf" | "webp"; width?: number; quality?: number } = {}
 ): Promise<void> {
@@ -19,7 +23,7 @@ export async function downloadGeneratedPoster(
   if (opts.width) params.set("width", String(opts.width))
   if (opts.quality) params.set("quality", String(opts.quality))
   const qs = params.toString()
-  const url = `/api/projects/${projectId}/generated-posters/${posterId}/download${qs ? `?${qs}` : ""}`
+  const url = `/api/travaux/${travailId}/generated-posters/${posterId}/download${qs ? `?${qs}` : ""}`
 
   const token = await getSessionToken()
   const response = await fetch(url, {
@@ -47,6 +51,8 @@ export async function downloadGeneratedPoster(
   URL.revokeObjectURL(objectUrl)
 }
 
+// ─── Projects (marque / client) ─────────────────────────────────────────────
+
 export async function fetchProjects(): Promise<Project[]> {
   return apiFetch<Project[]>("/api/projects")
 }
@@ -55,14 +61,17 @@ export async function fetchProject(id: string): Promise<Project> {
   return apiFetch<Project>(`/api/projects/${id}`)
 }
 
-export async function createProject(data: Partial<Project>): Promise<Project> {
+export async function createProject(data: { title: string; brandDescription?: string }): Promise<Project> {
   return apiFetch<Project>("/api/projects", {
     method: "POST",
     body: JSON.stringify(data),
   })
 }
 
-export async function updateProject(id: string, data: Partial<Project>): Promise<Project> {
+export async function updateProject(
+  id: string,
+  data: Partial<{ title: string; brandDescription: string | null }>,
+): Promise<Project> {
   return apiFetch<Project>(`/api/projects/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
@@ -73,43 +82,87 @@ export async function deleteProject(id: string): Promise<void> {
   return apiFetch<void>(`/api/projects/${id}`, { method: "DELETE" })
 }
 
-// ─── Memories ────────────────────────────────────────────────────────────────
-export async function fetchProjectMemories(projectId: string): Promise<MemoryEntry[]> {
-  return apiFetch<MemoryEntry[]>(`/api/projects/${projectId}/memories`)
+// ─── Travaux (livrables) ────────────────────────────────────────────────────
+
+export async function fetchTravaux(projectId?: string): Promise<Travail[]> {
+  const qs = projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""
+  return apiFetch<Travail[]>(`/api/travaux${qs}`)
 }
 
-export async function upsertProjectMemory(
+export async function fetchTravail(travailId: string): Promise<Travail & { messages?: Array<{ id: string; role: string; content: string; createdAt: string }> }> {
+  return apiFetch(`/api/travaux/${travailId}`)
+}
+
+export async function createTravail(
   projectId: string,
+  data: { title: string; posterType?: string; category?: string; format?: string; style?: string },
+): Promise<Travail> {
+  return apiFetch<Travail>(`/api/projects/${projectId}/travaux`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateTravail(
+  travailId: string,
+  data: Partial<{ title: string; posterType: string | null; category: string | null; format: string | null; style: string | null }>,
+): Promise<Travail> {
+  return apiFetch<Travail>(`/api/travaux/${travailId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteTravail(travailId: string): Promise<void> {
+  return apiFetch<void>(`/api/travaux/${travailId}`, { method: "DELETE" })
+}
+
+// ─── Memories (travail-scoped) ──────────────────────────────────────────────
+
+export async function fetchTravailMemories(travailId: string): Promise<MemoryEntry[]> {
+  return apiFetch<MemoryEntry[]>(`/api/travaux/${travailId}/memories`)
+}
+
+export async function upsertTravailMemory(
+  travailId: string,
   memoryKey: string,
   content: Record<string, unknown>,
 ): Promise<MemoryEntry> {
-  // Try create first, fallback to update on 409
   try {
-    return await apiFetch<MemoryEntry>(`/api/projects/${projectId}/memories`, {
+    return await apiFetch<MemoryEntry>(`/api/travaux/${travailId}/memories`, {
       method: "POST",
       body: JSON.stringify({ memoryKey, content }),
     })
-  } catch (e) {
-    // Already exists → patch instead
-    return apiFetch<MemoryEntry>(`/api/projects/${projectId}/memories/${memoryKey}`, {
+  } catch {
+    return apiFetch<MemoryEntry>(`/api/travaux/${travailId}/memories/${memoryKey}`, {
       method: "PATCH",
       body: JSON.stringify({ content }),
     })
   }
 }
 
-export async function getProjectMemory(
-  projectId: string,
+export async function getTravailMemory(
+  travailId: string,
   memoryKey: string,
 ): Promise<MemoryEntry | null> {
   try {
-    return await apiFetch<MemoryEntry>(`/api/projects/${projectId}/memories/${memoryKey}`)
+    return await apiFetch<MemoryEntry>(`/api/travaux/${travailId}/memories/${memoryKey}`)
   } catch {
     return null
   }
 }
 
-// ─── Files ───────────────────────────────────────────────────────────────────
+// Back-compat aliases used widely across the client UI.
+export const fetchProjectMemories = fetchTravailMemories
+export const upsertProjectMemory = upsertTravailMemory
+export const getProjectMemory = getTravailMemory
+
+// ─── Files ──────────────────────────────────────────────────────────────────
+
+/**
+ * Upload un fichier — par défaut rattaché au Project (assets de marque).
+ * Passez `travailId` à la place pour rattacher au livrable courant uniquement.
+ */
 export async function uploadProjectFile(
   projectId: string,
   file: File,
@@ -126,7 +179,8 @@ export async function fetchProjectFiles(projectId: string): Promise<FileAsset[]>
   return apiFetch<FileAsset[]>(`/api/projects/${projectId}/files`)
 }
 
-// ─── Generation orchestration ────────────────────────────────────────────────
+// ─── Orchestration (travail-scoped) ─────────────────────────────────────────
+
 export interface OrchestrationResult {
   success: boolean
   message: string
@@ -140,57 +194,50 @@ export interface OrchestrationResult {
 }
 
 export async function generateFinalPrompt(
-  projectId: string,
+  travailId: string,
   opts?: { force?: boolean },
 ): Promise<OrchestrationResult> {
-  return apiFetch<OrchestrationResult>(`/api/projects/${projectId}/generate-final-prompt`, {
+  return apiFetch<OrchestrationResult>(`/api/travaux/${travailId}/generate-final-prompt`, {
     method: "POST",
     body: JSON.stringify(opts ?? {}),
   })
 }
 
-export async function fetchAgentRuns(projectId: string): Promise<AgentRun[]> {
-  return apiFetch<AgentRun[]>(`/api/projects/${projectId}/agent-runs`)
+export async function fetchAgentRuns(travailId: string): Promise<AgentRun[]> {
+  return apiFetch<AgentRun[]>(`/api/travaux/${travailId}/agent-runs`)
 }
 
-export async function runAgent(agentKey: string, projectId: string, input?: unknown): Promise<unknown> {
-  return apiFetch(`/api/agents-dynamic/${agentKey}/run/${projectId}`, {
+export async function runAgent(agentKey: string, travailId: string, input?: unknown): Promise<unknown> {
+  return apiFetch(`/api/agents-dynamic/${agentKey}/run/${travailId}`, {
     method: "POST",
     body: JSON.stringify(input ?? {}),
   })
 }
 
-// ─── Image generation (Nano Banana / Gemini Image) ──────────────────────────
+// ─── Image generation ───────────────────────────────────────────────────────
 
 export interface GenerateImagesResponse {
-  projectId: string
+  travailId: string
   posters: GeneratedPoster[]
   durationMs: number
 }
 
-/**
- * Trigger N image generations for a project. The project must have M-PROMPT1
- * persisted (i.e. the orchestrator must have run first).
- */
 export async function generateImages(
-  projectId: string,
+  travailId: string,
   options?: { variations?: number; provider?: "mock" | "gemini" | "openai-image" },
 ): Promise<GenerateImagesResponse> {
-  return apiFetch<GenerateImagesResponse>(`/api/projects/${projectId}/generate-images`, {
+  return apiFetch<GenerateImagesResponse>(`/api/travaux/${travailId}/generate-images`, {
     method: "POST",
     body: JSON.stringify(options ?? {}),
   })
 }
 
-/**
- * List all already-generated posters for a project.
- */
-export async function fetchGeneratedPosters(projectId: string): Promise<GeneratedPoster[]> {
-  return apiFetch<GeneratedPoster[]>(`/api/projects/${projectId}/generated-posters`)
+export async function fetchGeneratedPosters(travailId: string): Promise<GeneratedPoster[]> {
+  return apiFetch<GeneratedPoster[]>(`/api/travaux/${travailId}/generated-posters`)
 }
 
-export async function deleteGeneratedPoster(projectId: string, posterId: string): Promise<void> {
-  return apiFetch<void>(`/api/projects/${projectId}/generated-posters/${posterId}`, {
+export async function deleteGeneratedPoster(travailId: string, posterId: string): Promise<void> {
+  return apiFetch<void>(`/api/travaux/${travailId}/generated-posters/${posterId}`, {
     method: "DELETE",
   })
 }
@@ -204,11 +251,11 @@ export interface ExtractedColors {
 }
 
 export async function extractColorsFromLogo(
-  projectId: string,
+  travailId: string,
   imageUrl: string,
 ): Promise<ExtractedColors> {
   const result = await apiFetch<{ success: boolean; data: { colors: ExtractedColors } }>(
-    `/api/projects/${projectId}/extract-colors`,
+    `/api/travaux/${travailId}/extract-colors`,
     { method: "POST", body: JSON.stringify({ imageUrl }) },
   )
   return result.data.colors

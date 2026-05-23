@@ -48,12 +48,12 @@ interface GeneratedVisual {
 }
 
 const QUALITY_LEVELS = [
-  { value: "Draft", label: "Brouillon rapide", desc: "Génération ultra-rapide pour valider la composition de base." },
-  { value: "Standard", label: "Standard", desc: "Qualité optimisée pour les réseaux sociaux et aperçus rapides." },
-  { value: "High", label: "Haute qualité", desc: "Résolution accrue, détails précis pour l'affichage écran." },
-  { value: "Premium", label: "Premium", desc: "Rendu plus détaillé, meilleure cohérence visuelle, adapté aux supports commerciaux." },
-  { value: "Ultra", label: "Ultra réaliste", desc: "Textures ultra-précises, photoréalisme optimisé, éclairage parfait." },
-  { value: "Print", label: "Impression professionnelle", desc: "Format vectorisé/HD 300 DPI idéal pour l'impression physique en grand format." },
+  { value: "Draft", label: "Quick Draft", desc: "Ultra-fast generation to validate the basic composition." },
+  { value: "Standard", label: "Standard", desc: "Optimized quality for social media and quick previews." },
+  { value: "High", label: "High Quality", desc: "Increased resolution, precise details for screen display." },
+  { value: "Premium", label: "Premium", desc: "More detailed render, better visual consistency, suitable for commercial use." },
+  { value: "Ultra", label: "Ultra Realistic", desc: "Ultra-precise textures, optimized photorealism, perfect lighting." },
+  { value: "Print", label: "Print (300dpi)", desc: "High resolution CMYK format for physical printing." }
 ]
 
 const STYLES = [
@@ -144,7 +144,6 @@ function ChatBubble({
     >
       {!isUser && (
         <span
-          className="anim-logo-breathe"
           style={{
             width: 32,
             height: 32,
@@ -173,12 +172,28 @@ function ChatBubble({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 650, color: isUser ? "#fff" : "rgba(255,255,255,0.45)", letterSpacing: "0.02em" }}>
+          <span style={{ 
+            fontSize: isUser ? 11.5 : 13, 
+            fontWeight: isUser ? 650 : 500, 
+            fontFamily: isUser ? "inherit" : "var(--font-artistic), serif",
+            fontStyle: isUser ? "normal" : "italic",
+            color: isUser ? "#fff" : "rgba(255,255,255,0.65)", 
+            letterSpacing: "0.02em" 
+          }}>
             {isUser ? "Vous" : "Studio Flyer AI"}
           </span>
           <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.22)" }}>{relativeTime(message.createdAt)}</span>
         </div>
-        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.72, whiteSpace: "pre-wrap", overflowWrap: "anywhere", color: isUser ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.82)" }}>
+        <p style={{ 
+          margin: 0, 
+          fontSize: 14.5, 
+          lineHeight: 1.72, 
+          whiteSpace: "pre-wrap", 
+          overflowWrap: "anywhere", 
+          fontFamily: "inherit",
+          fontStyle: "normal",
+          color: isUser ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.85)" 
+        }}>
           {textContent}
         </p>
 
@@ -234,7 +249,7 @@ function LoadingBubble() {
   return (
     <div style={{ display: "flex", justifyContent: "flex-start", gap: 12 }}>
       <span
-        className="anim-logo-breathe"
+        className="anim-logo-artistic"
         style={{
           width: 32, height: 32,
           display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -395,16 +410,19 @@ function PanelSection({
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function ChatConversation({
-  conversationId,
+  travailId,
   projectId,
   initialTitle,
 }: {
-  conversationId?: string
+  travailId?: string
   projectId?: string
   initialTitle?: string
 }) {
   const router = useRouter()
   const { user } = useAuth()
+  // Le nom "conversationId" est conservé en interne pour limiter le diff dans
+  // ce fichier — il pointe simplement sur le travailId courant.
+  const conversationId = travailId
 
   // --- States ---
   const [prompt, setPrompt] = useState("")
@@ -483,22 +501,27 @@ export function ChatConversation({
   }
 
   const {
-    activeConversation,
+    activeTravail,
     clearActive,
     error,
     failedMessage,
     isSending,
-    loadConversation,
+    loadTravail,
     retryFailedMessage,
     sendMessage,
     injectAssistantMessage,
   } = useChatStore()
 
-  const messages = (activeConversation?.messages ?? []).filter((message) => message.role !== "system")
+  const messages = (activeTravail?.messages ?? []).filter((message) => message.role !== "system")
   const showRetryError = Boolean(hasSubmittedInView && error && failedMessage)
   const showPassiveError = Boolean(error && !failedMessage && !loadingConversation)
-  const activeId = activeConversation?.id || conversationId
-  const currentProjectId = activeConversation?.projectId || projectId
+  const activeId = activeTravail?.id || conversationId
+  // currentTravailId est l'ID de l'unité de travail courante (livrable) — utilisé
+  // pour toutes les ressources travail-scoped (mémoires, posters, agents, opening).
+  const currentTravailId = activeTravail?.id || conversationId
+  // currentProjectId pointe sur la marque (Project) — utilisé uniquement pour
+  // les uploads de fichiers de marque (logo, brand book).
+  const currentProjectId = activeTravail?.projectId || projectId
   const conversationStarted = messages.length > 0 || Boolean(conversationId)
 
   // Auto-apply brown border when latest assistant message asks an open question (no choices)
@@ -545,10 +568,10 @@ export function ChatConversation({
     }
   }, [conversationStarted])
 
-  // --- Sync Generated Posters from active project ---
+  // --- Sync Generated Posters from active travail ---
   useEffect(() => {
-    if (currentProjectId) {
-      fetchGeneratedPosters(currentProjectId)
+    if (currentTravailId) {
+      fetchGeneratedPosters(currentTravailId)
         .then((posters) => {
           if (posters && posters.length > 0) {
             const mapped: GeneratedVisual[] = posters.map((p) => ({
@@ -581,24 +604,24 @@ export function ChatConversation({
     }
 
     setLoadingConversation(true)
-    loadConversation(conversationId, user?.id ?? "").finally(() => {
+    loadTravail(conversationId, user?.id ?? "").finally(() => {
       if (!cancelled) setLoadingConversation(false)
     })
 
     return () => {
       cancelled = true
     }
-  }, [clearActive, conversationId, loadConversation, user?.id])
+  }, [clearActive, conversationId, loadTravail, user?.id])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [messages.length, isSending, showRetryError, showPassiveError])
 
-  // Restore creative config and assets from backend memory when project loads
+  // Restore creative config and assets from backend memory when travail loads
   useEffect(() => {
-    if (!currentProjectId) return
+    if (!currentTravailId) return
 
-    getProjectMemory(currentProjectId, "M-CREATIVE-BRIEF")
+    getProjectMemory(currentTravailId, "M-CREATIVE-BRIEF")
       .then((entry) => {
         if (!entry?.content) return
         const saved = entry.content as Record<string, unknown>
@@ -613,7 +636,7 @@ export function ChatConversation({
       })
       .catch(() => {})
 
-    getProjectMemory(currentProjectId, "M-ASSETS")
+    getProjectMemory(currentTravailId, "M-ASSETS")
       .then((entry) => {
         if (!entry?.content) return
         const saved = entry.content as Record<string, unknown>
@@ -633,19 +656,19 @@ export function ChatConversation({
       })
       .catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentProjectId])
+  }, [currentTravailId])
 
-  // Auto-generate the assistant opening when a project is opened with no
-  // existing conversation messages. The backend reads project.files, summarises
-  // them and (if needed) creates the conversation + persists the opening.
+  // Auto-generate the assistant opening when a travail is opened with no
+  // existing messages. The backend reads travail.files + travail.project.files,
+  // summarises them and persists the opening message on the travail.
   useEffect(() => {
-    if (!currentProjectId) return
+    if (!currentTravailId) return
     if (loadingConversation || isSending) return
     if (messages.length > 0) return
-    if (openingFetchedRef.current === currentProjectId) return
+    if (openingFetchedRef.current === currentTravailId) return
 
-    openingFetchedRef.current = currentProjectId
-    fetchChatOpening(currentProjectId)
+    openingFetchedRef.current = currentTravailId
+    fetchChatOpening(currentTravailId)
       .then((result) => {
         injectAssistantMessage(
           {
@@ -655,7 +678,7 @@ export function ChatConversation({
             createdAt: result.message.createdAt,
           },
           {
-            conversationId: result.conversationId,
+            travailId: result.travailId,
             projectId: result.projectId,
           },
         )
@@ -665,7 +688,7 @@ export function ChatConversation({
         openingFetchedRef.current = null
       })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentProjectId, loadingConversation, isSending, messages.length])
+  }, [currentTravailId, loadingConversation, isSending, messages.length])
 
   // Drain pending file uploads once a projectId is available
   useEffect(() => {
@@ -677,7 +700,7 @@ export function ChatConversation({
         uploadToCloudinary(file, tempId, assetType, currentProjectId)
       )
     ).then((urls) => {
-      if (urls.some(Boolean)) saveAssetsToMemory(currentProjectId)
+      if (urls.some(Boolean)) saveAssetsToMemory(currentTravailId ?? undefined)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProjectId])
@@ -701,8 +724,8 @@ export function ChatConversation({
     }
   }
 
-  async function saveCreativeBriefToMemory(projectId: string) {
-    await upsertProjectMemory(projectId, "M-CREATIVE-BRIEF", {
+  async function saveCreativeBriefToMemory(travailIdArg: string) {
+    await upsertProjectMemory(travailIdArg, "M-CREATIVE-BRIEF", {
       ...buildVisualConfigPayload(),
       conversationHistory: messages
         .filter((m) => m.role !== "system")
@@ -712,19 +735,18 @@ export function ChatConversation({
     }).catch(() => {})
   }
 
-  async function triggerOrchestratedGeneration(projectId: string) {
+  async function triggerOrchestratedGeneration(travailIdArg: string) {
     if (isGenerating) {
       console.info("[chat] orchestrateur déjà en cours, ignore")
       return
     }
-    console.info("[chat] ▶ orchestrateur démarré pour projectId =", projectId)
+    console.info("[chat] ▶ orchestrateur démarré pour travailId =", travailIdArg)
     setIsGenerating(true)
     try {
       // force: true — l'utilisateur a explicitement demandé "Générer le visuel"
       // après la phase de questions, donc on bypasse le verdict early-exit du
-      // PlannerAgent (qui ne voit que M_SMS et juge souvent ready_for_next_step:
-      // false même quand toutes les infos ont été collectées via le chat).
-      const result = await generateFinalPrompt(projectId, { force: true })
+      // PlannerAgent.
+      const result = await generateFinalPrompt(travailIdArg, { force: true })
       console.info("[chat] orchestrateur terminé", {
         status: (result as { data?: { status?: string } })?.data?.status,
         ready: (result as { data?: { ready_for_generation?: boolean } })?.data?.ready_for_generation,
@@ -770,43 +792,35 @@ export function ChatConversation({
     setAwaitingOther(false)
     setHasSubmittedInView(true)
 
-    // Filet de sécurité : si l'utilisateur clique "Générer le visuel" mais que
-    // la conversation n'a JAMAIS été liée à un projet (cas de DashboardHome
-    // sans upload + sendMessage sans projectId), on crée un projet maintenant
-    // pour permettre à l'orchestrateur de tourner. Sans projet, toute la chaîne
-    // image-gen est désactivée et l'utilisateur ne voit aucune affiche.
-    let effectiveProjectId = projectId || currentProjectId || activeConversation?.projectId
-    if (isVisualTrigger && !effectiveProjectId) {
-      try {
-        const draftTitle = clean.slice(0, 60) || "Brouillon visuel"
-        const newProject = await createProject({ title: draftTitle })
-        effectiveProjectId = (newProject as { id?: string })?.id
-        console.info("[chat] projet créé à la volée pour la génération :", effectiveProjectId)
-      } catch (err) {
-        console.error("[chat] impossible de créer un projet à la volée :", err)
-      }
+    // Le chat exige désormais un travailId mandatory (modèle Travail-centric).
+    // Si on n'en a pas (cas DashboardHome → page froide ouverte sans flow), on
+    // refuse l'envoi avec un message clair plutôt que de tenter une création
+    // silencieuse — c'est à DashboardHome de garantir la création du couple
+    // Project + Travail avant de router vers ici.
+    const effectiveTravailId = currentTravailId || conversationId
+    if (!effectiveTravailId) {
+      console.warn("[chat] message ignoré : aucun travailId actif. Revenez au dashboard pour démarrer un travail.")
+      return
     }
 
-    const nextConversationId = await sendMessage(clean, user.id, effectiveProjectId, buildVisualConfigPayload())
+    const nextTravailId = await sendMessage(clean, user.id, effectiveTravailId, buildVisualConfigPayload())
 
-    if (isVisualTrigger && effectiveProjectId) {
-      await saveCreativeBriefToMemory(effectiveProjectId)
-      triggerOrchestratedGeneration(effectiveProjectId)
-    } else if (isVisualTrigger) {
-      console.warn("[chat] générer le visuel : impossible de déclencher l'orchestrateur (pas de projectId malgré le fallback)")
+    if (isVisualTrigger) {
+      await saveCreativeBriefToMemory(effectiveTravailId)
+      triggerOrchestratedGeneration(effectiveTravailId)
     }
 
-    if (shouldNavigateToConversation(nextConversationId)) {
-      router.push(`/dashboard/c/${nextConversationId}`)
+    if (shouldNavigateToConversation(nextTravailId)) {
+      router.push(`/dashboard/t/${nextTravailId}`)
     }
   }
 
   async function handleRetry() {
     if (!failedMessage || isSending) return
     setHasSubmittedInView(true)
-    const nextConversationId = await retryFailedMessage(user?.id ?? "")
-    if (shouldNavigateToConversation(nextConversationId)) {
-      router.push(`/dashboard/c/${nextConversationId}`)
+    const nextTravailId = await retryFailedMessage(user?.id ?? "")
+    if (shouldNavigateToConversation(nextTravailId)) {
+      router.push(`/dashboard/t/${nextTravailId}`)
     }
   }
 
@@ -854,13 +868,20 @@ export function ChatConversation({
     }
   }
 
-  async function saveAssetsToMemory(projectId: string) {
+  /**
+   * Snapshot M-ASSETS dans la mémoire du travail courant. Si aucun travail
+   * n'existe encore (cas où on est sur DashboardHome avant le premier message),
+   * on no-op : les FileAsset sont déjà persistés et les agents les lisent
+   * directement depuis la table (travail.project.files + travail.files).
+   */
+  async function saveAssetsToMemory(travailIdArg?: string) {
+    if (!travailIdArg) return
     setUploadedAssets((currentAssets) => {
       const successAssets = currentAssets
         .filter((a) => a.status === "success" && !a.url.startsWith("blob:"))
         .map((a) => ({ type: a.type, url: a.url, name: a.name, isPrimary: a.isPrimary }))
       if (successAssets.length > 0) {
-        upsertProjectMemory(projectId, "M-ASSETS", {
+        upsertProjectMemory(travailIdArg, "M-ASSETS", {
           assets: successAssets,
           updatedAt: new Date().toISOString(),
         }).catch(() => {})
@@ -887,8 +908,11 @@ export function ChatConversation({
       setUploadedAssets((prev) => [...prev, newAsset])
 
       if (currentProjectId) {
+        // L'upload reste project-scoped (brand-level asset). La mémoire M-ASSETS
+        // est par contre travail-scoped : on ne la matérialise que si un travail
+        // est actif.
         uploadToCloudinary(file, tempAssetId, activeAssetType, currentProjectId).then((url) => {
-          if (url) saveAssetsToMemory(currentProjectId)
+          if (url) saveAssetsToMemory(currentTravailId ?? undefined)
         })
       } else {
         pendingFilesRef.current.push({ file, tempId: tempAssetId, assetType: activeAssetType })
@@ -921,7 +945,7 @@ export function ChatConversation({
     setUploadedAssets((prev) =>
       prev.map((a) => ({ ...a, isPrimary: a.id === id }))
     )
-    if (currentProjectId) saveAssetsToMemory(currentProjectId)
+    if (currentTravailId) saveAssetsToMemory(currentTravailId)
   }
 
   const ASSET_TYPES_ORDER: UploadedAsset["type"][] = ["logo", "product", "reference", "poster", "other"]
@@ -940,12 +964,12 @@ export function ChatConversation({
   const extractColors = async () => {
     if (isExtractingColors) return
     const succeededAssets = uploadedAssets.filter((a) => a.status === "success" && !a.url.startsWith("blob:"))
-    if (succeededAssets.length === 0 || !currentProjectId) return
+    if (succeededAssets.length === 0 || !currentTravailId) return
     // Use primary asset (any type), fallback to first available
     const sourceAsset = succeededAssets.find((a) => a.isPrimary) ?? succeededAssets[0]
     setIsExtractingColors(true)
     try {
-      const colors = await extractColorsFromLogo(currentProjectId, sourceAsset.url)
+      const colors = await extractColorsFromLogo(currentTravailId, sourceAsset.url)
       setConfig((prev) => ({ ...prev, colors }))
       markTouched("colors")
     } catch {
@@ -962,8 +986,8 @@ export function ChatConversation({
     if (sweepTimerRef.current) clearTimeout(sweepTimerRef.current)
     setSweepActive(true)
     sweepTimerRef.current = setTimeout(() => setSweepActive(false), 700)
-    if (currentProjectId) {
-      upsertProjectMemory(currentProjectId, "M-CREATIVE-BRIEF", buildVisualConfigPayload()).catch(() => {})
+    if (currentTravailId) {
+      upsertProjectMemory(currentTravailId, "M-CREATIVE-BRIEF", buildVisualConfigPayload()).catch(() => {})
     }
   }
 
@@ -982,7 +1006,7 @@ export function ChatConversation({
 
   const downloadWithFormat = async (format: string) => {
     const activeVisual = visuals.find((v) => v.id === selectedVisualId)
-    if (!activeVisual || !currentProjectId) return
+    if (!activeVisual || !currentTravailId) return
     setActiveExportFormat(null)
     // Map UI label → API param
     const FORMAT_MAP: Record<string, { format?: "png" | "jpg" | "pdf" | "webp"; width?: number; quality?: number }> = {
@@ -994,7 +1018,7 @@ export function ChatConversation({
     }
     const opts = FORMAT_MAP[format] ?? { format: "png" }
     try {
-      await downloadGeneratedPoster(currentProjectId, activeVisual.id, opts)
+      await downloadGeneratedPoster(currentTravailId, activeVisual.id, opts)
     } catch (err) {
       // Fallback : si l'endpoint API ne répond pas, on retombe sur la
       // transformation Cloudinary brute (mode dégradé sans auth/logging).
@@ -1005,10 +1029,10 @@ export function ChatConversation({
   const downloadActiveVisual = () => downloadWithFormat("PNG")
 
   async function triggerGeneration(variations = 1) {
-    if (!currentProjectId || isGenerating) return
+    if (!currentTravailId || isGenerating) return
     setIsGenerating(true)
     try {
-      const result = await generateImages(currentProjectId, { variations })
+      const result = await generateImages(currentTravailId, { variations })
       if (result.posters?.length > 0) {
         const mapped: GeneratedVisual[] = result.posters.map((p) => ({
           id: p.id,
@@ -1036,13 +1060,13 @@ export function ChatConversation({
   const requestImprovement = () => triggerGeneration(1)
 
   const deleteActiveVisual = async () => {
-    if (visuals.length <= 1 || !currentProjectId) return
+    if (visuals.length <= 1 || !currentTravailId) return
     const toDelete = selectedVisualId
     const remaining = visuals.filter((v) => v.id !== toDelete)
     setVisuals(remaining)
     setSelectedVisualId(remaining[0].id)
     try {
-      await deleteGeneratedPoster(currentProjectId, toDelete)
+      await deleteGeneratedPoster(currentTravailId, toDelete)
     } catch {
       setVisuals((prev) => {
         const deleted = visuals.find((v) => v.id === toDelete)
@@ -1057,7 +1081,7 @@ export function ChatConversation({
   const qualityDetails = QUALITY_LEVELS.find((q) => q.value === config.quality)
 
   return (
-    <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column", background: "var(--bg-0)", position: "relative" }}>
+    <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column", backgroundColor: "#272727", backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E\")", position: "relative" }}>
       {/* 3-Frame Grid Content Wrapper */}
       <div style={{ flex: 1, minHeight: 0, display: "flex", position: "relative", width: "100%" }}>
 
@@ -1069,7 +1093,7 @@ export function ChatConversation({
             flexDirection: "column",
             minWidth: 0,
             height: "100%",
-            backgroundColor: "#0a0a0c",
+            backgroundColor: "transparent",
             position: "relative",
           }}
           className="frame-center-panel max-md:!w-full"
@@ -1077,7 +1101,7 @@ export function ChatConversation({
           {/* Top vignette for legibility */}
           <div style={{
             position: "absolute", top: 0, left: 0, right: 0, height: 60,
-            background: "linear-gradient(to bottom, #0a0a0c, transparent)",
+            background: "linear-gradient(to bottom, #272727, transparent)",
             pointerEvents: "none", zIndex: 1,
           }} />
 
@@ -1121,7 +1145,7 @@ export function ChatConversation({
           {/* Bottom vignette above input */}
           <div style={{
             position: "absolute", bottom: 0, left: 0, right: 0, height: 110,
-            background: "linear-gradient(to top, rgba(10,10,12,0.98) 45%, transparent)",
+            background: "linear-gradient(to top, rgba(39,39,39,0.98) 45%, transparent)",
             transition: "background 0.35s ease",
             pointerEvents: "none", zIndex: 2,
           }} />
@@ -1162,7 +1186,7 @@ export function ChatConversation({
             flexDirection: "row",
             overflow: "hidden",
             borderLeft: conversationStarted ? "1px solid rgba(255,255,255,0.07)" : "none",
-            background: "rgba(10,10,12,0.78)",
+            background: "#1a2127",
             backdropFilter: "blur(20px) saturate(160%)",
             WebkitBackdropFilter: "blur(20px) saturate(160%)",
             transition: "width 0.35s cubic-bezier(0.4,0,0.2,1)",
@@ -1174,7 +1198,7 @@ export function ChatConversation({
           {conversationStarted && (
             <button
               onClick={() => setRightOpen(!rightOpen)}
-              title={rightOpen ? "Réduire" : "Aperçu du visuel"}
+              title={rightOpen ? "Collapse" : "Visual Preview"}
               style={{
                 width: 28, flexShrink: 0,
                 background: "rgba(255,255,255,0.02)",
@@ -1193,7 +1217,7 @@ export function ChatConversation({
                     fontSize: 8.5, fontWeight: 600, letterSpacing: "0.12em",
                     writingMode: "vertical-rl",
                     color: "var(--ink-3)", textTransform: "uppercase",
-                  }}>Aperçu</span>
+                  }}>Preview</span>
                 </>
               )}
               <Icon name={rightOpen ? "chevronR" : "chevronL"} size={11} />
@@ -1206,12 +1230,11 @@ export function ChatConversation({
             {/* Header */}
             <div style={{ marginBottom: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h2 style={{ fontSize: 10, fontWeight: 650, margin: 0, color: "rgba(255,255,255,0.5)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Aperçu du visuel</h2>
+                <h2 style={{ fontSize: 10, fontWeight: 650, margin: 0, color: "rgba(255,255,255,0.5)", letterSpacing: "0.07em", textTransform: "uppercase" }}>Visual Preview</h2>
               </div>
             </div>
 
-            {/* Éléments importés */}
-            <PanelSection title="Éléments importés" isOpen={isSectionOpen("assets")} onToggle={() => toggleSection("assets")}>
+            <PanelSection title="Imported Assets" isOpen={isSectionOpen("assets")} onToggle={() => toggleSection("assets")}>
               {/* Card grid: uploaded assets + "+" add card */}
               <div
                 onDragOver={handleDragOver}
@@ -1257,7 +1280,7 @@ export function ChatConversation({
                       {/* Star — all types */}
                       <button
                         onClick={(e) => { e.stopPropagation(); setPrimaryAsset(asset.id) }}
-                        title={asset.isPrimary ? "Élément principal ★" : "Définir comme élément principal"}
+                        title={asset.isPrimary ? "Main element ★" : "Set as main element"}
                         className="asset-star-btn"
                         style={{
                           border: 0, borderRight: `1px solid ${asset.isPrimary ? "rgba(255,255,255,0.15)" : "var(--line-2)"}`,
@@ -1272,7 +1295,7 @@ export function ChatConversation({
                       {/* Type badge — click to cycle */}
                       <button
                         onClick={() => cycleAssetType(asset.id)}
-                        title="Changer le type"
+                        title="Change type"
                         style={{
                           border: 0, background: "transparent",
                           color: "var(--ink-3)", fontSize: 9, fontWeight: 600,
@@ -1330,29 +1353,11 @@ export function ChatConversation({
                 </div>
               </div>
 
-              {/* Asset type selector for next upload */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4, marginTop: 8 }}>
-                {(["logo", "product", "reference", "poster", "other"] as const).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setActiveAssetType(type)}
-                    title={`Uploader en tant que: ${ASSET_TYPE_LABELS[type]}`}
-                    style={{
-                      padding: "4px 2px", fontSize: 9.5, borderRadius: 6,
-                      background: activeAssetType === type ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${activeAssetType === type ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)"}`,
-                      color: activeAssetType === type ? "var(--ink-0)" : "var(--ink-3)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {type === "reference" ? "Inspir." : type === "product" ? "Prod." : ASSET_TYPE_LABELS[type]}
-                  </button>
-                ))}
-              </div>
+
             </PanelSection>
 
             {/* A. Large Preview Area */}
-            <PanelSection title="Aperçu du visuel" isOpen={isSectionOpen("preview")} onToggle={() => toggleSection("preview")}>
+            <PanelSection title="Visual Preview" isOpen={isSectionOpen("preview")} onToggle={() => toggleSection("preview")}>
             {activeVisual ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div
@@ -1523,13 +1528,8 @@ export function ChatConversation({
                 {/* Spinner principal */}
                 <div className="cv-gen-spinner" style={{ width: 56, height: 56, borderWidth: 3 }} />
                 <div style={{ zIndex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 650, color: "var(--ink-1)", letterSpacing: "0.02em" }}>
-                    Génération en cours
-                    <span className="cv-gen-dots" />
-                  </div>
-                  <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: "8px 0 0", lineHeight: 1.55, maxWidth: 240 }}>
-                    Analyse du brief, composition du prompt, puis création de vos affiches par Gemini.
-                    Cela prend 1 à 3 minutes.
+                  <p style={{ fontSize: 13, fontWeight: 650, color: "var(--ink-1)", letterSpacing: "0.02em", margin: 0 }}>
+                    Creating...
                   </p>
                 </div>
               </div>
@@ -1553,7 +1553,7 @@ export function ChatConversation({
 
             {/* B. Miniatures gallery at bottom */}
             {visuals.length > 0 && (
-              <PanelSection title="Galerie de variantes" isOpen={isSectionOpen("gallery")} onToggle={() => toggleSection("gallery")}>
+              <PanelSection title="Variant Gallery" isOpen={isSectionOpen("gallery")} onToggle={() => toggleSection("gallery")}>
                 <div style={{
                   display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8,
                   maxHeight: 200, overflowY: "auto", padding: 2

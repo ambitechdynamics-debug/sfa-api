@@ -390,34 +390,12 @@ export const forbiddenRulesService = {
       }
     });
 
-    // 2) Best-effort global entry — needs an admin user as owner (MemoryEntry.userId required).
-    //    If no admin exists, return without entry (definition still updated).
-    const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' }, select: { id: true } });
-    if (!admin) {
-      return { definitionId: definition.id, entryId: null, ruleCount: rules.length };
-    }
-
-    // GLOBAL entries don't have a projectId → can't use the (projectId, memoryDefinitionId) unique
-    // constraint. Look up by definitionId + null projectId, then update or create.
-    const existingEntry = await prisma.memoryEntry.findFirst({
-      where: { memoryDefinitionId: definition.id, projectId: null }
-    });
-
-    const entry = existingEntry
-      ? await prisma.memoryEntry.update({
-          where: { id: existingEntry.id },
-          data: { content: toJsonInput(memoryContent) }
-        })
-      : await prisma.memoryEntry.create({
-          data: {
-            memoryDefinitionId: definition.id,
-            userId: admin.id,
-            projectId: null,
-            content: toJsonInput(memoryContent)
-          }
-        });
-
-    return { definitionId: definition.id, entryId: entry.id, ruleCount: rules.length };
+    // Note: avec le passage à un modèle Travail-centric, MemoryEntry exige un
+    // travailId. La MemoryDefinition M-INTERDITS reste mise à jour (son schema
+    // contient le snapshot des règles), mais on ne matérialise plus d'entry
+    // global — le SafetyAgent lit directement `prisma.forbiddenRule.findMany`
+    // (cf. promptOrchestrator.service.ts §10).
+    return { definitionId: definition.id, entryId: null, ruleCount: rules.length };
   },
 
   /**

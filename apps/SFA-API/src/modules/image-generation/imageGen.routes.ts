@@ -7,16 +7,16 @@ const router = Router({ mergeParams: true });
 
 router.use(authMiddleware);
 
-// POST /api/projects/:projectId/generate-images
-router.post('/:projectId/generate-images', asyncHandler(imageGenController.generate));
+// POST /api/travaux/:travailId/generate-images
+router.post('/:travailId/generate-images', asyncHandler(imageGenController.generate));
 
-// GET /api/projects/:projectId/generated-posters
-router.get('/:projectId/generated-posters', asyncHandler(imageGenController.list));
+// GET /api/travaux/:travailId/generated-posters
+router.get('/:travailId/generated-posters', asyncHandler(imageGenController.list));
 
-// DELETE /api/projects/:projectId/generated-posters/:posterId
-router.delete('/:projectId/generated-posters/:posterId', asyncHandler(imageGenController.deletePoster));
+// DELETE /api/travaux/:travailId/generated-posters/:posterId
+router.delete('/:travailId/generated-posters/:posterId', asyncHandler(imageGenController.deletePoster));
 
-// GET /api/projects/:projectId/generated-posters/:posterId/download
-router.get('/:projectId/generated-posters/:posterId/download', asyncHandler(imageGenController.download));
+// GET /api/travaux/:travailId/generated-posters/:posterId/download
+router.get('/:travailId/generated-posters/:posterId/download', asyncHandler(imageGenController.download));
 
 export default router;

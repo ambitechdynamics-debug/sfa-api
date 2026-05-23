@@ -2,16 +2,18 @@ import { create } from "zustand"
 import { ApiError } from "@/lib/api"
 import { sendChatMessage } from "@/lib/chat"
 import {
-  deleteConversation as apiDeleteConversation,
-  fetchConversation,
-  fetchConversations,
-  updateConversation as apiUpdateConversation,
-  type ApiConversation,
-} from "@/services/conversation.service"
+  deleteTravail as apiDeleteTravail,
+  fetchTravail,
+  fetchTravaux,
+  updateTravail as apiUpdateTravail,
+  type ApiMessage,
+  type ApiTravail,
+} from "@/services/travail.service"
+import type { Travail } from "@/types/project"
 
 const CHAT_ERROR_MESSAGE = "Une erreur est survenue. Veuillez réessayer."
-const CONVERSATION_LOAD_ERROR = "Conversation introuvable ou indisponible."
-const LOCAL_CONVERSATIONS_KEY = "studio-flyer-chat-conversations"
+const TRAVAIL_LOAD_ERROR = "Travail introuvable ou indisponible."
+const LOCAL_TRAVAUX_KEY = "studio-flyer-chat-travaux"
 
 export interface Message {
   id: string
@@ -20,34 +22,40 @@ export interface Message {
   createdAt: string
 }
 
-export interface Conversation {
-  id: string
-  title: string
-  projectId?: string
-  status: "ACTIVE" | "ARCHIVED"
-  updatedAt: string
-  lastMessageAt: string
-  createdAt: string
+/**
+ * Travail enrichi côté client avec sa liste de messages (chargée à la demande).
+ * Compatible avec `ApiTravail` (qui peut contenir `messages?: ApiMessage[]`).
+ */
+export interface TravailWithMessages extends Travail {
   messages?: Message[]
 }
 
 interface ChatState {
-  history: Conversation[]
-  activeConversation: Conversation | null
+  /** Liste plate des travaux pour le sidebar (toutes marques confondues). */
+  travaux: TravailWithMessages[]
+  activeTravail: TravailWithMessages | null
   isLoadingHistory: boolean
   isSending: boolean
   error: string
   failedMessage: string
   failedMessageId: string
+
   fetchHistory: (userId: string) => Promise<void>
-  loadConversation: (id: string, userId: string) => Promise<void>
-  sendMessage: (content: string, userId: string, projectId?: string, visualConfig?: Record<string, unknown>) => Promise<string | undefined>
-  injectAssistantMessage: (message: Message, options: { conversationId: string; projectId?: string; title?: string }) => void
+  loadTravail: (travailId: string, userId: string) => Promise<void>
+  sendMessage: (
+    content: string,
+    userId: string,
+    travailId: string,
+    visualConfig?: Record<string, unknown>,
+  ) => Promise<string | undefined>
+  injectAssistantMessage: (
+    message: Message,
+    options: { travailId: string; projectId?: string; title?: string },
+  ) => void
   retryFailedMessage: (userId: string) => Promise<string | undefined>
   clearActive: () => void
-  renameConversation: (id: string, title: string, userId?: string) => Promise<void>
-  archiveConversation: (id: string, userId?: string) => Promise<void>
-  deleteConversation: (id: string, userId?: string) => Promise<void>
+  renameTravail: (id: string, title: string, userId?: string) => Promise<void>
+  deleteTravail: (id: string, userId?: string) => Promise<void>
   reset: () => void
 }
 
@@ -59,11 +67,7 @@ function tempId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-function isRequestableConversation(id?: string) {
-  return Boolean(id && !id.startsWith("temp-") && !id.startsWith("local-"))
-}
-
-function isLocalConversation(id?: string) {
+function isLocalTravail(id?: string) {
   return Boolean(id?.startsWith("local-"))
 }
 
@@ -73,27 +77,31 @@ function toChatHistory(messages: Message[] = []) {
     .map((message) => ({ role: message.role as "user" | "assistant", content: message.content }))
 }
 
-function normalizeMessageRole(role: NonNullable<ApiConversation["messages"]>[number]["role"]): Message["role"] {
+function normalizeMessageRole(role: ApiMessage["role"]): Message["role"] {
   if (role === "USER") return "user"
   if (role === "ASSISTANT") return "assistant"
   if (role === "SYSTEM") return "system"
-  return role
+  return role as Message["role"]
 }
 
-function normalizeConversation(conversation: ApiConversation): Conversation {
+function normalizeTravail(travail: ApiTravail): TravailWithMessages {
   return {
-    ...conversation,
-    status: (conversation as any).status ?? "ACTIVE",
-    lastMessageAt: (conversation as any).lastMessageAt ?? conversation.updatedAt,
-    messages: conversation.messages?.map((message) => ({
-      ...message,
+    ...travail,
+    messages: travail.messages?.map((message) => ({
+      id: message.id,
       role: normalizeMessageRole(message.role),
+      content: message.content,
+      createdAt: message.createdAt,
     })),
   }
 }
 
 function canUseStorage() {
   return typeof window !== "undefined" && "localStorage" in window
+}
+
+function localTravauxKey(userId: string) {
+  return `${LOCAL_TRAVAUX_KEY}:${userId}`
 }
 
 function isMessage(value: unknown): value is Message {
@@ -107,67 +115,65 @@ function isMessage(value: unknown): value is Message {
   )
 }
 
-function isConversation(value: unknown): value is Conversation {
+function isTravail(value: unknown): value is TravailWithMessages {
   if (!value || typeof value !== "object") return false
   const record = value as Record<string, unknown>
   return (
     typeof record.id === "string" &&
     typeof record.title === "string" &&
+    typeof record.projectId === "string" &&
     typeof record.createdAt === "string" &&
     typeof record.updatedAt === "string" &&
-    (typeof record.lastMessageAt === "string" || record.lastMessageAt === undefined) &&
-    (record.status === "ACTIVE" || record.status === "ARCHIVED" || record.status === undefined) &&
     (record.messages === undefined || (Array.isArray(record.messages) && record.messages.every(isMessage)))
   )
 }
 
-function localConversationsKey(userId: string) {
-  return `${LOCAL_CONVERSATIONS_KEY}:${userId}`
-}
-
-function readLocalConversations(userId: string) {
+function readLocalTravaux(userId: string): TravailWithMessages[] {
   if (!canUseStorage()) return []
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(localConversationsKey(userId)) || "[]") as unknown
-    return Array.isArray(parsed) ? parsed.filter(isConversation) : []
+    const parsed = JSON.parse(window.localStorage.getItem(localTravauxKey(userId)) || "[]") as unknown
+    return Array.isArray(parsed) ? parsed.filter(isTravail) : []
   } catch {
     return []
   }
 }
 
-function writeLocalConversations(userId: string, conversations: Conversation[]) {
+function writeLocalTravaux(userId: string, travaux: TravailWithMessages[]) {
   if (!canUseStorage()) return
-  window.localStorage.setItem(localConversationsKey(userId), JSON.stringify(conversations.slice(0, 20)))
+  window.localStorage.setItem(localTravauxKey(userId), JSON.stringify(travaux.slice(0, 50)))
 }
 
-function upsertHistory(history: Conversation[], conversation: Conversation) {
-  const existing = history.filter((item) => item.id !== conversation.id)
-  return [conversation, ...existing]
+function sortByLastMessage(travaux: TravailWithMessages[]) {
+  return [...travaux].sort(
+    (a, b) =>
+      new Date(b.lastMessageAt || b.updatedAt).getTime() -
+      new Date(a.lastMessageAt || a.updatedAt).getTime(),
+  )
 }
 
-function sortByUpdatedAt(conversations: Conversation[]) {
-  return conversations.sort((a, b) => new Date(b.lastMessageAt || b.updatedAt).getTime() - new Date(a.lastMessageAt || a.updatedAt).getTime())
+function upsertHistory(history: TravailWithMessages[], travail: TravailWithMessages) {
+  const existing = history.filter((item) => item.id !== travail.id)
+  return [travail, ...existing]
 }
 
-function visibleConversations(conversations: Conversation[]) {
-  return conversations.filter((conversation) => conversation.status !== "ARCHIVED")
-}
-
-function mergeConversations(primary: Conversation[], secondary: Conversation[]) {
-  const byId = new Map<string, Conversation>()
-  for (const conversation of [...primary, ...secondary]) {
-    byId.set(conversation.id, conversation)
+function mergeTravaux(primary: TravailWithMessages[], secondary: TravailWithMessages[]) {
+  const byId = new Map<string, TravailWithMessages>()
+  for (const t of [...primary, ...secondary]) {
+    byId.set(t.id, t)
   }
-  return sortByUpdatedAt([...byId.values()])
+  return sortByLastMessage([...byId.values()])
 }
 
-function persistLocalConversation(userId: string, conversation: Conversation) {
-  if (!isLocalConversation(conversation.id)) return
-  writeLocalConversations(userId, sortByUpdatedAt(upsertHistory(readLocalConversations(userId), conversation)))
+function persistLocalTravail(userId: string, travail: TravailWithMessages) {
+  if (!isLocalTravail(travail.id)) return
+  writeLocalTravaux(userId, sortByLastMessage(upsertHistory(readLocalTravaux(userId), travail)))
 }
 
-function removeLocalConversation(userId: string, id: string) {
-  writeLocalConversations(userId, readLocalConversations(userId).filter((conversation) => conversation.id !== id))
+function removeLocalTravail(userId: string, id: string) {
+  writeLocalTravaux(
+    userId,
+    readLocalTravaux(userId).filter((travail) => travail.id !== id),
+  )
 }
 
 function readableChatError(error: unknown) {
@@ -176,8 +182,8 @@ function readableChatError(error: unknown) {
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
-  history: [],
-  activeConversation: null,
+  travaux: [],
+  activeTravail: null,
   isLoadingHistory: false,
   isSending: false,
   error: "",
@@ -187,28 +193,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
   fetchHistory: async (userId: string) => {
     if (!userId) return
     set({ isLoadingHistory: true })
-    const localConversations = visibleConversations(readLocalConversations(userId))
+    const localTravaux = readLocalTravaux(userId)
     try {
-      const conversations = await fetchConversations()
-      set({ history: mergeConversations(visibleConversations(conversations.map(normalizeConversation)), localConversations) })
+      const travaux = await fetchTravaux()
+      set({ travaux: mergeTravaux(travaux.map(normalizeTravail), localTravaux) })
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-        set({ history: [], error: "" })
+        set({ travaux: [], error: "" })
         return
       }
-      set({ history: localConversations })
+      set({ travaux: localTravaux })
     } finally {
       set({ isLoadingHistory: false })
     }
   },
 
-  loadConversation: async (id: string, userId: string) => {
+  loadTravail: async (travailId: string, userId: string) => {
     if (!userId) return
-    if (isLocalConversation(id)) {
-      const conversation = readLocalConversations(userId).find((item) => item.id === id)
+    if (isLocalTravail(travailId)) {
+      const travail = readLocalTravaux(userId).find((item) => item.id === travailId)
       set({
-        activeConversation: conversation ?? null,
-        error: conversation ? "" : CONVERSATION_LOAD_ERROR,
+        activeTravail: travail ?? null,
+        error: travail ? "" : TRAVAIL_LOAD_ERROR,
         failedMessage: "",
         failedMessageId: "",
       })
@@ -216,69 +222,78 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
 
     try {
-      const conversation = await fetchConversation(id)
-      set({ activeConversation: normalizeConversation(conversation), error: "", failedMessage: "", failedMessageId: "" })
+      const travail = await fetchTravail(travailId)
+      set({
+        activeTravail: normalizeTravail(travail),
+        error: "",
+        failedMessage: "",
+        failedMessageId: "",
+      })
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-        set({ activeConversation: null, error: "", failedMessage: "", failedMessageId: "" })
+        set({ activeTravail: null, error: "", failedMessage: "", failedMessageId: "" })
         return
       }
-      const localConversation = readLocalConversations(userId).find((item) => item.id === id)
+      const localTravail = readLocalTravaux(userId).find((item) => item.id === travailId)
       set({
-        activeConversation: localConversation ?? null,
-        error: localConversation ? "" : CONVERSATION_LOAD_ERROR,
+        activeTravail: localTravail ?? null,
+        error: localTravail ? "" : TRAVAIL_LOAD_ERROR,
         failedMessage: "",
         failedMessageId: "",
       })
     }
   },
 
-  injectAssistantMessage: (message, { conversationId, projectId, title }) => {
-    const { activeConversation, history } = get()
+  injectAssistantMessage: (message, { travailId, projectId, title }) => {
+    const { activeTravail, travaux } = get()
     const createdAt = message.createdAt || now()
 
-    // Deduplicate: if a conversation with this id is active and already contains
-    // a message with the same id, do nothing. This makes the action idempotent.
-    if (activeConversation && activeConversation.id === conversationId) {
-      const existing = (activeConversation.messages ?? []).some((m) => m.id === message.id)
+    // Idempotent : si l'active travail correspond et possède déjà ce message, no-op.
+    if (activeTravail && activeTravail.id === travailId) {
+      const existing = (activeTravail.messages ?? []).some((m) => m.id === message.id)
       if (existing) return
-      const updatedConversation: Conversation = {
-        ...activeConversation,
-        projectId: activeConversation.projectId ?? projectId,
-        title: title || activeConversation.title,
+      const updated: TravailWithMessages = {
+        ...activeTravail,
+        title: title || activeTravail.title,
         lastMessageAt: createdAt,
         updatedAt: createdAt,
-        messages: [...(activeConversation.messages ?? []), message],
+        messages: [...(activeTravail.messages ?? []), message],
       }
       set({
-        activeConversation: updatedConversation,
-        history: mergeConversations([updatedConversation], history),
+        activeTravail: updated,
+        travaux: mergeTravaux([updated], travaux),
       })
       return
     }
 
-    // No matching active conversation: create a fresh one with this single message.
-    const fresh: Conversation = {
-      id: conversationId,
-      title: title || "Nouvelle conversation",
-      projectId,
-      status: "ACTIVE",
+    // Pas de match : on en crée un nouveau localement (souvent suite à un fetchOpening).
+    const fresh: TravailWithMessages = {
+      id: travailId,
+      projectId: projectId ?? "",
+      userId: "",
+      title: title || "Nouveau travail",
+      status: "DRAFT",
+      lastMessageAt: createdAt,
       createdAt,
       updatedAt: createdAt,
-      lastMessageAt: createdAt,
       messages: [message],
     }
     set({
-      activeConversation: fresh,
-      history: mergeConversations([fresh], history),
+      activeTravail: fresh,
+      travaux: mergeTravaux([fresh], travaux),
     })
   },
 
-  sendMessage: async (content: string, userId: string, projectId?: string, visualConfig?: Record<string, unknown>) => {
+  sendMessage: async (
+    content: string,
+    userId: string,
+    travailId: string,
+    visualConfig?: Record<string, unknown>,
+  ) => {
     const clean = content.trim()
-    if (!clean || !userId || get().isSending) return undefined
+    if (!clean || !userId || !travailId || get().isSending) return undefined
 
-    const { activeConversation, history } = get()
+    const { activeTravail, travaux } = get()
     const createdAt = now()
     const userMessage: Message = {
       id: tempId("user"),
@@ -287,26 +302,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
       createdAt,
     }
 
-    const conversationBeforeSend: Conversation = activeConversation
-      ? {
-          ...activeConversation,
-          updatedAt: createdAt,
-          lastMessageAt: createdAt,
-          messages: [...(activeConversation.messages ?? []), userMessage],
-        }
-      : {
-          id: tempId("conversation"),
-          title: clean.slice(0, 50),
-          projectId,
-          status: "ACTIVE",
-          createdAt,
-          updatedAt: createdAt,
-          lastMessageAt: createdAt,
-          messages: [userMessage],
-        }
+    const baseTravail: TravailWithMessages =
+      activeTravail && activeTravail.id === travailId
+        ? activeTravail
+        : {
+            id: travailId,
+            projectId: activeTravail?.projectId ?? "",
+            userId,
+            title: clean.slice(0, 50),
+            status: "DRAFT",
+            lastMessageAt: createdAt,
+            createdAt,
+            updatedAt: createdAt,
+            messages: [],
+          }
+
+    const travailBeforeSend: TravailWithMessages = {
+      ...baseTravail,
+      updatedAt: createdAt,
+      lastMessageAt: createdAt,
+      messages: [...(baseTravail.messages ?? []), userMessage],
+    }
 
     set({
-      activeConversation: conversationBeforeSend,
+      activeTravail: travailBeforeSend,
       isSending: true,
       error: "",
       failedMessage: "",
@@ -316,9 +335,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const result = await sendChatMessage({
         message: clean,
-        conversationId: isRequestableConversation(activeConversation?.id) ? activeConversation?.id : undefined,
-        projectId: activeConversation?.projectId || projectId,
-        history: toChatHistory(activeConversation?.messages),
+        travailId,
+        history: toChatHistory(baseTravail.messages),
         visualConfig,
       })
 
@@ -329,31 +347,34 @@ export const useChatStore = create<ChatState>((set, get) => ({
         createdAt: now(),
       }
 
-      const persistedConversation: Conversation = {
-        ...conversationBeforeSend,
-        id: result.conversationId || conversationBeforeSend.id,
-        title: result.title || conversationBeforeSend.title,
-        projectId: result.projectId || conversationBeforeSend.projectId,
+      const persistedTravail: TravailWithMessages = {
+        ...travailBeforeSend,
+        id: result.travailId || travailBeforeSend.id,
+        projectId: result.projectId || travailBeforeSend.projectId,
         updatedAt: assistantMessage.createdAt,
         lastMessageAt: assistantMessage.createdAt,
-        messages: [...(conversationBeforeSend.messages ?? []), assistantMessage],
+        messages: [...(travailBeforeSend.messages ?? []), assistantMessage],
       }
 
-      if (activeConversation?.id && isLocalConversation(activeConversation.id) && !isLocalConversation(persistedConversation.id)) {
-        removeLocalConversation(userId, activeConversation.id)
+      if (isLocalTravail(travailBeforeSend.id) && !isLocalTravail(persistedTravail.id)) {
+        removeLocalTravail(userId, travailBeforeSend.id)
       }
-      persistLocalConversation(userId, persistedConversation)
+      persistLocalTravail(userId, persistedTravail)
 
       set((state) => ({
-        activeConversation: persistedConversation,
-        history: upsertHistory(state.history.length ? state.history : history, persistedConversation),
+        activeTravail: persistedTravail,
+        travaux: upsertHistory(state.travaux.length ? state.travaux : travaux, persistedTravail),
         failedMessage: "",
         failedMessageId: "",
         error: "",
       }))
-      return persistedConversation.id
+      return persistedTravail.id
     } catch (error) {
-      set({ error: readableChatError(error), failedMessage: clean, failedMessageId: userMessage.id })
+      set({
+        error: readableChatError(error),
+        failedMessage: clean,
+        failedMessageId: userMessage.id,
+      })
       return undefined
     } finally {
       set({ isSending: false })
@@ -361,50 +382,57 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   retryFailedMessage: async (userId: string) => {
-    const { activeConversation, failedMessage, failedMessageId, sendMessage } = get()
-    if (failedMessageId && activeConversation?.messages?.some((message) => message.id === failedMessageId)) {
+    const { activeTravail, failedMessage, failedMessageId, sendMessage } = get()
+    if (!activeTravail) return undefined
+    if (
+      failedMessageId &&
+      activeTravail.messages?.some((message) => message.id === failedMessageId)
+    ) {
       set({
-        activeConversation: {
-          ...activeConversation,
-          messages: activeConversation.messages.filter((message) => message.id !== failedMessageId),
+        activeTravail: {
+          ...activeTravail,
+          messages: activeTravail.messages.filter((message) => message.id !== failedMessageId),
         },
       })
     }
-    if (failedMessage) return sendMessage(failedMessage, userId)
+    if (failedMessage) return sendMessage(failedMessage, userId, activeTravail.id)
     return undefined
   },
 
-  clearActive: () => set({ activeConversation: null, error: "", failedMessage: "", failedMessageId: "" }),
+  clearActive: () =>
+    set({ activeTravail: null, error: "", failedMessage: "", failedMessageId: "" }),
 
-  renameConversation: async (id: string, title: string, userId?: string) => {
+  renameTravail: async (id: string, title: string, userId?: string) => {
     const clean = title.trim()
     if (!clean) return
 
-    if (isLocalConversation(id)) {
+    if (isLocalTravail(id)) {
       if (userId) {
-        const updatedLocal = readLocalConversations(userId).map((conversation) => (
-          conversation.id === id ? { ...conversation, title: clean, updatedAt: now() } : conversation
-        ))
-        writeLocalConversations(userId, sortByUpdatedAt(updatedLocal))
+        const updatedLocal = readLocalTravaux(userId).map((travail) =>
+          travail.id === id ? { ...travail, title: clean, updatedAt: now() } : travail,
+        )
+        writeLocalTravaux(userId, sortByLastMessage(updatedLocal))
       }
       set((state) => ({
-        history: state.history.map((conversation) => (
-          conversation.id === id ? { ...conversation, title: clean, updatedAt: now() } : conversation
-        )),
-        activeConversation: state.activeConversation?.id === id
-          ? { ...state.activeConversation, title: clean, updatedAt: now() }
-          : state.activeConversation,
+        travaux: state.travaux.map((travail) =>
+          travail.id === id ? { ...travail, title: clean, updatedAt: now() } : travail,
+        ),
+        activeTravail:
+          state.activeTravail?.id === id
+            ? { ...state.activeTravail, title: clean, updatedAt: now() }
+            : state.activeTravail,
       }))
       return
     }
 
     try {
-      const conversation = normalizeConversation(await apiUpdateConversation(id, { title: clean }))
+      const travail = normalizeTravail(await apiUpdateTravail(id, { title: clean }))
       set((state) => ({
-        history: state.history.map((item) => (item.id === id ? { ...item, ...conversation } : item)),
-        activeConversation: state.activeConversation?.id === id
-          ? { ...state.activeConversation, ...conversation }
-          : state.activeConversation,
+        travaux: state.travaux.map((item) => (item.id === id ? { ...item, ...travail } : item)),
+        activeTravail:
+          state.activeTravail?.id === id
+            ? { ...state.activeTravail, ...travail }
+            : state.activeTravail,
         error: "",
       }))
     } catch {
@@ -412,67 +440,35 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  archiveConversation: async (id: string, userId?: string) => {
-    const updatedAt = now()
-
-    if (isLocalConversation(id)) {
-      if (userId) {
-        const updatedLocal = readLocalConversations(userId).map((conversation) => (
-          conversation.id === id ? { ...conversation, status: "ARCHIVED" as const, updatedAt } : conversation
-        ))
-        writeLocalConversations(userId, sortByUpdatedAt(updatedLocal))
-      }
+  deleteTravail: async (id: string, userId?: string) => {
+    if (isLocalTravail(id)) {
+      if (userId) removeLocalTravail(userId, id)
       set((state) => ({
-        history: state.history.filter((conversation) => conversation.id !== id),
-        activeConversation: state.activeConversation?.id === id
-          ? { ...state.activeConversation, status: "ARCHIVED" as const, updatedAt }
-          : state.activeConversation,
+        travaux: state.travaux.filter((travail) => travail.id !== id),
+        activeTravail: state.activeTravail?.id === id ? null : state.activeTravail,
       }))
       return
     }
 
     try {
-      const conversation = normalizeConversation(await apiUpdateConversation(id, { archived: true }))
+      await apiDeleteTravail(id)
       set((state) => ({
-        history: state.history.filter((item) => item.id !== id),
-        activeConversation: state.activeConversation?.id === id
-          ? { ...state.activeConversation, ...conversation }
-          : state.activeConversation,
-        error: "",
+        travaux: state.travaux.filter((travail) => travail.id !== id),
+        activeTravail: state.activeTravail?.id === id ? null : state.activeTravail,
       }))
     } catch {
       set({ error: CHAT_ERROR_MESSAGE })
     }
   },
 
-  deleteConversation: async (id: string, userId?: string) => {
-    if (isLocalConversation(id)) {
-      if (userId) removeLocalConversation(userId, id)
-      set((state) => ({
-        history: state.history.filter((conversation) => conversation.id !== id),
-        activeConversation: state.activeConversation?.id === id ? null : state.activeConversation,
-      }))
-      return
-    }
-
-    try {
-      await apiDeleteConversation(id)
-      set((state) => ({
-        history: state.history.filter((conversation) => conversation.id !== id),
-        activeConversation: state.activeConversation?.id === id ? null : state.activeConversation,
-      }))
-    } catch {
-      set({ error: CHAT_ERROR_MESSAGE })
-    }
-  },
-
-  reset: () => set({
-    history: [],
-    activeConversation: null,
-    isLoadingHistory: false,
-    isSending: false,
-    error: "",
-    failedMessage: "",
-    failedMessageId: "",
-  }),
+  reset: () =>
+    set({
+      travaux: [],
+      activeTravail: null,
+      isLoadingHistory: false,
+      isSending: false,
+      error: "",
+      failedMessage: "",
+      failedMessageId: "",
+    }),
 }))

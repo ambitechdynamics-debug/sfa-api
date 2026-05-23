@@ -6,7 +6,7 @@ import { saveAgentRun } from '../agents/agents.service';
 
 export interface RunDynamicAgentParams {
   agentKey: string;
-  projectId: string;
+  travailId: string;
   userId: string;
 }
 
@@ -28,24 +28,24 @@ export async function runDynamicAgent(params: RunDynamicAgentParams) {
     throw new AppError(`Agent '${params.agentKey}' is not active`, 400);
   }
 
-  // 2. Fetch Project Data
-  const project = await prisma.project.findUnique({
-    where: { id: params.projectId },
+  // 2. Fetch Travail Data
+  const travail = await prisma.travail.findUnique({
+    where: { id: params.travailId },
     include: {
       memoryEntries: {
         include: { memoryDefinition: true }
-      }
+      },
+      project: { select: { id: true, title: true } }
     }
   });
 
-  if (!project) {
-    throw new AppError('Project not found', 404);
+  if (!travail) {
+    throw new AppError('Travail not found', 404);
   }
 
   // Verify Ownership
-  if (project.userId !== params.userId) {
-    // If we want to allow admins to run agents, we'd check roles here.
-    // For now, assuming standard ownership.
+  if (travail.userId !== params.userId) {
+    throw new AppError('Travail not found or access denied', 404);
   }
 
   // 3. Build Memory Context (INPUT or BOTH)
@@ -55,7 +55,7 @@ export async function runDynamicAgent(params: RunDynamicAgentParams) {
   for (const link of agentDef.memoryLinks) {
     if (link.usageType === 'INPUT' || link.usageType === 'BOTH') {
       const memoryKey = link.memory.key;
-      const memEntry = project.memoryEntries.find(m => m.memoryDefinition.key === memoryKey);
+      const memEntry = travail.memoryEntries.find(m => m.memoryDefinition.key === memoryKey);
 
       if (memEntry) {
         contextMemories[memoryKey] = memEntry.content;
@@ -71,10 +71,11 @@ export async function runDynamicAgent(params: RunDynamicAgentParams) {
 
   // 4. Construct User Prompt
   const userPrompt = `
-## Données du Projet
-- Titre : ${project.title}
-- Type : ${project.posterType || 'Non spécifié'}
-- Catégorie : ${project.category || 'Non spécifiée'}
+## Données du Travail
+- Marque (project) : ${travail.project.title}
+- Livrable (travail) : ${travail.title}
+- Type : ${travail.posterType || 'Non spécifié'}
+- Catégorie : ${travail.category || 'Non spécifiée'}
 
 ## Mémoires Disponibles
 ${JSON.stringify(contextMemories, null, 2)}
@@ -91,7 +92,7 @@ Veuillez traiter ces informations conformément à votre instruction système et
 
   try {
     aiResult = await callTextAI({
-      provider: agentDef.provider.toLowerCase() as any, // MOCK, OPENAI, etc -> mock, openai
+      provider: agentDef.provider.toLowerCase() as 'mock' | 'openai' | 'anthropic' | 'gemini',
       model: agentDef.model,
       systemPrompt: agentDef.systemPrompt,
       userPrompt: userPrompt,
@@ -107,7 +108,7 @@ Veuillez traiter ces informations conformément à votre instruction système et
 
   // 6. Save Agent Run
   await saveAgentRun({
-    projectId: params.projectId,
+    travailId: params.travailId,
     agentName: agentDef.name,
     provider: agentDef.provider,
     model: agentDef.model,
@@ -125,17 +126,10 @@ Veuillez traiter ces informations conformément à votre instruction système et
   const parsedOutput = aiResult.parsed as Record<string, unknown>;
 
   // 7. Save outputs to memory (OUTPUT or BOTH)
-  // Note: Here we assume that the AI returns an object where keys might map to memory keys,
-  // or it just returns a single JSON that we inject into ALL output memories.
-  // For precise mapping, the AI should return { "M_KEY": { ...content } }.
-  // If the AI just returns a single object and there's only one output memory, we map it directly.
   const outputLinks = agentDef.memoryLinks.filter(l => l.usageType === 'OUTPUT' || l.usageType === 'BOTH');
 
   for (const link of outputLinks) {
     const memoryKey = link.memory.key;
-    
-    // If the parsed output contains the memory key at root, use that.
-    // Otherwise, use the entire parsed output.
     let contentToSave = parsedOutput;
     if (parsedOutput[memoryKey] !== undefined) {
       contentToSave = parsedOutput[memoryKey] as Record<string, unknown>;
@@ -143,14 +137,14 @@ Veuillez traiter ces informations conformément à votre instruction système et
 
     await prisma.memoryEntry.upsert({
       where: {
-        projectId_memoryDefinitionId: {
-          projectId: params.projectId,
+        travailId_memoryDefinitionId: {
+          travailId: params.travailId,
           memoryDefinitionId: link.memory.id
         }
       },
       create: {
-        projectId: params.projectId,
-        userId: project.userId,
+        travailId: params.travailId,
+        userId: travail.userId,
         memoryDefinitionId: link.memory.id,
         content: contentToSave as unknown as Prisma.InputJsonValue
       },

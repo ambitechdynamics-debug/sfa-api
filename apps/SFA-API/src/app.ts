@@ -20,7 +20,7 @@ import imageGenRoutes from './modules/image-generation/imageGen.routes';
 import uxMetricsRoutes from './modules/ux-metrics/uxMetrics.routes';
 import metricsRoutes from './modules/metrics/metrics.routes';
 import chatRoutes from './modules/chat/chat.routes';
-import conversationsRoutes from './modules/conversations/conversations.routes';
+import travauxRoutes from './modules/travaux/travaux.routes';
 import stripeRoutes from './modules/stripe/stripe.routes';
 import creationOptionsRoutes from './modules/creation-options/creation-options.routes';
 import showcaseRoutes from './modules/showcase/showcase.routes';
@@ -93,9 +93,10 @@ const ROUTE_MOUNTS = [
   { path: '/auth',           handler: authRoutes },
   { path: '/users',          handler: usersRoutes },
   { path: '/projects',       handler: projectsRoutes },
-  { path: '/projects',       handler: memoryRoutes },
-  { path: '/projects',       handler: orchestratorRoutes },
-  { path: '/projects',       handler: imageGenRoutes },
+  { path: '',                handler: travauxRoutes }, // POST /projects/:id/travaux + /travaux/*
+  { path: '/travaux',        handler: memoryRoutes },         // /travaux/:travailId/memories/*
+  { path: '/travaux',        handler: orchestratorRoutes },   // /travaux/:travailId/{generate-final-prompt|extract-colors|agent-runs}
+  { path: '/travaux',        handler: imageGenRoutes },       // /travaux/:travailId/{generate-images|generated-posters}
   { path: '/agents',         handler: agentsRoutes },
   { path: '/agents-dynamic', handler: agentsDynamicRoutes },
   { path: '',                handler: artisticBaseRoutes },
@@ -106,7 +107,6 @@ const ROUTE_MOUNTS = [
   { path: '/ux-metrics',     handler: uxMetricsRoutes },
   { path: '/metrics',        handler: metricsRoutes },
   { path: '/chat',           handler: chatRoutes },
-  { path: '/conversations',  handler: conversationsRoutes },
   { path: '/stripe',         handler: stripeRoutes },
   { path: '/creation-options', handler: creationOptionsRoutes },
   { path: '/showcase',       handler: showcaseRoutes },

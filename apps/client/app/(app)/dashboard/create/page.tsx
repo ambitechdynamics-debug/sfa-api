@@ -10,7 +10,7 @@ import { Icon } from "@/components/ui/Icon"
 import { Input } from "@/components/ui/Input"
 import { ChatInput, PageContainer, PromptChip } from "@/components/app/dashboard-ui"
 import { Poster } from "@/components/poster/Poster"
-import { createProject, generateFinalPrompt, upsertProjectMemory } from "@/lib/projects"
+import { createProject, createTravail, generateFinalPrompt, upsertTravailMemory } from "@/lib/projects"
 import { trackEvent } from "@/lib/ux-metrics"
 import { ApiError } from "@/lib/api"
 
@@ -61,7 +61,9 @@ export default function DashboardCreatePage() {
 
     try {
       const title = clean.split(/[.!?]/)[0].slice(0, 72) || "Nouvelle création"
-      const project = await createProject({
+      // Modèle Project = marque container, Travail = livrable. On crée les deux d'un coup.
+      const project = await createProject({ title: brand || title })
+      const travail = await createTravail(project.id, {
         title,
         posterType: selectedType.label,
         category: "AI_PROMPT",
@@ -70,21 +72,21 @@ export default function DashboardCreatePage() {
       })
 
       await Promise.allSettled([
-        upsertProjectMemory(project.id, "M-SMS", { description: clean, message: clean, secondary: "" }),
-        upsertProjectMemory(project.id, "M-MD", { type, format, audience: "Client final", objective: "Créer une affiche prête à publier", eventDate: "" }),
-        upsertProjectMemory(project.id, "M-CONTACT", { brand, contact: "" }),
-        upsertProjectMemory(project.id, "M-STYLE", { styles: [tone], precision: "Rapide", notes: "Création via dashboard conversationnel" }),
+        upsertTravailMemory(travail.id, "M-SMS", { description: clean, message: clean, secondary: "" }),
+        upsertTravailMemory(travail.id, "M-MD", { type, format, audience: "Client final", objective: "Créer une affiche prête à publier", eventDate: "" }),
+        upsertTravailMemory(travail.id, "M-CONTACT", { brand, contact: "" }),
+        upsertTravailMemory(travail.id, "M-STYLE", { styles: [tone], precision: "Rapide", notes: "Création via dashboard conversationnel" }),
       ])
 
       try {
-        await generateFinalPrompt(project.id)
+        await generateFinalPrompt(travail.id)
       } catch {
-        trackEvent("final_prompt_generation_failed", { projectId: project.id })
+        trackEvent("final_prompt_generation_failed", { travailId: travail.id })
       }
 
-      trackEvent("generation_completed", { projectId: project.id, type, format })
+      trackEvent("generation_completed", { travailId: travail.id, type, format })
       toast.success("Création lancée")
-      router.push(`/dashboard/projects/${project.id}/result`)
+      router.push(`/dashboard/t/${travail.id}`)
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : "Génération impossible"
       trackEvent("generation_failed", { message: msg, type, format })

@@ -161,7 +161,7 @@ export interface SafetyAgentOutput {
 // ─── Utilitaire de sauvegarde AgentRun ──────────────────
 
 interface SaveAgentRunParams {
-  projectId: string;
+  travailId: string;
   agentName: string;
   provider: string;
   model: string;
@@ -175,7 +175,7 @@ interface SaveAgentRunParams {
 async function saveAgentRun(params: SaveAgentRunParams) {
   return prisma.agentRun.create({
     data: {
-      projectId: params.projectId,
+      travailId: params.travailId,
       agentName: params.agentName,
       provider: params.provider,
       model: params.model,
@@ -188,17 +188,17 @@ async function saveAgentRun(params: SaveAgentRunParams) {
   });
 }
 
-async function upsertMemory(projectId: string, memoryKey: string, content: Prisma.InputJsonValue) {
+async function upsertMemory(travailId: string, memoryKey: string, content: Prisma.InputJsonValue) {
   const def = await prisma.memoryDefinition.findUnique({ where: { key: memoryKey } });
   if (!def) throw new Error(`Memory definition ${memoryKey} not found`);
 
-  // On a besoin de récupérer le projet pour avoir le userId (MemoryEntry requiert userId)
-  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { userId: true } });
-  if (!project) throw new Error(`Project ${projectId} not found`);
+  // userId est dénormalisé sur Travail — on évite un join pour ce read fréquent.
+  const travail = await prisma.travail.findUnique({ where: { id: travailId }, select: { userId: true } });
+  if (!travail) throw new Error(`Travail ${travailId} not found`);
 
   return prisma.memoryEntry.upsert({
-    where: { projectId_memoryDefinitionId: { projectId, memoryDefinitionId: def.id } },
-    create: { projectId, memoryDefinitionId: def.id, userId: project.userId, content },
+    where: { travailId_memoryDefinitionId: { travailId, memoryDefinitionId: def.id } },
+    create: { travailId, memoryDefinitionId: def.id, userId: travail.userId, content },
     update: { content }
   });
 }
@@ -206,14 +206,14 @@ async function upsertMemory(projectId: string, memoryKey: string, content: Prism
 // ─── AGENT 1 : PLANNER ──────────────────────────────────
 
 export interface RunPlannerParams {
-  projectId: string;
+  travailId: string;
   provider?: AIProvider;
   model?: string;
   memorySnapshot?: MemorySnapshot;
 }
 
 export async function runPlannerAgent(params: RunPlannerParams): Promise<PlannerOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('PLANNER_AGENT', params.projectId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('PLANNER_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `${promptText}\n\nAnalyse cette demande et retourne le JSON demandé.`.trim();
 
   let agentRunStatus: 'SUCCESS' | 'FAILED' = 'SUCCESS';
@@ -235,7 +235,7 @@ export async function runPlannerAgent(params: RunPlannerParams): Promise<Planner
   }
 
   await saveAgentRun({
-    projectId: params.projectId,
+    travailId: params.travailId,
     agentName: 'PlannerAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
@@ -249,7 +249,7 @@ export async function runPlannerAgent(params: RunPlannerParams): Promise<Planner
   if (agentRunStatus === 'FAILED') throw new Error(`PlannerAgent failed: ${agentError}`);
 
   if (result && result.parsed) {
-    await saveAgentOutputs('PLANNER_AGENT', params.projectId, result.parsed);
+    await saveAgentOutputs('PLANNER_AGENT', params.travailId, result.parsed);
   }
 
   return result!.parsed as PlannerOutput;
@@ -266,7 +266,7 @@ export interface FileInfo {
 }
 
 export interface RunImageAnalystParams {
-  projectId: string;
+  travailId: string;
   files: FileInfo[];
   provider?: AIProvider;
   model?: string;
@@ -274,7 +274,7 @@ export interface RunImageAnalystParams {
 }
 
 export async function runImageAnalystAgent(params: RunImageAnalystParams): Promise<ImageAnalystOutput[]> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('IMAGE_ANALYST_AGENT', params.projectId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('IMAGE_ANALYST_AGENT', params.travailId, params.memorySnapshot);
   const results: ImageAnalystOutput[] = [];
 
   for (const file of params.files) {
@@ -306,7 +306,7 @@ Retourne le JSON d'analyse demandé.
     }
 
     await saveAgentRun({
-      projectId: params.projectId,
+      travailId: params.travailId,
       agentName: 'ImageAnalystAgent',
       provider: result?.provider ?? params.provider ?? 'mock',
       model: result?.model ?? params.model ?? 'mock-vision',
@@ -322,7 +322,7 @@ Retourne le JSON d'analyse demandé.
     }
   }
 
-  await saveAgentOutputs('IMAGE_ANALYST_AGENT', params.projectId, results);
+  await saveAgentOutputs('IMAGE_ANALYST_AGENT', params.travailId, results);
 
   return results;
 }
@@ -330,7 +330,7 @@ Retourne le JSON d'analyse demandé.
 // ─── AGENT 3 : TEXT ANALYST ─────────────────────────────
 
 export interface RunTextAnalystParams {
-  projectId: string;
+  travailId: string;
   plannerResult: PlannerOutput;
   provider?: AIProvider;
   model?: string;
@@ -338,7 +338,7 @@ export interface RunTextAnalystParams {
 }
 
 export async function runTextAnalystAgent(params: RunTextAnalystParams): Promise<TextAnalystOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('TEXT_ANALYST_AGENT', params.projectId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('TEXT_ANALYST_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `
 ${promptText}
 
@@ -369,7 +369,7 @@ Corrige, améliore et hiérarchise les textes pour cette affiche.
   }
 
   await saveAgentRun({
-    projectId: params.projectId,
+    travailId: params.travailId,
     agentName: 'TextAnalystAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
@@ -383,7 +383,7 @@ Corrige, améliore et hiérarchise les textes pour cette affiche.
   if (agentRunStatus === 'FAILED') throw new Error(`TextAnalystAgent failed: ${agentError}`);
 
   if (result && result.parsed) {
-    await saveAgentOutputs('TEXT_ANALYST_AGENT', params.projectId, result.parsed);
+    await saveAgentOutputs('TEXT_ANALYST_AGENT', params.travailId, result.parsed);
   }
 
   return result!.parsed as TextAnalystOutput;
@@ -392,7 +392,7 @@ Corrige, améliore et hiérarchise les textes pour cette affiche.
 // ─── AGENT 4 : BRAND AGENT ──────────────────────────────
 
 export interface RunBrandAgentParams {
-  projectId: string;
+  travailId: string;
   logoFile?: FileInfo | null;
   imageAnalystResult?: ImageAnalystOutput | null;
   provider?: AIProvider;
@@ -401,7 +401,7 @@ export interface RunBrandAgentParams {
 }
 
 export async function runBrandAgent(params: RunBrandAgentParams): Promise<BrandAgentOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('BRAND_AGENT', params.projectId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('BRAND_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `
 ${promptText}
 
@@ -431,7 +431,7 @@ Structure l'identité visuelle complète et retourne le JSON demandé.
   }
 
   await saveAgentRun({
-    projectId: params.projectId,
+    travailId: params.travailId,
     agentName: 'BrandAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
@@ -445,7 +445,7 @@ Structure l'identité visuelle complète et retourne le JSON demandé.
   if (agentRunStatus === 'FAILED') throw new Error(`BrandAgent failed: ${agentError}`);
 
   if (result && result.parsed) {
-    await saveAgentOutputs('BRAND_AGENT', params.projectId, result.parsed);
+    await saveAgentOutputs('BRAND_AGENT', params.travailId, result.parsed);
   }
 
   return result!.parsed as BrandAgentOutput;
@@ -465,7 +465,7 @@ export interface ArtisticResourceInfo {
 }
 
 export interface RunArtisticBaseParams {
-  projectId: string;
+  travailId: string;
   plannerResult: PlannerOutput;
   artisticResources: ArtisticResourceInfo[];
   provider?: AIProvider;
@@ -474,7 +474,7 @@ export interface RunArtisticBaseParams {
 }
 
 export async function runArtisticBaseAgent(params: RunArtisticBaseParams): Promise<ArtisticBaseOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('ARTISTIC_BASE_AGENT', params.projectId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('ARTISTIC_BASE_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `
 ${promptText}
 
@@ -512,7 +512,7 @@ Sélectionne les ressources les plus appropriées et retourne le JSON demandé.
   }
 
   await saveAgentRun({
-    projectId: params.projectId,
+    travailId: params.travailId,
     agentName: 'ArtisticBaseAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
@@ -531,7 +531,7 @@ Sélectionne les ressources les plus appropriées et retourne le JSON demandé.
   if (agentRunStatus === 'FAILED') throw new Error(`ArtisticBaseAgent failed: ${agentError}`);
 
   if (result && result.parsed) {
-    await saveAgentOutputs('ARTISTIC_BASE_AGENT', params.projectId, result.parsed);
+    await saveAgentOutputs('ARTISTIC_BASE_AGENT', params.travailId, result.parsed);
   }
 
   return result!.parsed as ArtisticBaseOutput;
@@ -540,7 +540,7 @@ Sélectionne les ressources les plus appropriées et retourne le JSON demandé.
 // ─── AGENT 6 : PROMPT ARCHITECT ─────────────────────────
 
 export interface RunPromptArchitectParams {
-  projectId: string;
+  travailId: string;
   plannerResult: PlannerOutput;
   textAnalystResult: TextAnalystOutput;
   brandAgentResult: BrandAgentOutput;
@@ -551,7 +551,7 @@ export interface RunPromptArchitectParams {
 }
 
 export async function runPromptArchitectAgent(params: RunPromptArchitectParams): Promise<PromptArchitectOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('PROMPT_ARCHITECT_AGENT', params.projectId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('PROMPT_ARCHITECT_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `
 ${promptText}
 
@@ -589,7 +589,7 @@ Génère le prompt final M-PROMPT1 professionnel pour cette affiche.
   }
 
   await saveAgentRun({
-    projectId: params.projectId,
+    travailId: params.travailId,
     agentName: 'PromptArchitectAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
@@ -607,7 +607,7 @@ Génère le prompt final M-PROMPT1 professionnel pour cette affiche.
   if (agentRunStatus === 'FAILED') throw new Error(`PromptArchitectAgent failed: ${agentError}`);
 
   if (result && result.parsed) {
-    await saveAgentOutputs('PROMPT_ARCHITECT_AGENT', params.projectId, result.parsed);
+    await saveAgentOutputs('PROMPT_ARCHITECT_AGENT', params.travailId, result.parsed);
   }
 
   return result!.parsed as PromptArchitectOutput;
@@ -616,7 +616,7 @@ Génère le prompt final M-PROMPT1 professionnel pour cette affiche.
 // ─── AGENT 7 : QUALITY AGENT ────────────────────────────
 
 export interface RunQualityAgentParams {
-  projectId: string;
+  travailId: string;
   mPrompt1: PromptArchitectOutput;
   provider?: AIProvider;
   model?: string;
@@ -624,7 +624,7 @@ export interface RunQualityAgentParams {
 }
 
 export async function runQualityAgent(params: RunQualityAgentParams): Promise<QualityAgentOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('QUALITY_AGENT', params.projectId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('QUALITY_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `
 ${promptText}
 
@@ -653,7 +653,7 @@ ${JSON.stringify(params.mPrompt1, null, 2)}
   }
 
   await saveAgentRun({
-    projectId: params.projectId,
+    travailId: params.travailId,
     agentName: 'QualityAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
@@ -667,7 +667,7 @@ ${JSON.stringify(params.mPrompt1, null, 2)}
   if (agentRunStatus === 'FAILED') throw new Error(`QualityAgent failed: ${agentError}`);
 
   if (result && result.parsed) {
-    await saveAgentOutputs('QUALITY_AGENT', params.projectId, result.parsed);
+    await saveAgentOutputs('QUALITY_AGENT', params.travailId, result.parsed);
   }
 
   return result!.parsed as QualityAgentOutput;
@@ -676,7 +676,7 @@ ${JSON.stringify(params.mPrompt1, null, 2)}
 // ─── AGENT 8 : SAFETY AGENT ─────────────────────────────
 
 export interface RunSafetyAgentParams {
-  projectId: string;
+  travailId: string;
   mPrompt1: PromptArchitectOutput;
   /** Règles interdites actives (depuis ForbiddenRule en DB) à injecter en contexte */
   forbiddenRules?: Array<{
@@ -693,7 +693,7 @@ export interface RunSafetyAgentParams {
 }
 
 export async function runSafetyAgent(params: RunSafetyAgentParams): Promise<SafetyAgentOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('SAFETY_AGENT', params.projectId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('SAFETY_AGENT', params.travailId, params.memorySnapshot);
 
   const rulesBlock = (params.forbiddenRules ?? [])
     .map(
@@ -732,7 +732,7 @@ Analyse le prompt ci-dessus. Bloque si violation CRITICAL, amende si HIGH/MEDIUM
   }
 
   await saveAgentRun({
-    projectId: params.projectId,
+    travailId: params.travailId,
     agentName: 'SafetyAgent',
     provider: result?.provider ?? params.provider ?? 'mock',
     model: result?.model ?? params.model ?? 'mock-text',
@@ -749,7 +749,7 @@ Analyse le prompt ci-dessus. Bloque si violation CRITICAL, amende si HIGH/MEDIUM
   if (agentRunStatus === 'FAILED') throw new Error(`SafetyAgent failed: ${agentError}`);
 
   if (result && result.parsed) {
-    await saveAgentOutputs('SAFETY_AGENT', params.projectId, result.parsed);
+    await saveAgentOutputs('SAFETY_AGENT', params.travailId, result.parsed);
   }
 
   return result!.parsed as SafetyAgentOutput;

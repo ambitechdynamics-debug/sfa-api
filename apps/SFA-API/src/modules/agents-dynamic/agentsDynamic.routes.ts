@@ -11,6 +11,6 @@ const router = Router();
 router.use(authMiddleware);
 router.use(requireAdmin);
 
-router.post('/:agentKey/run/:projectId', agentsDynamicController.runAgent);
+router.post('/:agentKey/run/:travailId', agentsDynamicController.runAgent);
 
 export default router;

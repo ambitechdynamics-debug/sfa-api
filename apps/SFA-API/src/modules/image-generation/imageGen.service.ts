@@ -84,27 +84,27 @@ function ratioFromFormat(format: string | null | undefined): '1:1' | '9:16' | '1
  * Renvoie aussi le quality_score s'il est présent dans le payload
  * (utile pour la quality gate en amont de la génération).
  */
-async function getPrompt1Content(projectId: string): Promise<{
+async function getPrompt1Content(travailId: string): Promise<{
   finalPrompt: string;
   negativePrompt?: string;
   qualityScore?: number;
 }> {
   const def = await prisma.memoryDefinition.findUnique({ where: { key: 'M_PROMPT1' } });
   if (!def) {
-    // Fallback historique (M-PROMPT1 tiret) — cf. AUDIT.md §3.
+    // Fallback historique (M-PROMPT1 tiret).
     const altDef = await prisma.memoryDefinition.findUnique({ where: { key: 'M-PROMPT1' } });
     if (!altDef) throw new AppError('Memory definition M_PROMPT1 not found. Run the orchestrator first.', 400);
-    return getPrompt1Entry(projectId, altDef.id);
+    return getPrompt1Entry(travailId, altDef.id);
   }
-  return getPrompt1Entry(projectId, def.id);
+  return getPrompt1Entry(travailId, def.id);
 }
 
-async function getPrompt1Entry(projectId: string, definitionId: string) {
+async function getPrompt1Entry(travailId: string, definitionId: string) {
   const entry = await prisma.memoryEntry.findUnique({
-    where: { projectId_memoryDefinitionId: { projectId, memoryDefinitionId: definitionId } },
+    where: { travailId_memoryDefinitionId: { travailId, memoryDefinitionId: definitionId } },
   });
   if (!entry) {
-    throw new AppError('M_PROMPT1 entry not found for this project. Generate the prompt first.', 400);
+    throw new AppError('M_PROMPT1 entry not found for this travail. Generate the prompt first.', 400);
   }
   const content = entry.content as Record<string, unknown>;
   const finalPrompt = (content.final_prompt as string) ?? (content.finalPrompt as string) ?? '';
@@ -139,16 +139,14 @@ async function ensureQualityAboveThreshold(qualityScore?: number): Promise<void>
   }
 }
 
-async function getArtisticBaseContent(projectId: string): Promise<{ layoutUrl?: string; styleUrl?: string }> {
-  // L'orchestrateur écrit dans M_BA (underscore). On accepte aussi M-BA en
-  // fallback pour ne pas casser les anciennes entrées créées par la version
-  // précédente du service (cf. AUDIT.md §2 / §3 — bug write/read).
+async function getArtisticBaseContent(travailId: string): Promise<{ layoutUrl?: string; styleUrl?: string }> {
+  // L'orchestrateur écrit dans M_BA (underscore). On accepte aussi M-BA en fallback.
   const def =
     (await prisma.memoryDefinition.findUnique({ where: { key: 'M_BA' } })) ||
     (await prisma.memoryDefinition.findUnique({ where: { key: 'M-BA' } }));
   if (!def) return {};
   const entry = await prisma.memoryEntry.findUnique({
-    where: { projectId_memoryDefinitionId: { projectId, memoryDefinitionId: def.id } },
+    where: { travailId_memoryDefinitionId: { travailId, memoryDefinitionId: def.id } },
   });
   if (!entry) return {};
   
@@ -159,22 +157,26 @@ async function getArtisticBaseContent(projectId: string): Promise<{ layoutUrl?: 
   };
 }
 
-async function ensureProjectAccess(projectId: string, userId: string, userRole: string) {
-  const where: Prisma.ProjectWhereInput = userRole === 'ADMIN' ? { id: projectId } : { id: projectId, userId };
-  const project = await prisma.project.findFirst({ where });
-  if (!project) throw new AppError('Project not found or access denied', 404);
-  return project;
+async function ensureTravailAccess(travailId: string, userId: string, userRole: string) {
+  const where: Prisma.TravailWhereInput = userRole === 'ADMIN' ? { id: travailId } : { id: travailId, userId };
+  const travail = await prisma.travail.findFirst({
+    where,
+    include: { project: { select: { id: true, title: true } } },
+  });
+  if (!travail) throw new AppError('Travail not found or access denied', 404);
+  return travail;
 }
 
 /**
- * Récupère les assets uploadés par l'utilisateur (logo, produit, inspiration,
- * affiche de référence, personnage…) pour les passer comme images de référence
- * au générateur. Mapping FileUsageType → type métier image-gen.
+ * Récupère les assets utilisables comme images de référence pour le générateur :
+ *   - les fichiers attachés directement au Travail (références spécifiques au livrable)
+ *   - les fichiers attachés au Project parent (logo, brand book, autres assets de marque)
+ * Mapping FileUsageType → type métier image-gen.
  */
-async function loadUserAssetsForGen(projectId: string): Promise<NonNullable<import('./imageGen.types').ImageGenInput['userAssets']>> {
+async function loadUserAssetsForGen(travailId: string, projectId: string): Promise<NonNullable<import('./imageGen.types').ImageGenInput['userAssets']>> {
   const files = await prisma.fileAsset.findMany({
     where: {
-      projectId,
+      OR: [{ travailId }, { projectId }],
       usageType: { in: ['LOGO', 'PRODUCT_IMAGE', 'REFERENCE_IMAGE', 'PERSON_IMAGE', 'GENERATED_POSTER'] },
     },
     orderBy: { createdAt: 'asc' },
@@ -195,7 +197,7 @@ async function loadUserAssetsForGen(projectId: string): Promise<NonNullable<impo
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 export interface GenerateImagesInput {
-  projectId: string;
+  travailId: string;
   userId: string;
   userRole: string;
   /** Number of variations to produce (default: 4). */
@@ -205,7 +207,7 @@ export interface GenerateImagesInput {
 }
 
 export interface GenerateImagesResult {
-  projectId: string;
+  travailId: string;
   posters: GeneratedPoster[];
   durationMs: number;
 }
@@ -213,24 +215,24 @@ export interface GenerateImagesResult {
 export const imageGenService = {
   async generate(input: GenerateImagesInput): Promise<GenerateImagesResult> {
     const start = Date.now();
-    const project = await ensureProjectAccess(input.projectId, input.userId, input.userRole);
-    const { finalPrompt, negativePrompt, qualityScore } = await getPrompt1Content(project.id);
+    const travail = await ensureTravailAccess(input.travailId, input.userId, input.userRole);
+    const { finalPrompt, negativePrompt, qualityScore } = await getPrompt1Content(travail.id);
 
     // Quality gate : refuse de générer si le score Quality Agent est sous le
     // seuil configuré (par défaut 70). AppSetting `min_quality_score`.
     await ensureQualityAboveThreshold(qualityScore);
 
-    // Récupération + validation des URLs de référence (cf. AUDIT.md §2).
-    const { layoutUrl: rawLayoutUrl, styleUrl: rawStyleUrl } = await getArtisticBaseContent(project.id);
+    // Récupération + validation des URLs de référence.
+    const { layoutUrl: rawLayoutUrl, styleUrl: rawStyleUrl } = await getArtisticBaseContent(travail.id);
     const [layoutUrl, styleUrl] = await Promise.all([
       validateRemoteUrl(rawLayoutUrl),
       validateRemoteUrl(rawStyleUrl),
     ]);
 
-    // Assets uploadés par l'utilisateur (logo, produit, inspiration…) à
-    // transmettre à Gemini comme images de référence — pour que le visuel
-    // généré utilise le vrai logo/produit et pas une invention.
-    const rawUserAssets = await loadUserAssetsForGen(project.id);
+    // Assets uploadés (logo de marque, produit/référence du travail…) transmis
+    // à Gemini comme images de référence pour que le visuel généré utilise les
+    // vrais éléments et pas une invention.
+    const rawUserAssets = await loadUserAssetsForGen(travail.id, travail.projectId);
     const validatedAssets = await Promise.all(
       rawUserAssets.map(async (a) => ({ ...a, validUrl: await validateRemoteUrl(a.url) })),
     );
@@ -239,10 +241,10 @@ export const imageGenService = {
       .map((a) => ({ type: a.type, url: a.validUrl as string }));
 
     const variations = Math.min(8, Math.max(1, input.variations ?? 4));
-    const ratio = ratioFromFormat(project.format);
+    const ratio = ratioFromFormat(travail.format);
 
     // Set status → GENERATING
-    await prisma.project.update({ where: { id: project.id }, data: { status: 'GENERATING' } });
+    await prisma.travail.update({ where: { id: travail.id }, data: { status: 'GENERATING' } });
 
     const adapter = await createImageGenProvider(input.provider);
     const storage = getStorageProvider();
@@ -258,7 +260,7 @@ export const imageGenService = {
           negativePrompt,
           aspectRatio: ratio,
           variationNumber,
-          styleSeed: project.style ?? project.id,
+          styleSeed: travail.style ?? travail.id,
           layoutReferenceUrl: layoutUrl,
           styleReferenceUrl: styleUrl,
           userAssets,
@@ -277,8 +279,8 @@ export const imageGenService = {
         // 3) Persist GeneratedPoster
         const poster = await prisma.generatedPoster.create({
           data: {
-            userId:         project.userId,
-            projectId:      project.id,
+            userId:         travail.userId,
+            travailId:      travail.id,
             imageUrl:       uploaded.fileUrl,
             promptUsed:     finalPrompt,
             variationNumber,
@@ -297,33 +299,33 @@ export const imageGenService = {
     const failures = settled.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
 
     if (posters.length === 0) {
-      // All failed → mark project as failed
-      await prisma.project.update({ where: { id: project.id }, data: { status: 'FAILED' } });
+      // All failed → mark travail as failed
+      await prisma.travail.update({ where: { id: travail.id }, data: { status: 'FAILED' } });
       const reasons = failures.map((f) => (f.reason as Error)?.message ?? 'unknown').join(' | ');
       throw new AppError(`All image generations failed: ${reasons}`, 502);
     }
 
     // At least one succeeded → mark as GENERATED
-    await prisma.project.update({ where: { id: project.id }, data: { status: 'GENERATED' } });
+    await prisma.travail.update({ where: { id: travail.id }, data: { status: 'GENERATED' } });
 
     return {
-      projectId: project.id,
+      travailId: travail.id,
       posters,
       durationMs: Date.now() - start,
     };
   },
 
-  async listForProject(projectId: string, userId: string, userRole: string): Promise<GeneratedPoster[]> {
-    await ensureProjectAccess(projectId, userId, userRole);
+  async listForTravail(travailId: string, userId: string, userRole: string): Promise<GeneratedPoster[]> {
+    await ensureTravailAccess(travailId, userId, userRole);
     return prisma.generatedPoster.findMany({
-      where: { projectId },
+      where: { travailId },
       orderBy: { variationNumber: 'asc' },
     });
   },
 
-  async deletePoster(userId: string, projectId: string, posterId: string): Promise<{ id: string }> {
+  async deletePoster(userId: string, travailId: string, posterId: string): Promise<{ id: string }> {
     const poster = await prisma.generatedPoster.findFirst({
-      where: { id: posterId, projectId, userId },
+      where: { id: posterId, travailId, userId },
     });
     if (!poster) throw new AppError('Poster not found', 404);
     await prisma.generatedPoster.delete({ where: { id: posterId } });
@@ -341,7 +343,7 @@ export const imageGenService = {
   async buildDownloadUrl(input: {
     userId: string;
     userRole: string;
-    projectId: string;
+    travailId: string;
     posterId: string;
     format?: 'png' | 'jpg' | 'pdf' | 'webp';
     width?: number;
@@ -350,9 +352,9 @@ export const imageGenService = {
     const poster = await prisma.generatedPoster.findFirst({
       where:
         input.userRole === 'ADMIN'
-          ? { id: input.posterId, projectId: input.projectId }
-          : { id: input.posterId, projectId: input.projectId, userId: input.userId },
-      include: { project: { select: { title: true } } },
+          ? { id: input.posterId, travailId: input.travailId }
+          : { id: input.posterId, travailId: input.travailId, userId: input.userId },
+      include: { travail: { select: { title: true, project: { select: { title: true } } } } },
     });
     if (!poster) throw new AppError('Poster not found', 404);
 
@@ -381,7 +383,7 @@ export const imageGenService = {
 
     const transformedUrl = baseUrl.replace('/upload/', `/upload/${parts.join(',')}/`);
 
-    const safeTitle = (poster.project?.title || `project-${input.projectId}`)
+    const safeTitle = (poster.travail?.title || poster.travail?.project?.title || `travail-${input.travailId}`)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')

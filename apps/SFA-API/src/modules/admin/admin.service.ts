@@ -174,7 +174,7 @@ export const adminService = {
     return prisma.project.findMany({
       include: {
         user: { select: { id: true, fullName: true, email: true } },
-        _count: { select: { generatedPosters: true, files: true } },
+        _count: { select: { travaux: true, files: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -186,7 +186,13 @@ export const adminService = {
     return prisma.generatedPoster.findMany({
       include: {
         user: { select: { id: true, fullName: true, email: true } },
-        project: { select: { id: true, title: true } },
+        travail: {
+          select: {
+            id: true,
+            title: true,
+            project: { select: { id: true, title: true } }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -199,6 +205,7 @@ export const adminService = {
       include: {
         user: { select: { id: true, fullName: true, email: true } },
         project: { select: { id: true, title: true } },
+        travail: { select: { id: true, title: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -209,7 +216,13 @@ export const adminService = {
   listAgentRuns: async () => {
     return prisma.agentRun.findMany({
       include: {
-        project: { select: { id: true, title: true } },
+        travail: {
+          select: {
+            id: true,
+            title: true,
+            project: { select: { id: true, title: true } }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 200,
@@ -225,7 +238,13 @@ export const adminService = {
       },
       include: {
         user: { select: { id: true, fullName: true, email: true } },
-        project: { select: { id: true, title: true } },
+        travail: {
+          select: {
+            id: true,
+            title: true,
+            project: { select: { id: true, title: true } }
+          }
+        },
         memoryDefinition: { select: { key: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -594,15 +613,15 @@ export const adminService = {
     const questioningThreshold = new Date(now - questioningMax * 60_000);
 
     const [resetGenerating, resetAnalyzing, resetQuestioning] = await Promise.all([
-      prisma.project.updateMany({
+      prisma.travail.updateMany({
         where: { status: 'GENERATING', updatedAt: { lt: generatingThreshold } },
         data: { status: 'FAILED' },
       }),
-      prisma.project.updateMany({
+      prisma.travail.updateMany({
         where: { status: 'ANALYZING', updatedAt: { lt: analyzingThreshold } },
         data: { status: 'FAILED' },
       }),
-      prisma.project.updateMany({
+      prisma.travail.updateMany({
         where: { status: 'QUESTIONING', updatedAt: { lt: questioningThreshold } },
         data: { status: 'DRAFT' },
       }),
