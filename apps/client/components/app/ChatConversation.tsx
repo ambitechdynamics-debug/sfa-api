@@ -720,7 +720,11 @@ export function ChatConversation({
     console.info("[chat] ▶ orchestrateur démarré pour projectId =", projectId)
     setIsGenerating(true)
     try {
-      const result = await generateFinalPrompt(projectId)
+      // force: true — l'utilisateur a explicitement demandé "Générer le visuel"
+      // après la phase de questions, donc on bypasse le verdict early-exit du
+      // PlannerAgent (qui ne voit que M_SMS et juge souvent ready_for_next_step:
+      // false même quand toutes les infos ont été collectées via le chat).
+      const result = await generateFinalPrompt(projectId, { force: true })
       console.info("[chat] orchestrateur terminé", {
         status: (result as { data?: { status?: string } })?.data?.status,
         ready: (result as { data?: { ready_for_generation?: boolean } })?.data?.ready_for_generation,

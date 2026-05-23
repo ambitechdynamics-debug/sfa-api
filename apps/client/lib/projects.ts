@@ -139,10 +139,13 @@ export interface OrchestrationResult {
   }
 }
 
-export async function generateFinalPrompt(projectId: string): Promise<OrchestrationResult> {
+export async function generateFinalPrompt(
+  projectId: string,
+  opts?: { force?: boolean },
+): Promise<OrchestrationResult> {
   return apiFetch<OrchestrationResult>(`/api/projects/${projectId}/generate-final-prompt`, {
     method: "POST",
-    body: JSON.stringify({}),
+    body: JSON.stringify(opts ?? {}),
   })
 }
 
