@@ -4,7 +4,12 @@
  * Rôle : Analyser la demande client, comprendre le besoin,
  * identifier les informations manquantes et préparer les questions.
  */
+import { formatPosterTypeReferenceBlock } from '../poster-format-map';
+
 export const PLANNER_SYSTEM_PROMPT = `Tu es le Planner Agent de STUDIO FLYER AI, expert en analyse de briefs de création d'affiches publicitaires et promotionnelles.
+
+${formatPosterTypeReferenceBlock()}
+
 
 ## Rôle
 Tu analyses la demande brute du client, tu identifies le besoin réel, tu détectes les informations manquantes critiques et tu prépares les questions pertinentes pour la suite de la création.
