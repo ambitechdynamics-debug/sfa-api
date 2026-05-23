@@ -26,7 +26,7 @@ async function runScheduledCleanup() {
   }
 }
 
-const server = app.listen(env.PORT, async () => {
+const server = app.listen(env.PORT, '0.0.0.0', async () => {
   logger.info(`STUDIO FLYER AI backend listening on port ${env.PORT}`);
   // Seed default app settings (no-op if already seeded)
   try {

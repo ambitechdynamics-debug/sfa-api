@@ -44,10 +44,18 @@ export const chatController = {
   sendMessage: async (req: Request, res: Response) => {
     const parsed = chatRequestSchema.safeParse(req.body);
     if (!parsed.success) {
-      logger.warn('[chat] invalid request body', parsed.error.flatten().fieldErrors);
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      logger.warn('[chat] invalid request body', fieldErrors);
+      // Surface the actual missing/invalid field instead of a generic phrase —
+      // critical to diagnose cache-stale clients (old payload shape).
+      const firstMissing = Object.entries(fieldErrors).find(([, msgs]) => Array.isArray(msgs) && msgs.length > 0);
+      const message = firstMissing
+        ? `Requête invalide : ${firstMissing[0]} ${firstMissing[1]?.[0] ?? 'invalide'}`
+        : 'Requête invalide.';
       return res.status(400).json({
         success: false,
-        error: 'Le message ne peut pas être vide.'
+        error: message,
+        fieldErrors,
       });
     }
 
