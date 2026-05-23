@@ -1,16 +1,49 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Icon } from "@/components/ui/Icon"
 import { Button } from "@/components/ui/Button"
 import { EmptyState } from "@/components/app/dashboard-ui"
 import { useProjectStore } from "@/store/project-store"
 import { useAuthStore } from "@/store/auth-store"
+import { createProject, uploadProjectFile, upsertProjectMemory } from "@/lib/projects"
 import type { Project, ProjectStatus } from "@/types/project"
 
 import { useCreationOptionsStore } from "@/store/creation-options-store"
 import { useChatStore } from "@/store/chat-store"
+
+// ─── Home asset zone (horizontal) ───────────────────────────────────────────
+// Permet à l'utilisateur d'attacher logo / produit / inspiration / affiche /
+// personnage AVANT même de taper son brief. Le projet est créé paresseusement
+// à la 1ère upload, et le projectId est passé à sendMessage pour que le chat
+// opening + l'orchestrateur voient les fichiers et puissent poser des
+// questions adaptées (chat multimodal côté API depuis le dernier deploy).
+type HomeAssetType = "logo" | "product" | "reference" | "poster" | "character" | "other"
+interface HomeAsset {
+  id: string
+  name: string
+  type: HomeAssetType
+  url: string
+  status: "uploading" | "success" | "error"
+}
+const HOME_ASSET_LABELS: Record<HomeAssetType, string> = {
+  logo: "Logo",
+  product: "Produit",
+  reference: "Inspiration",
+  poster: "Affiche",
+  character: "Personnage",
+  other: "Autre",
+}
+const HOME_USAGE_MAP: Record<HomeAssetType, string> = {
+  logo: "LOGO",
+  product: "PRODUCT_IMAGE",
+  reference: "REFERENCE_IMAGE",
+  poster: "GENERATED_POSTER",
+  character: "PERSON_IMAGE",
+  other: "OTHER",
+}
+const HOME_ASSET_TYPES: HomeAssetType[] = ["logo", "product", "reference", "poster", "character", "other"]
 
 // Fallback legacy icons si besoin
 const FALLBACK_ICONS: Record<string, string> = {
@@ -229,19 +262,92 @@ export function DashboardHome() {
   const { options, isLoading: isLoadingOptions, fetchOptions } = useCreationOptionsStore()
   const { sendMessage, isSending, error } = useChatStore()
 
+  // ─── Asset zone (horizontale) ──────────────────────────────────────────
+  const [homeAssets, setHomeAssets] = useState<HomeAsset[]>([])
+  const [activeHomeAssetType, setActiveHomeAssetType] = useState<HomeAssetType>("logo")
+  const [lazyProjectId, setLazyProjectId] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  /** Crée (si besoin) un projet brouillon pour rattacher les fichiers uploadés. */
+  async function ensureLazyProject(): Promise<string | null> {
+    if (lazyProjectId) return lazyProjectId
+    try {
+      const draftTitle = promptInput.trim().slice(0, 60) || "Brouillon"
+      const project = await createProject({ title: draftTitle })
+      const id = (project as { id?: string })?.id ?? null
+      if (id) setLazyProjectId(id)
+      return id
+    } catch (err) {
+      console.error("[home] createProject failed", err)
+      return null
+    }
+  }
+
+  async function processHomeFiles(files: File[], type: HomeAssetType) {
+    if (files.length === 0) return
+    const projectId = await ensureLazyProject()
+    if (!projectId) return
+
+    for (const file of files) {
+      if (file.size > 10 * 1024 * 1024) continue
+      const ext = file.name.split(".").pop()?.toLowerCase()
+      if (!["jpg", "jpeg", "png", "webp", "svg"].includes(ext || "")) continue
+
+      const tempId = `home-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const objectUrl = URL.createObjectURL(file)
+      setHomeAssets((prev) => [...prev, { id: tempId, name: file.name, type, url: objectUrl, status: "uploading" }])
+
+      try {
+        const result = await uploadProjectFile(projectId, file, HOME_USAGE_MAP[type] ?? "OTHER")
+        setHomeAssets((prev) => prev.map((a) => (a.id === tempId ? { ...a, url: result.fileUrl, status: "success" } : a)))
+      } catch (err) {
+        console.error("[home] upload failed", err)
+        setHomeAssets((prev) => prev.map((a) => (a.id === tempId ? { ...a, status: "error" } : a)))
+      }
+    }
+
+    // Met à jour la mémoire M-ASSETS pour que l'orchestrateur la voie
+    setHomeAssets((prev) => {
+      const success = prev.filter((a) => a.status === "success" && !a.url.startsWith("blob:"))
+      if (success.length > 0) {
+        upsertProjectMemory(projectId, "M-ASSETS", {
+          assets: success.map((a) => ({ type: a.type, url: a.url, name: a.name })),
+          updatedAt: new Date().toISOString(),
+        }).catch(() => {})
+      }
+      return prev
+    })
+  }
+
+  function removeHomeAsset(id: string) {
+    setHomeAssets((prev) => prev.filter((a) => a.id !== id))
+  }
+
   useEffect(() => {
     loadProjects()
     fetchOptions()
   }, [loadProjects, fetchOptions])
 
-  const filtered = projects
-    .filter((p) => p.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    .filter((p) => filterType === "all" || p.posterType === filterType)
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  // Garde défensif : projects/options/title peuvent être undefined transitoirement
+  // (boot du store, réponse API malformée) — éviter "Cannot read .length on undefined".
+  const safeProjects = Array.isArray(projects) ? projects : []
+  const filtered = safeProjects
+    .filter((p) => (p?.title ?? "").toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter((p) => filterType === "all" || p?.posterType === filterType)
+    .sort((a, b) => new Date(b?.updatedAt ?? 0).getTime() - new Date(a?.updatedAt ?? 0).getTime())
 
   async function handleGenerate() {
     if (!promptInput.trim() || !user?.id || isSending) return
-    const conversationId = await sendMessage(promptInput.trim(), user.id)
+    // On crée TOUJOURS le projet avant le premier message, même sans
+    // fichiers attachés. Sans projectId, la conversation est créée orpheline
+    // et toute la chaîne orchestrateur / image-gen est désactivée.
+    const projectId = await ensureLazyProject()
+    const successAssets = homeAssets
+      .filter((a) => a.status === "success" && !a.url.startsWith("blob:"))
+      .map((a) => ({ type: a.type, url: a.url, name: a.name }))
+    const visualConfig = successAssets.length > 0 ? { assets: successAssets } : undefined
+    const conversationId = await sendMessage(promptInput.trim(), user.id, projectId ?? undefined, visualConfig)
     if (conversationId) {
       router.push(`/dashboard/c/${conversationId}`)
     }
@@ -266,7 +372,7 @@ export function DashboardHome() {
   const greeting = user?.fullName ? `Bonjour, ${user.fullName.split(" ")[0]}` : "Bonjour"
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", background: "#0a0a0c", color: "#fff" }}>
+    <div style={{ flex: 1, height: "100%", overflowY: "auto", display: "flex", flexDirection: "column", background: "#0a0a0c", color: "#fff" }}>
       {/* Rename modal */}
       {renamingId && (
         <div
@@ -296,27 +402,173 @@ export function DashboardHome() {
         </div>
       )}
 
-      <div style={{ maxWidth: 860, width: "100%", margin: "0 auto", padding: "48px 24px 100px", display: "flex", flexDirection: "column", gap: 56 }}>
+      <div style={{ maxWidth: 860, width: "100%", margin: "0 auto", padding: "0 24px 100px", display: "flex", flexDirection: "column", flex: 1 }}>
         
-        {/* TOP SECTION: Greeting & Creation Prompt */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+        {/* TOP SECTION: Greeting & Creation Prompt (Centered vertically) */}
+        <div style={{ 
+          display: "flex", 
+          flexDirection: "column", 
+          alignItems: "center", 
+          justifyContent: "center",
+          textAlign: "center",
+          minHeight: "50vh",
+          paddingTop: "2vh",
+          paddingBottom: "4vh",
+        }}>
           <h1 style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 500, marginBottom: 32, color: "#fff" }}>
             <span style={{ background: "linear-gradient(90deg, #fff, rgba(255,255,255,0.6))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               {greeting}
             </span>
           </h1>
 
-          {/* Unified Prompt Input */}
-          <div style={{ position: "relative", width: "100%", maxWidth: 640 }}>
-            <div style={{
-              display: "flex", alignItems: "center",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 32, padding: "8px 8px 8px 24px",
+          {/* Unified Prompt Input with Integrated Attachments */}
+          <div 
+            style={{ 
+              position: "relative", 
+              width: "100%", 
+              maxWidth: 680,
+              background: dragOver ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${dragOver ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)"}`,
+              borderRadius: 24, 
+              padding: "12px",
               boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
               transition: "border-color 0.2s ease, background 0.2s ease",
-            }}>
-              <Icon name="sparkles" size={18} style={{ color: "rgba(255,255,255,0.4)", marginRight: 16 }} />
+              display: "flex",
+              flexDirection: "column",
+              gap: 12
+            }}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault(); setDragOver(false)
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                processHomeFiles(Array.from(e.dataTransfer.files), activeHomeAssetType)
+              }
+            }}
+          >
+            {/* Attached Assets Row */}
+            {homeAssets.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 8px" }}>
+                {homeAssets.map((a) => (
+                  <div
+                    key={a.id}
+                    title={`${HOME_ASSET_LABELS[a.type]} — ${a.name}`}
+                    style={{
+                      position: "relative", width: 56, height: 56, borderRadius: 12, overflow: "hidden",
+                      border: "1px solid rgba(255,255,255,0.1)", background: "#1a1a1d",
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={a.url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <span style={{
+                      position: "absolute", bottom: 2, left: 2,
+                      padding: "1px 4px", borderRadius: 4,
+                      background: "rgba(0,0,0,0.7)", color: "#fff",
+                      fontSize: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em",
+                    }}>{HOME_ASSET_LABELS[a.type].slice(0, 4)}</span>
+                    {a.status === "uploading" && (
+                      <div style={{
+                        position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <div className="anim-spin" style={{ width: 14, height: 14, borderRadius: 999, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff" }} />
+                      </div>
+                    )}
+                    {a.status === "error" && (
+                      <div style={{ position: "absolute", inset: 0, background: "rgba(255,50,50,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10 }}>!</div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeHomeAsset(a.id)}
+                      title="Retirer"
+                      style={{
+                        position: "absolute", top: 2, right: 2,
+                        width: 16, height: 16, borderRadius: "50%",
+                        background: "rgba(0,0,0,0.7)", color: "#fff",
+                        border: 0, cursor: "pointer", display: "flex",
+                        alignItems: "center", justifyContent: "center",
+                        fontSize: 10, padding: 0,
+                      }}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Input Row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px" }}>
+              <div style={{ position: "relative" }}>
+                {/* Asset Add Button (Paperclip) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const menu = document.getElementById("asset-menu")
+                    if (menu) menu.style.display = menu.style.display === "none" ? "block" : "none"
+                  }}
+                  style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: "rgba(255,255,255,0.06)", border: 0,
+                    color: "rgba(255,255,255,0.7)", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.2s ease"
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                  title="Joindre un fichier"
+                >
+                  <Icon name="plus" size={18} />
+                </button>
+                
+                {/* Asset Menu Popover */}
+                <div 
+                  id="asset-menu"
+                  style={{
+                    display: "none", position: "absolute", bottom: "100%", left: 0, marginBottom: 8,
+                    background: "#1e1f22", border: "1px solid rgba(255,255,255,0.1)", 
+                    borderRadius: 12, padding: 8, width: 180, zIndex: 10,
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.5)"
+                  }}
+                >
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 6, padding: "0 6px", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>Type de fichier</div>
+                  {HOME_ASSET_TYPES.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        setActiveHomeAssetType(t)
+                        document.getElementById("asset-menu")!.style.display = "none"
+                        fileInputRef.current?.click()
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", width: "100%",
+                        padding: "8px 10px", borderRadius: 8, border: 0,
+                        background: "transparent", color: "#fff", fontSize: 13,
+                        textAlign: "left", cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                    >
+                      {HOME_ASSET_LABELS[t]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const files = e.target.files
+                  if (files && files.length > 0) {
+                    processHomeFiles(Array.from(files), activeHomeAssetType)
+                    e.target.value = ""
+                  }
+                }}
+              />
+
               <input
                 value={promptInput}
                 onChange={(e) => setPromptInput(e.target.value)}
@@ -328,12 +580,13 @@ export function DashboardHome() {
                   fontFamily: "inherit",
                 }}
               />
+
               <button
                 type="button"
                 onClick={handleGenerate}
                 disabled={!promptInput.trim() || isSending}
                 style={{
-                  width: 44, height: 44, borderRadius: "50%",
+                  width: 40, height: 40, borderRadius: "50%",
                   background: promptInput.trim() ? "#fff" : "rgba(255,255,255,0.06)",
                   color: promptInput.trim() ? "#000" : "rgba(255,255,255,0.2)",
                   border: 0, display: "flex", alignItems: "center", justifyContent: "center",
@@ -347,17 +600,18 @@ export function DashboardHome() {
               >
                 {isSending ? (
                   <div style={{
-                    width: 18, height: 18, borderRadius: "50%",
+                    width: 16, height: 16, borderRadius: "50%",
                     border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#000",
                     animation: "spin 1s linear infinite"
                   }} />
                 ) : (
-                  <Icon name="arrowUp" size={18} />
+                  <Icon name="arrowUp" size={16} />
                 )}
               </button>
             </div>
+            
             {error && (
-              <div style={{ marginTop: 12, color: "#ff4a4a", fontSize: 13, textAlign: "center" }}>
+              <div style={{ color: "#ff4a4a", fontSize: 13, textAlign: "center", padding: "4px 0" }}>
                 <Icon name="warn" size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
                 {error}
               </div>
@@ -370,8 +624,8 @@ export function DashboardHome() {
               Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="anim-skeleton" style={{ width: 100, height: 32, borderRadius: 100, background: "rgba(255,255,255,0.03)" }} />
               ))
-            ) : options.length > 0 ? (
-              options.map((s) => (
+            ) : (options?.length ?? 0) > 0 ? (
+              (options ?? []).map((s) => (
                 <button
                   key={s.id}
                   onClick={() => handleShortcut(s.slug)}
@@ -423,7 +677,7 @@ export function DashboardHome() {
                 }}
               >
                 <option value="all">Tout</option>
-                {options.map(s => <option key={s.id} value={s.slug}>{s.name}</option>)}
+                {(options ?? []).map(s => <option key={s.id} value={s.slug}>{s.name}</option>)}
               </select>
               <button
                 type="button"

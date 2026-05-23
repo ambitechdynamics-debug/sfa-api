@@ -98,6 +98,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             height: "100%",
             position: "relative",
             overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
           } : {
             width: "100%",
             maxWidth: 1440,
