@@ -335,21 +335,137 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
     }
   }
 
+  // Extraction des URLs d'assets attachés (logo, produit, inspiration…).
+  // Si présents, on bascule sur callVision pour que le provider chat VOIE les
+  // images plutôt que d'en recevoir uniquement la liste sous forme de JSON
+  // dans le system prompt. Limite : 8 images pour borner le payload.
+  type AttachedAsset = { type?: string; url: string; name?: string };
+  const rawAssets = (input.visualConfig?.assets ?? []) as AttachedAsset[];
+  const attachedImageUrls = rawAssets
+    .filter((a) => typeof a?.url === 'string' && a.url.startsWith('http'))
+    .map((a) => a.url)
+    .slice(0, 8);
+  const useVision = attachedImageUrls.length > 0;
+
+  // ─── Inventaire des fichiers déjà attachés au projet ─────────────────
+  // Source 1 (autoritative) : table FileAsset via projectId (DB)
+  // Source 2 (fallback) : visualConfig.assets envoyé par le client
+  // On utilise la DB en priorité car elle reflète l'état réel.
+  type AssetSummaryItem = { label: string; count: number; names: string[] };
+  let projectAssetSummary: AssetSummaryItem[] = [];
+
+  if (input.projectId) {
+    try {
+      const files = await prisma.fileAsset.findMany({
+        where: { projectId: input.projectId },
+        select: { originalName: true, usageType: true },
+      });
+      const LABEL: Record<string, string> = {
+        LOGO: 'Logo',
+        PRODUCT_IMAGE: 'Produit',
+        REFERENCE_IMAGE: 'Inspiration',
+        GENERATED_POSTER: 'Affiche de référence',
+        PERSON_IMAGE: 'Personnage principal',
+        MODEL: 'Modèle',
+        BRAND_GUIDELINE: 'Charte graphique',
+        OTHER: 'Autre',
+      };
+      const byLabel = new Map<string, AssetSummaryItem>();
+      for (const f of files) {
+        const label = LABEL[f.usageType] ?? f.usageType;
+        const item = byLabel.get(label) ?? { label, count: 0, names: [] };
+        item.count++;
+        if (item.names.length < 3) item.names.push(f.originalName);
+        byLabel.set(label, item);
+      }
+      projectAssetSummary = Array.from(byLabel.values());
+    } catch (err) {
+      logger.warn('[chat] failed to load project files for context', err);
+    }
+  }
+
+  // ─── Bloc CONTEXTUEL CRITIQUE injecté à CHAQUE appel ─────────────────
+  // Empêche l'agent de redemander des ressources déjà fournies. Bloc placé
+  // tout en haut du prompt augmenté pour qu'il prime sur les instructions
+  // génériques du DEFAULT_CHAT_SYSTEM_PROMPT.
+  if (projectAssetSummary.length > 0) {
+    const lines = projectAssetSummary
+      .map((it) => `  • ${it.label} : ${it.count} fichier${it.count > 1 ? 's' : ''}${it.names.length ? ` (${it.names.join(', ')})` : ''}`)
+      .join('\n');
+    resolvedSystemPrompt =
+      `═══════════════════════════════════════\n` +
+      `🔴 ÉLÉMENTS IMPORTANTS DÉJÀ FOURNIS — NE PAS REDEMANDER\n` +
+      `═══════════════════════════════════════\n` +
+      `L'utilisateur a déjà uploadé les fichiers suivants via le panneau\n` +
+      `"Éléments importants" du dashboard :\n${lines}\n\n` +
+      `RÈGLES IMPÉRATIVES :\n` +
+      `1. NE JAMAIS demander "Avez-vous un logo / des photos / une charte...".\n` +
+      `   Ces ressources SONT déjà fournies — confirme-les en première phrase.\n` +
+      `2. Ta première réponse DOIT commencer par une confirmation explicite,\n` +
+      `   par exemple : "Parfait, j'ai bien votre logo et 2 photos produit."\n` +
+      `3. Passe IMMÉDIATEMENT à la question suivante du brief (objectif, public\n` +
+      `   cible, message clé, format, couleurs préférées…).\n` +
+      `4. Tu VOIS réellement ces images (mode vision actif) — analyse-les en\n` +
+      `   silence (palette, style, sujet) et utilise tes observations pour\n` +
+      `   poser des questions précises, pas génériques.\n\n` +
+      `═══════════════════════════════════════\n\n` +
+      resolvedSystemPrompt;
+  } else if (input.projectId) {
+    // Projet existe mais 0 fichier — autoriser l'agent à proposer l'upload
+    resolvedSystemPrompt =
+      `═══════════════════════════════════════\n` +
+      `🟡 ÉLÉMENTS IMPORTANTS — AUCUN FICHIER ATTACHÉ\n` +
+      `═══════════════════════════════════════\n` +
+      `Aucun fichier n'a été uploadé dans le panneau "Éléments importants".\n` +
+      `Tu peux suggérer à l'utilisateur d'en ajouter (logo, produit,\n` +
+      `inspiration, affiche, personnage) pour améliorer la fidélité du rendu,\n` +
+      `mais ce n'est PAS bloquant — il peut décrire son projet en mots.\n` +
+      `═══════════════════════════════════════\n\n` +
+      resolvedSystemPrompt;
+  }
+
+  if (useVision) {
+    resolvedSystemPrompt +=
+      `\n\n═══════════════════════════════════════\n` +
+      `IMAGES ATTACHÉES — TRANSMISES EN VISION\n` +
+      `═══════════════════════════════════════\n` +
+      `${attachedImageUrls.length} image(s) ci-jointe(s). Tu les VOIS réellement ` +
+      `comme inlineData. Analyse-les silencieusement (couleurs dominantes, ` +
+      `typographie visible, style, sujet, qualité) et exploite tes observations ` +
+      `pour formuler la prochaine question. N'invente jamais le contenu d'une image.`;
+  }
+
   for (const provider of providers) {
     const model = await resolveChatModel(provider);
-    logger.info('[chat] calling AI provider', { provider, model, agentName: agentProfile.name });
+    logger.info('[chat] calling AI provider', {
+      provider,
+      model,
+      agentName: agentProfile.name,
+      mode: useVision ? 'vision' : 'text',
+      attachmentCount: attachedImageUrls.length,
+    });
 
     try {
       const adapter = await createProvider(provider);
       const reply = (
-        await adapter.callText({
-          provider,
-          model,
-          systemPrompt: resolvedSystemPrompt,
-          userPrompt: buildChatUserPrompt(input.history, input.message),
-          temperature: 0.4,
-          responseFormat: 'text'
-        })
+        useVision
+          ? await adapter.callVision({
+              provider,
+              model,
+              systemPrompt: resolvedSystemPrompt,
+              userPrompt: buildChatUserPrompt(input.history, input.message),
+              imageUrls: attachedImageUrls,
+              temperature: 0.4,
+              responseFormat: 'text',
+            })
+          : await adapter.callText({
+              provider,
+              model,
+              systemPrompt: resolvedSystemPrompt,
+              userPrompt: buildChatUserPrompt(input.history, input.message),
+              temperature: 0.4,
+              responseFormat: 'text',
+            })
       ).trim();
 
       if (!reply) throw new Error('AI provider returned an empty reply');

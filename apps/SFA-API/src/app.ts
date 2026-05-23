@@ -3,8 +3,6 @@ import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env';
-import { prisma } from './config/database';
-import { GeneratedPosterStatus } from '@prisma/client';
 import { notFoundMiddleware, errorMiddleware } from './middlewares/error.middleware';
 import artisticBaseRoutes from './modules/artistic-base/artisticBase.routes';
 import authRoutes from './modules/auth/auth.routes';
@@ -25,6 +23,7 @@ import chatRoutes from './modules/chat/chat.routes';
 import conversationsRoutes from './modules/conversations/conversations.routes';
 import stripeRoutes from './modules/stripe/stripe.routes';
 import creationOptionsRoutes from './modules/creation-options/creation-options.routes';
+import showcaseRoutes from './modules/showcase/showcase.routes';
 const app = express();
 
 app.use(helmet());
@@ -81,76 +80,43 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-app.get('/api/showcase/visuals', async (_req, res, next) => {
-  try {
-    const posters = await prisma.generatedPoster.findMany({
-      where: {
-        status: GeneratedPosterStatus.GENERATED,
-        OR: [
-          { isExample: true },
-          { qualityScore: { gte: 80 } }
-        ]
-      },
-      orderBy: [
-        { isExample: 'desc' },
-        { qualityScore: 'desc' },
-        { createdAt: 'desc' }
-      ],
-      take: 12,
-      select: {
-        id: true,
-        imageUrl: true,
-        promptUsed: true,
-        qualityScore: true,
-        isExample: true,
-        createdAt: true,
-        project: {
-          select: {
-            title: true,
-            category: true,
-          }
-        }
-      }
-    });
+// ─── Montage des routes — double prefix /api et /api/v1 ─────────────────────
+// Les clients existants continuent d'utiliser /api/... sans coupure ; les
+// nouveaux peuvent migrer progressivement vers /api/v1/... qui est désormais
+// le chemin canonique. Quand tous les clients seront sur v1, on pourra
+// déprécier puis retirer /api/ "nu".
+//
+// ⚠️ Les sous-routes sous /api/admin/* (ex: /api/admin/settings) doivent
+// être déclarées AVANT adminRoutes dans la liste — Express respecte l'ordre
+// de mount.
+const ROUTE_MOUNTS = [
+  { path: '/auth',           handler: authRoutes },
+  { path: '/users',          handler: usersRoutes },
+  { path: '/projects',       handler: projectsRoutes },
+  { path: '/projects',       handler: memoryRoutes },
+  { path: '/projects',       handler: orchestratorRoutes },
+  { path: '/projects',       handler: imageGenRoutes },
+  { path: '/agents',         handler: agentsRoutes },
+  { path: '/agents-dynamic', handler: agentsDynamicRoutes },
+  { path: '',                handler: artisticBaseRoutes },
+  { path: '',                handler: forbiddenRulesRoutes },
+  { path: '',                handler: filesRoutes },
+  { path: '/admin/settings', handler: settingsRoutes }, // AVANT /admin
+  { path: '/admin',          handler: adminRoutes },
+  { path: '/ux-metrics',     handler: uxMetricsRoutes },
+  { path: '/metrics',        handler: metricsRoutes },
+  { path: '/chat',           handler: chatRoutes },
+  { path: '/conversations',  handler: conversationsRoutes },
+  { path: '/stripe',         handler: stripeRoutes },
+  { path: '/creation-options', handler: creationOptionsRoutes },
+  { path: '/showcase',       handler: showcaseRoutes },
+];
 
-    const visuals = posters.map(poster => ({
-      id: poster.id,
-      title: poster.project?.title || poster.promptUsed || 'Affiche Studio Flyer AI',
-      imageUrl: poster.imageUrl,
-      category: poster.project?.category || 'Création',
-      createdAt: poster.createdAt.toISOString(),
-      isFeatured: poster.isExample,
-      qualityScore: poster.qualityScore || 0,
-    }));
-
-    res.json(visuals);
-  } catch (error) {
-    next(error);
+for (const prefix of ['/api', '/api/v1']) {
+  for (const { path, handler } of ROUTE_MOUNTS) {
+    app.use(`${prefix}${path}`, handler);
   }
-});
-
-app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/projects', projectsRoutes);
-app.use('/api/projects', memoryRoutes);
-app.use('/api/projects', orchestratorRoutes);
-app.use('/api/projects', imageGenRoutes);
-app.use('/api/agents', agentsRoutes);
-app.use('/api/agents-dynamic', agentsDynamicRoutes);
-// ⚠️  Les routes qui définissent des sous-chemins sous /api/admin/* doivent être
-// montées AVANT app.use('/api/admin', adminRoutes) pour éviter que le routeur
-// admin n'intercepte et ne renvoie un 404 avant d'atteindre leurs handlers.
-app.use('/api', artisticBaseRoutes);
-app.use('/api', forbiddenRulesRoutes);
-app.use('/api', filesRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/admin/settings', settingsRoutes);
-app.use('/api/ux-metrics', uxMetricsRoutes);
-app.use('/api/metrics', metricsRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/conversations', conversationsRoutes);
-app.use('/api/stripe', stripeRoutes);
-app.use('/api/creation-options', creationOptionsRoutes);
+}
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);

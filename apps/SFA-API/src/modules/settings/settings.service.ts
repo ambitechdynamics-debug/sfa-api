@@ -53,6 +53,9 @@ export const DEFAULT_SETTINGS = [
   // Maintenance
   { key: 'maintenance_mode',              value: 'false', category: 'maintenance', isSecret: false, description: 'Mode maintenance activé' },
   { key: 'maintenance_message',           value: 'La plateforme est en cours de maintenance. Revenez bientôt.', category: 'maintenance', isSecret: false, description: 'Message affiché en maintenance' },
+  { key: 'auto_cleanup_enabled',          value: 'true',  category: 'maintenance', isSecret: false, description: 'Active le cron in-app qui débloque les projets coincés (GENERATING/ANALYZING/QUESTIONING)' },
+  { key: 'min_quality_score',             value: '70',    category: 'ia',          isSecret: false, description: 'Seuil minimum du Quality Agent pour autoriser la génération d\'image (0 pour désactiver)' },
+  { key: 'image_ratio_dims',              value: '{"1:1":{"w":1024,"h":1024},"9:16":{"w":1080,"h":1920},"16:9":{"w":1920,"h":1080},"3:4":{"w":1080,"h":1440},"4:3":{"w":1440,"h":1080}}', category: 'providers', isSecret: false, description: 'Dimensions (w/h) par aspect ratio pour le MockImageProvider (JSON). Gemini ignore ces dimensions.' },
 ] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -190,5 +193,76 @@ export const settingsService = {
     const row = await prisma.appSetting.findUnique({ where: { key } });
     if (!row) throw new AppError(`Setting "${key}" not found`, 404);
     return sanitizeSetting(row);
+  },
+
+  /**
+   * Liste les valeurs effectives résolues par le backend, en indiquant
+   * d'où chaque valeur provient :
+   *   - "db"      : la valeur AppSetting est non vide et est utilisée
+   *   - "env"     : AppSetting vide, fallback sur process.env[envFallback]
+   *   - "default" : aucune source → le code interne utilise un défaut codé
+   *   - "missing" : aucune source ET pas de défaut connu (à configurer)
+   *
+   * Utile pour comprendre pourquoi un provider/clé semble "ne pas marcher"
+   * malgré la config admin — souvent l'env override silencieusement.
+   */
+  listEffective: async () => {
+    // Mapping AppSetting key → env var qui peut shadower
+    const ENV_FALLBACKS: Record<string, string> = {
+      openai_api_key: 'OPENAI_API_KEY',
+      anthropic_api_key: 'ANTHROPIC_API_KEY',
+      gemini_api_key: 'GEMINI_API_KEY',
+      openai_model: 'AI_MODEL',
+      anthropic_model: 'AI_MODEL',
+      gemini_model: 'AI_MODEL',
+      default_model: 'AI_DEFAULT_TEXT_MODEL',
+      text_ai_provider: 'AI_DEFAULT_TEXT_PROVIDER',
+      image_gen_provider: 'IMAGE_GEN_PROVIDER',
+      image_gen_model: 'IMAGE_GEN_MODEL',
+    };
+
+    const rows = await prisma.appSetting.findMany({
+      orderBy: [{ category: 'asc' }, { key: 'asc' }],
+    });
+
+    const result = rows.map((row) => {
+      const dbValue = row.value?.trim() ?? '';
+      const envName = ENV_FALLBACKS[row.key];
+      const envValue = envName ? (process.env[envName]?.trim() ?? '') : '';
+
+      let source: 'db' | 'env' | 'default' | 'missing';
+      let effective: string;
+
+      if (dbValue.length > 0) {
+        source = 'db';
+        effective = dbValue;
+      } else if (envValue.length > 0) {
+        source = 'env';
+        effective = envValue;
+      } else {
+        const defaults = DEFAULT_SETTINGS.find((d) => d.key === row.key);
+        if (defaults?.value && defaults.value.trim().length > 0) {
+          source = 'default';
+          effective = defaults.value;
+        } else {
+          source = 'missing';
+          effective = '';
+        }
+      }
+
+      return {
+        key: row.key,
+        category: row.category,
+        isSecret: row.isSecret,
+        description: row.description,
+        source,
+        envFallback: envName ?? null,
+        dbValue: row.isSecret ? (dbValue ? maskSecret(dbValue) : '') : dbValue,
+        envValue: row.isSecret ? (envValue ? maskSecret(envValue) : '') : envValue,
+        effective: row.isSecret ? (effective ? maskSecret(effective) : '') : effective,
+      };
+    });
+
+    return result;
   },
 };

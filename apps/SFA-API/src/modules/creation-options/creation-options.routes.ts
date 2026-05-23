@@ -1,7 +1,6 @@
 import { Router } from "express";
 import * as creationOptionsController from "./creation-options.controller";
-import { authenticate } from "../../middlewares/auth.middleware";
-import { requireAdmin } from "../../middlewares/admin.middleware";
+import { authMiddleware as authenticate, requireAdmin } from "../../middlewares/auth.middleware";
 
 const router = Router();
 

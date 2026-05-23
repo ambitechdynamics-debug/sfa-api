@@ -39,4 +39,10 @@ export const settingsController = {
     await settingsService.deleteMany(keys);
     return sendSuccess(res, 'Settings deleted successfully', {});
   },
+
+  /** GET /admin/settings/effective  →  valeurs résolues + source (db|env|default|missing) */
+  listEffective: async (_req: Request, res: Response) => {
+    const data = await settingsService.listEffective();
+    return sendSuccess(res, 'Effective settings retrieved successfully', data);
+  },
 };

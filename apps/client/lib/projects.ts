@@ -1,5 +1,51 @@
 import { apiFetch, apiUpload } from "./api"
+import { getSessionToken } from "@/services/auth.service"
 import type { Project, MemoryEntry, FileAsset, AgentRun, GeneratedPoster } from "@/types/project"
+
+/**
+ * Télécharge une affiche générée via l'endpoint API
+ *   GET /api/projects/:projectId/generated-posters/:posterId/download
+ * Le backend redirige (302) vers Cloudinary avec fl_attachment, fetch suit
+ * automatiquement et nous récupérons le Blob. Le filename vient du
+ * Content-Disposition du backend si présent, sinon fallback.
+ */
+export async function downloadGeneratedPoster(
+  projectId: string,
+  posterId: string,
+  opts: { format?: "png" | "jpg" | "pdf" | "webp"; width?: number; quality?: number } = {}
+): Promise<void> {
+  const params = new URLSearchParams()
+  if (opts.format) params.set("format", opts.format)
+  if (opts.width) params.set("width", String(opts.width))
+  if (opts.quality) params.set("quality", String(opts.quality))
+  const qs = params.toString()
+  const url = `/api/projects/${projectId}/generated-posters/${posterId}/download${qs ? `?${qs}` : ""}`
+
+  const token = await getSessionToken()
+  const response = await fetch(url, {
+    method: "GET",
+    credentials: "include",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+
+  if (!response.ok) {
+    throw new Error(`Téléchargement échoué (${response.status})`)
+  }
+
+  const blob = await response.blob()
+  const disposition = response.headers.get("content-disposition") ?? ""
+  const match = /filename="?([^";]+)"?/i.exec(disposition)
+  const filename = match?.[1] ?? `poster-${posterId}.${opts.format ?? "jpg"}`
+
+  const objectUrl = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = objectUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(objectUrl)
+}
 
 export async function fetchProjects(): Promise<Project[]> {
   return apiFetch<Project[]>("/api/projects")

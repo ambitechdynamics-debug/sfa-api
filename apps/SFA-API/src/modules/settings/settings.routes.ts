@@ -11,6 +11,8 @@ const router = Router();
 router.use(authMiddleware, requireAdmin);
 
 router.get('/',                          asyncHandler(settingsController.getAll));
+// IMPORTANT : /effective doit être déclaré AVANT /:key pour ne pas être intercepté
+router.get('/effective',                 asyncHandler(settingsController.listEffective));
 router.get('/category/:category',        asyncHandler(settingsController.getByCategory));
 router.get('/:key', validate({ params: settingKeyParamSchema }), asyncHandler(settingsController.getOne));
 router.put('/', validate({ body: upsertSettingsSchema }),        asyncHandler(settingsController.upsertMany));

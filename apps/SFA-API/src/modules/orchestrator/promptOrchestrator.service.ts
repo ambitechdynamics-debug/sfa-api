@@ -20,6 +20,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { AppError } from '../../utils/appError';
 import { AIProvider } from '../ai/ai.types';
+import { buildMemorySnapshot, type MemorySnapshot } from '../agents/dynamic-context.service';
 import {
   runPlannerAgent,
   runImageAnalystAgent,
@@ -219,6 +220,19 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     throw new AppError('Project not found or access denied', 404);
   }
 
+  // ─── Snapshot mémoire partagé : évite à chaque agent de re-query Prisma
+  // (gain ≈10-15 queries par cycle). Le snapshot est rebuild une fois après
+  // chaque écriture orchestrateur (M_SMS, M_QT1, M_ID, M_BA, M_PROMPT1) pour
+  // que les agents en aval voient les nouvelles entrées.
+  let memorySnapshot: MemorySnapshot = buildMemorySnapshot(project.memoryEntries);
+  const refreshSnapshot = async () => {
+    const fresh = await prisma.memoryEntry.findMany({
+      where: { projectId: options.projectId },
+      include: { memoryDefinition: { select: { key: true } } },
+    });
+    memorySnapshot = buildMemorySnapshot(fresh);
+  };
+
   // ─── 2. Auto-peupler M_SMS depuis M-CREATIVE-BRIEF si absent ────
 
   const mSmsEntry = project.memoryEntries.find(
@@ -239,6 +253,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
           auto_populated: true,
           populated_at: new Date().toISOString(),
         } as unknown as Prisma.InputJsonValue);
+        await refreshSnapshot();
       }
     }
   }
@@ -259,7 +274,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
           usageType: f.usageType
         })),
         provider: options.visionProvider,
-        model: options.visionModel
+        model: options.visionModel,
+        memorySnapshot
       });
 
       agentsExecuted.push('ImageAnalystAgent');
@@ -271,6 +287,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
         generated_at: new Date().toISOString()
       };
       await upsertMemory(options.projectId, 'M_MD', mdContent as unknown as Prisma.InputJsonValue);
+      await refreshSnapshot();
     } catch (err) {
       // Non bloquant : continuer même si l'analyse image échoue
       console.warn('ImageAnalystAgent warning:', err instanceof Error ? err.message : err);
@@ -285,7 +302,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     plannerResult = await runPlannerAgent({
       projectId: options.projectId,
       provider: options.provider,
-      model: options.model
+      model: options.model,
+      memorySnapshot
     });
     agentsExecuted.push('PlannerAgent');
   } catch (err) {
@@ -298,6 +316,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     missing_information: plannerResult.missing_information,
     generated_at: new Date().toISOString()
   } as unknown as Prisma.InputJsonValue);
+  await refreshSnapshot();
 
   // Mettre à jour le projet avec les métadonnées extraites
   await prisma.project.update({
@@ -345,23 +364,63 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   const logoFile = project.files.find(f => f.usageType === 'LOGO') ?? null;
   const firstImageAnalysis = imageAnalystResults.find(r => r.logo_analysis?.is_logo_present) ?? imageAnalystResults[0] ?? null;
 
-  // ArtisticResource query — récupéré une fois, partagé avec ArtisticBase
-  const artisticResources = await prisma.artisticResource.findMany({
-    where: {
-      OR: [
-        { category: { equals: plannerResult.category, mode: 'insensitive' } },
-        { category: { contains: plannerResult.poster_type, mode: 'insensitive' } }
-      ]
-    },
-    take: 20
-  });
+  // ArtisticResource query — récupéré une fois, partagé avec ArtisticBase.
+  // On élargit progressivement le filtre : strict d'abord (category exact /
+  // contains poster_type), puis fuzzy (chaque mot du category/poster_type/style
+  // utilisé comme contains), puis fallback global (top 20 dernières maj) pour
+  // éviter de passer 0 ressource à l'agent. Cf. AUDIT.md §5.
+  async function fetchArtisticResources() {
+    const strict = await prisma.artisticResource.findMany({
+      where: {
+        OR: [
+          { category: { equals: plannerResult.category, mode: 'insensitive' } },
+          { category: { contains: plannerResult.poster_type, mode: 'insensitive' } },
+        ],
+      },
+      take: 20,
+    });
+    if (strict.length > 0) return strict;
+
+    // Fuzzy : chaque mot >= 4 lettres de category/poster_type/style/objective
+    const words = Array.from(
+      new Set(
+        [plannerResult.category, plannerResult.poster_type, plannerResult.style, plannerResult.objective]
+          .filter(Boolean)
+          .flatMap((s) => String(s).split(/\s+/))
+          .map((w) => w.trim().toLowerCase())
+          .filter((w) => w.length >= 4),
+      ),
+    );
+    if (words.length > 0) {
+      const fuzzy = await prisma.artisticResource.findMany({
+        where: {
+          OR: words.flatMap((w) => [
+            { category: { contains: w, mode: 'insensitive' as const } },
+            { title: { contains: w, mode: 'insensitive' as const } },
+          ]),
+        },
+        take: 20,
+      });
+      if (fuzzy.length > 0) return fuzzy;
+    }
+
+    // Fallback global : on prend les 20 ressources les plus récentes pour que
+    // l'agent ait au moins de quoi proposer + sélectionner une URL.
+    return prisma.artisticResource.findMany({
+      orderBy: { updatedAt: 'desc' },
+      take: 20,
+    });
+  }
+
+  const artisticResources = await fetchArtisticResources();
 
   const [textSettled, brandSettled, artisticSettled] = await Promise.allSettled([
     runTextAnalystAgent({
       projectId: options.projectId,
       plannerResult,
       provider: options.provider,
-      model: options.model
+      model: options.model,
+      memorySnapshot
     }),
     runBrandAgent({
       projectId: options.projectId,
@@ -376,7 +435,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
         : null,
       imageAnalystResult: firstImageAnalysis,
       provider: options.provider,
-      model: options.model
+      model: options.model,
+      memorySnapshot
     }),
     runArtisticBaseAgent({
       projectId: options.projectId,
@@ -392,31 +452,92 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
         url: r.url
       })),
       provider: options.provider,
-      model: options.model
+      model: options.model,
+      memorySnapshot
     })
   ]);
 
   const agentFailures: Array<{ agent: string; error: string }> = [];
 
-  if (textSettled.status === 'rejected') {
-    throw new AppError(`Text Analyst Agent échoué: ${textSettled.reason instanceof Error ? textSettled.reason.message : 'Unknown'}`, 500);
-  }
-  const textAnalystResult: TextAnalystOutput = textSettled.value;
-  agentsExecuted.push('TextAnalystAgent');
+  // ─── Soft-fail policy ───────────────────────────────────────────────────
+  // TextAnalyst / Brand / ArtisticBase sont enrichissants mais pas vitaux :
+  // si l'un échoue, on continue avec des valeurs par défaut et on trace la
+  // défaillance dans agent_failures. Seul Prompt Architect (qui les consomme
+  // typés) verra des données pauvres mais valides.
+  // Planner et PromptArchitect restent en hard-throw (sans eux, pas de
+  // M_PROMPT1 utilisable → la suite n'a pas de sens).
 
-  if (brandSettled.status === 'rejected') {
-    throw new AppError(`Brand Agent échoué: ${brandSettled.reason instanceof Error ? brandSettled.reason.message : 'Unknown'}`, 500);
+  let textAnalystResult: TextAnalystOutput;
+  if (textSettled.status === 'rejected') {
+    const msg = textSettled.reason instanceof Error ? textSettled.reason.message : 'Unknown';
+    agentFailures.push({ agent: 'TextAnalystAgent', error: msg });
+    console.warn('[orchestrator] TextAnalystAgent failed (soft-fail):', msg);
+    textAnalystResult = {
+      main_title: '',
+      subtitle: '',
+      description: '',
+      call_to_action: '',
+      corrected_text: '',
+      text_hierarchy: { level_1: '', level_2: '', level_3: '' },
+    };
+  } else {
+    textAnalystResult = textSettled.value;
+    agentsExecuted.push('TextAnalystAgent');
   }
-  const brandAgentResult: BrandAgentOutput = brandSettled.value;
-  agentsExecuted.push('BrandAgent');
+
+  let brandAgentResult: BrandAgentOutput;
+  if (brandSettled.status === 'rejected') {
+    const msg = brandSettled.reason instanceof Error ? brandSettled.reason.message : 'Unknown';
+    agentFailures.push({ agent: 'BrandAgent', error: msg });
+    console.warn('[orchestrator] BrandAgent failed (soft-fail):', msg);
+    brandAgentResult = {
+      brand_identity: {
+        brand_name: '',
+        logo_url: logoFile?.fileUrl ?? '',
+        slogan: '',
+        visual_style: '',
+        typography: '',
+        specific_elements: [],
+      },
+      m_contact: {
+        company_name: '',
+        phone: '', whatsapp: '', email: '',
+        address: '', website: '', facebook: '', instagram: '',
+      },
+      m_colors: {
+        primary: '', secondary: '', accent: '',
+        extracted_colors: [], source: 'fallback (BrandAgent failed)',
+      },
+      missing_brand_information: ['BrandAgent did not respond — toutes les informations marque manquent'],
+    };
+  } else {
+    brandAgentResult = brandSettled.value;
+    agentsExecuted.push('BrandAgent');
+  }
   await upsertMemory(options.projectId, 'M_ID', brandAgentResult as unknown as Prisma.InputJsonValue);
 
+  let artisticBaseResult: ArtisticBaseOutput;
   if (artisticSettled.status === 'rejected') {
-    throw new AppError(`Artistic Base Agent échoué: ${artisticSettled.reason instanceof Error ? artisticSettled.reason.message : 'Unknown'}`, 500);
+    const msg = artisticSettled.reason instanceof Error ? artisticSettled.reason.message : 'Unknown';
+    agentFailures.push({ agent: 'ArtisticBaseAgent', error: msg });
+    console.warn('[orchestrator] ArtisticBaseAgent failed (soft-fail):', msg);
+    artisticBaseResult = {
+      recommended_models: [],
+      recommended_textures: [],
+      recommended_fonts: [],
+      recommended_palettes: [],
+      recommended_styles: [],
+      selected_model_url: null,
+      selected_style_url: null,
+      forbidden_elements: [],
+      quality_rules: [],
+    };
+  } else {
+    artisticBaseResult = artisticSettled.value;
+    agentsExecuted.push('ArtisticBaseAgent');
   }
-  const artisticBaseResult: ArtisticBaseOutput = artisticSettled.value;
-  agentsExecuted.push('ArtisticBaseAgent');
   await upsertMemory(options.projectId, 'M_BA', artisticBaseResult as unknown as Prisma.InputJsonValue);
+  await refreshSnapshot();
 
   // ─── 9. Prompt Architect → M-PROMPT1 ────────────────
 
@@ -436,7 +557,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       brandAgentResult,
       artisticBaseResult,
       provider: options.provider,
-      model: options.model
+      model: options.model,
+      memorySnapshot
     });
     agentsExecuted.push('PromptArchitectAgent');
   } catch (err) {
@@ -445,6 +567,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
 
   // Sauvegarder M_PROMPT1
   await upsertMemory(options.projectId, 'M_PROMPT1', promptArchitectResult as unknown as Prisma.InputJsonValue);
+  await refreshSnapshot();
 
   // ─── 10. SAFETY AGENT (entre Prompt Architect et Quality) ─────────────
   // Filtre M_PROMPT1 contre les ForbiddenRule actives. Peut amender le prompt
@@ -473,6 +596,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       forbiddenRules: activeRules,
       provider: options.provider,
       model: options.model,
+      memorySnapshot,
     });
     agentsExecuted.push('SafetyAgent');
 
@@ -540,7 +664,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       projectId: options.projectId,
       mPrompt1: promptArchitectResult,
       provider: options.provider,
-      model: options.model
+      model: options.model,
+      memorySnapshot
     });
     agentsExecuted.push('QualityAgent');
   } catch (err) {

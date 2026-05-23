@@ -17,6 +17,18 @@ export interface ImageGenInput {
   layoutReferenceUrl?: string;
   /** URL de l'image de style pour forcer la couleur/texture (Niveau 2: Clonage visuel) */
   styleReferenceUrl?: string;
+  /**
+   * Assets fournis par l'utilisateur (logo, produit, inspiration…) à inclure
+   * comme images de référence dans l'appel au générateur. Permet à Gemini
+   * d'utiliser le vrai logo/produit dans le rendu plutôt que d'en inventer un.
+   * Limité par le provider (Gemini accepte plusieurs inlineData).
+   */
+  userAssets?: Array<{
+    /** Type métier — sert à intituler l'instruction dans le prompt. */
+    type: 'logo' | 'product' | 'reference' | 'poster' | 'character' | 'other';
+    /** URL Cloudinary publique. */
+    url: string;
+  }>;
 }
 
 export interface ImageGenResult {

@@ -262,6 +262,16 @@ export function DashboardHome() {
   const { options, isLoading: isLoadingOptions, fetchOptions } = useCreationOptionsStore()
   const { sendMessage, isSending, error } = useChatStore()
 
+  const [selectedVisualType, setSelectedVisualType] = useState<string>("")
+  const [activeArea, setActiveArea] = useState<"upload" | "input" | "none">("none")
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  useEffect(() => {
+    if (options && options.length > 0 && !selectedVisualType) {
+      setSelectedVisualType(options[0].slug)
+    }
+  }, [options, selectedVisualType])
+
   // ─── Asset zone (horizontale) ──────────────────────────────────────────
   const [homeAssets, setHomeAssets] = useState<HomeAsset[]>([])
   const [activeHomeAssetType, setActiveHomeAssetType] = useState<HomeAssetType>("logo")
@@ -274,7 +284,7 @@ export function DashboardHome() {
     if (lazyProjectId) return lazyProjectId
     try {
       const draftTitle = promptInput.trim().slice(0, 60) || "Brouillon"
-      const project = await createProject({ title: draftTitle })
+      const project = await createProject({ title: draftTitle, posterType: selectedVisualType || "flyer" })
       const id = (project as { id?: string })?.id ?? null
       if (id) setLazyProjectId(id)
       return id
@@ -324,6 +334,10 @@ export function DashboardHome() {
     setHomeAssets((prev) => prev.filter((a) => a.id !== id))
   }
 
+  function updateHomeAssetType(id: string, newType: HomeAssetType) {
+    setHomeAssets((prev) => prev.map((a) => (a.id === id ? { ...a, type: newType } : a)))
+  }
+
   useEffect(() => {
     loadProjects()
     fetchOptions()
@@ -351,10 +365,6 @@ export function DashboardHome() {
     if (conversationId) {
       router.push(`/dashboard/c/${conversationId}`)
     }
-  }
-
-  function handleShortcut(type: string) {
-    router.push(`/dashboard/chat?type=${type}`)
   }
 
   function startRename(project: Project) {
@@ -421,229 +431,260 @@ export function DashboardHome() {
             </span>
           </h1>
 
-          {/* Unified Prompt Input with Integrated Attachments */}
-          <div 
-            style={{ 
-              position: "relative", 
-              width: "100%", 
-              maxWidth: 680,
-              background: dragOver ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)",
-              border: `1px solid ${dragOver ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)"}`,
-              borderRadius: 24, 
-              padding: "12px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
-              transition: "border-color 0.2s ease, background 0.2s ease",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12
-            }}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault(); setDragOver(false)
-              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                processHomeFiles(Array.from(e.dataTransfer.files), activeHomeAssetType)
-              }
-            }}
-          >
-            {/* Attached Assets Row */}
-            {homeAssets.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 8px" }}>
-                {homeAssets.map((a) => (
-                  <div
-                    key={a.id}
-                    title={`${HOME_ASSET_LABELS[a.type]} — ${a.name}`}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 760, margin: "0 auto", textAlign: "left" }}>
+            {/* VISUAL TYPE SELECTOR */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, alignSelf: "flex-start", marginBottom: 12, paddingLeft: 8 }}>
+              <Icon name="image" size={16} style={{ color: "rgba(255,255,255,0.5)" }} />
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {options?.map(o => (
+                  <button
+                    key={o.id}
+                    onClick={() => setSelectedVisualType(o.slug)}
                     style={{
-                      position: "relative", width: 56, height: 56, borderRadius: 12, overflow: "hidden",
-                      border: "1px solid rgba(255,255,255,0.1)", background: "#1a1a1d",
+                      background: "transparent",
+                      border: 0,
+                      color: selectedVisualType === o.slug ? "#fff" : "rgba(255,255,255,0.4)",
+                      fontSize: 14,
+                      fontWeight: selectedVisualType === o.slug ? 500 : 400,
+                      cursor: "pointer",
+                      padding: "4px 8px",
+                      transition: "color 0.2s"
                     }}
+                    onMouseEnter={(e) => { if(selectedVisualType !== o.slug) e.currentTarget.style.color = "rgba(255,255,255,0.7)" }}
+                    onMouseLeave={(e) => { if(selectedVisualType !== o.slug) e.currentTarget.style.color = "rgba(255,255,255,0.4)" }}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={a.url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    <span style={{
-                      position: "absolute", bottom: 2, left: 2,
-                      padding: "1px 4px", borderRadius: 4,
-                      background: "rgba(0,0,0,0.7)", color: "#fff",
-                      fontSize: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em",
-                    }}>{HOME_ASSET_LABELS[a.type].slice(0, 4)}</span>
-                    {a.status === "uploading" && (
-                      <div style={{
-                        position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        <div className="anim-spin" style={{ width: 14, height: 14, borderRadius: 999, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff" }} />
-                      </div>
-                    )}
-                    {a.status === "error" && (
-                      <div style={{ position: "absolute", inset: 0, background: "rgba(255,50,50,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10 }}>!</div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeHomeAsset(a.id)}
-                      title="Retirer"
-                      style={{
-                        position: "absolute", top: 2, right: 2,
-                        width: 16, height: 16, borderRadius: "50%",
-                        background: "rgba(0,0,0,0.7)", color: "#fff",
-                        border: 0, cursor: "pointer", display: "flex",
-                        alignItems: "center", justifyContent: "center",
-                        fontSize: 10, padding: 0,
-                      }}
-                    >×</button>
-                  </div>
+                    {o.name}
+                  </button>
                 ))}
               </div>
-            )}
+            </div>
 
-            {/* Input Row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px" }}>
-              <div style={{ position: "relative" }}>
-                {/* Asset Add Button (Paperclip) */}
+            {/* MAIN CHAT FRAME */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                borderRadius: 24,
+                boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+                background: "transparent",
+              }}
+            >
+              {/* TOP AREA: Uploaded Images & Attachment */}
+              <div
+                onMouseEnter={() => setActiveArea("upload")}
+                onMouseLeave={() => setActiveArea("none")}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault(); setDragOver(false)
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    processHomeFiles(Array.from(e.dataTransfer.files), "reference")
+                  }
+                }}
+                style={{
+                  background: "#1e1f22",
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
+                  borderBottomLeftRadius: activeArea === "upload" ? 16 : 4,
+                  borderBottomRightRadius: activeArea === "upload" ? 16 : 4,
+                  border: dragOver ? "1px solid rgba(255,255,255,0.2)" : "1px solid rgba(255,255,255,0.04)",
+                  borderBottomColor: "transparent",
+                  transition: "border-radius 0.2s ease, border-color 0.2s ease",
+                  padding: "16px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  minHeight: 64
+                }}
+              >
+                {/* + Icon */}
                 <button
                   type="button"
                   onClick={() => {
-                    const menu = document.getElementById("asset-menu")
-                    if (menu) menu.style.display = menu.style.display === "none" ? "block" : "none"
+                    setActiveHomeAssetType("reference")
+                    fileInputRef.current?.click()
                   }}
                   style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    background: "rgba(255,255,255,0.06)", border: 0,
-                    color: "rgba(255,255,255,0.7)", cursor: "pointer",
+                    width: 32, height: 32, borderRadius: "50%",
+                    background: "transparent", border: 0,
+                    color: "rgba(255,255,255,0.6)", cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.2s ease"
+                    transition: "all 0.2s ease",
+                    flexShrink: 0,
+                    marginTop: 4
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#fff"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
                   title="Joindre un fichier"
                 >
-                  <Icon name="plus" size={18} />
+                  <Icon name="plus" size={20} />
                 </button>
-                
-                {/* Asset Menu Popover */}
-                <div 
-                  id="asset-menu"
-                  style={{
-                    display: "none", position: "absolute", bottom: "100%", left: 0, marginBottom: 8,
-                    background: "#1e1f22", border: "1px solid rgba(255,255,255,0.1)", 
-                    borderRadius: 12, padding: 8, width: 180, zIndex: 10,
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.5)"
+
+                {/* Uploaded Images */}
+                {homeAssets.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                    {homeAssets.map((a) => (
+                      <div key={a.id} style={{ display: "flex", flexDirection: "column", gap: 6, width: 64 }}>
+                        <div
+                          title={a.name}
+                          style={{
+                            position: "relative", width: 64, height: 64, borderRadius: 12, overflow: "hidden",
+                            border: "1px solid rgba(255,255,255,0.1)", background: "#1a1a1d",
+                          }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={a.url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          {a.status === "uploading" && (
+                            <div style={{
+                              position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                            }}>
+                              <div className="anim-spin" style={{ width: 14, height: 14, borderRadius: 999, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff" }} />
+                            </div>
+                          )}
+                          {a.status === "error" && (
+                            <div style={{ position: "absolute", inset: 0, background: "rgba(255,50,50,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10 }}>!</div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeHomeAsset(a.id)}
+                            title="Retirer"
+                            style={{
+                              position: "absolute", top: 2, right: 2,
+                              width: 16, height: 16, borderRadius: "50%",
+                              background: "rgba(0,0,0,0.7)", color: "#fff",
+                              border: 0, cursor: "pointer", display: "flex",
+                              alignItems: "center", justifyContent: "center",
+                              fontSize: 10, padding: 0,
+                            }}
+                          >×</button>
+                        </div>
+                        <select
+                          value={a.type}
+                          onChange={(e) => updateHomeAssetType(a.id, e.target.value as HomeAssetType)}
+                          style={{
+                            background: "transparent", color: "rgba(255,255,255,0.6)", border: 0,
+                            fontSize: 10, cursor: "pointer", outline: "none", width: "100%",
+                            textOverflow: "ellipsis", textAlign: "center", fontWeight: 500
+                          }}
+                        >
+                          {HOME_ASSET_TYPES.map(t => <option key={t} value={t} style={{ background: "#1e1f22" }}>{HOME_ASSET_LABELS[t]}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const files = e.target.files
+                    if (files && files.length > 0) {
+                      processHomeFiles(Array.from(files), activeHomeAssetType)
+                      e.target.value = ""
+                    }
                   }}
-                >
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 6, padding: "0 6px", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>Type de fichier</div>
-                  {HOME_ASSET_TYPES.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => {
-                        setActiveHomeAssetType(t)
-                        document.getElementById("asset-menu")!.style.display = "none"
-                        fileInputRef.current?.click()
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", width: "100%",
-                        padding: "8px 10px", borderRadius: 8, border: 0,
-                        background: "transparent", color: "#fff", fontSize: 13,
-                        textAlign: "left", cursor: "pointer",
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                    >
-                      {HOME_ASSET_LABELS[t]}
-                    </button>
-                  ))}
+                />
+              </div>
+
+              {/* BOTTOM AREA: Text Input */}
+              <div
+                onFocus={() => setActiveArea("input")}
+                onBlur={() => setActiveArea("none")}
+                style={{
+                  background: "#131314",
+                  borderBottomLeftRadius: 24,
+                  borderBottomRightRadius: 24,
+                  borderTopLeftRadius: activeArea === "input" ? 16 : 4,
+                  borderTopRightRadius: activeArea === "input" ? 16 : 4,
+                  border: "1px solid rgba(255,255,255,0.04)",
+                  borderTopColor: "transparent",
+                  transition: "border-radius 0.2s ease",
+                  display: "flex",
+                  alignItems: "flex-end",
+                  gap: 12,
+                  padding: "16px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 8 }}>
+                   <Icon name="monitor" size={18} style={{ color: "rgba(255,255,255,0.3)" }} />
+                </div>
+
+                <textarea
+                  ref={textareaRef}
+                  value={promptInput}
+                  onChange={(e) => {
+                    setPromptInput(e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleGenerate();
+                    }
+                  }}
+                  placeholder="Décrivez l'affiche, le logo ou le visuel que vous souhaitez créer..."
+                  style={{
+                    flex: 1,
+                    background: "transparent",
+                    border: 0,
+                    color: "#fff",
+                    fontSize: 15,
+                    fontFamily: "inherit",
+                    outline: 0,
+                    resize: "none",
+                    minHeight: 24,
+                    maxHeight: 200,
+                    lineHeight: "1.5",
+                    padding: "6px 0",
+                    overflowY: "auto"
+                  }}
+                  rows={1}
+                />
+
+                <div style={{ paddingBottom: 2 }}>
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={!promptInput.trim() || isSending}
+                    style={{
+                      width: 36, height: 36, borderRadius: "50%",
+                      background: promptInput.trim() ? "#fff" : "#2b2d31",
+                      color: promptInput.trim() ? "#000" : "rgba(255,255,255,0.6)",
+                      border: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: promptInput.trim() && !isSending ? "pointer" : "default",
+                      transition: "all 0.2s ease",
+                      transform: promptInput.trim() && !isSending ? "scale(1)" : "scale(1)",
+                      opacity: isSending ? 0.7 : 1,
+                    }}
+                    onMouseEnter={(e) => { if (promptInput.trim() && !isSending) e.currentTarget.style.transform = "scale(1.05)" }}
+                    onMouseLeave={(e) => { if (promptInput.trim() && !isSending) e.currentTarget.style.transform = "scale(1)" }}
+                  >
+                    {isSending ? (
+                      <div className="anim-spin" style={{ width: 16, height: 16, borderRadius: 999, border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#000" }} />
+                    ) : (
+                      <Icon name="arrowR" size={16} /> 
+                    )}
+                  </button>
                 </div>
               </div>
               
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  const files = e.target.files
-                  if (files && files.length > 0) {
-                    processHomeFiles(Array.from(files), activeHomeAssetType)
-                    e.target.value = ""
-                  }
-                }}
-              />
-
-              <input
-                value={promptInput}
-                onChange={(e) => setPromptInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleGenerate() }}
-                placeholder="Décrivez ce que vous souhaitez créer..."
-                style={{
-                  flex: 1, background: "transparent", border: 0,
-                  color: "#fff", fontSize: 16, outline: 0,
-                  fontFamily: "inherit",
-                }}
-              />
-
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={!promptInput.trim() || isSending}
-                style={{
-                  width: 40, height: 40, borderRadius: "50%",
-                  background: promptInput.trim() ? "#fff" : "rgba(255,255,255,0.06)",
-                  color: promptInput.trim() ? "#000" : "rgba(255,255,255,0.2)",
-                  border: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: promptInput.trim() && !isSending ? "pointer" : "default",
-                  transition: "all 0.2s ease",
-                  transform: promptInput.trim() && !isSending ? "scale(1)" : "scale(0.95)",
-                  opacity: isSending ? 0.7 : 1,
-                }}
-                onMouseEnter={(e) => { if (promptInput.trim() && !isSending) e.currentTarget.style.transform = "scale(1.05)" }}
-                onMouseLeave={(e) => { if (promptInput.trim() && !isSending) e.currentTarget.style.transform = "scale(1)" }}
-              >
-                {isSending ? (
-                  <div style={{
-                    width: 16, height: 16, borderRadius: "50%",
-                    border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#000",
-                    animation: "spin 1s linear infinite"
-                  }} />
-                ) : (
-                  <Icon name="arrowUp" size={16} />
-                )}
-              </button>
+              {error && (
+                <div style={{ color: "#ff4a4a", fontSize: 13, textAlign: "center", padding: "8px 0", borderTop: "1px solid rgba(255,50,50,0.1)" }}>
+                  <Icon name="warn" size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  {error}
+                </div>
+              )}
             </div>
-            
-            {error && (
-              <div style={{ color: "#ff4a4a", fontSize: 13, textAlign: "center", padding: "4px 0" }}>
-                <Icon name="warn" size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
-                {error}
-              </div>
-            )}
-          </div>
 
-          {/* Shortcut Chips */}
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 24, maxWidth: 700 }}>
-            {isLoadingOptions ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="anim-skeleton" style={{ width: 100, height: 32, borderRadius: 100, background: "rgba(255,255,255,0.03)" }} />
-              ))
-            ) : (options?.length ?? 0) > 0 ? (
-              (options ?? []).map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => handleShortcut(s.slug)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "8px 16px", borderRadius: 100,
-                    background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
-                    color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 500,
-                    cursor: "pointer", transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.transform = "scale(1.02)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.transform = "scale(1)"; }}
-                >
-                  <Icon name={s.icon} size={14} style={{ color: "rgba(255,255,255,0.5)" }} />
-                  {s.name}
-                </button>
-              ))
-            ) : null}
           </div>
         </div>
 

@@ -421,6 +421,29 @@ export async function deleteSettings(keys: string[]): Promise<void> {
   })
 }
 
+export type SettingSource = 'db' | 'env' | 'default' | 'missing'
+
+export interface EffectiveSetting {
+  key: string
+  category: string
+  isSecret: boolean
+  description: string | null
+  source: SettingSource
+  envFallback: string | null
+  dbValue: string
+  envValue: string
+  effective: string
+}
+
+/**
+ * Fetch effective values + source (db/env/default/missing) for every AppSetting.
+ * Useful to debug "why is my OpenAI key not working" — often an env var is
+ * silently shadowing an empty DB value.
+ */
+export async function fetchEffectiveSettings(): Promise<EffectiveSetting[]> {
+  return apiFetch('/api/admin/settings/effective')
+}
+
 // ─── CUSTOM AI PROVIDERS ───────────────────────────────────────────────────────
 
 export interface CustomAIProviderSetting {

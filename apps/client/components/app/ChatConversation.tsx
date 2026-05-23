@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/Button"
 import { BrandMark } from "@/components/ui/BrandMark"
 import { Icon } from "@/components/ui/Icon"
-import { ChatInput, PromptChip } from "@/components/app/dashboard-ui"
+import { ChatInput } from "@/components/app/dashboard-ui"
 import { useChatStore, type Message } from "@/store/chat-store"
 import { relativeTime } from "@/lib/utils"
 import { useAuth } from "@/hooks/useAuth"
-import { fetchGeneratedPosters, generateImages, generateFinalPrompt, deleteGeneratedPoster, uploadProjectFile, upsertProjectMemory, getProjectMemory, extractColorsFromLogo } from "@/lib/projects"
+import { fetchGeneratedPosters, generateImages, generateFinalPrompt, deleteGeneratedPoster, uploadProjectFile, upsertProjectMemory, getProjectMemory, extractColorsFromLogo, downloadGeneratedPoster, createProject } from "@/lib/projects"
 import { fetchChatOpening } from "@/lib/chat"
 import type { GeneratedPoster } from "@/types/project"
 
@@ -46,13 +46,6 @@ interface GeneratedVisual {
   createdAt: string
   isMain?: boolean
 }
-
-const PROMPTS = [
-  "Créer un flyer professionnel pour mon restaurant",
-  "Améliorer une affiche existante",
-  "Générer un prompt pour un visuel",
-  "Créer une publication Instagram",
-]
 
 const QUALITY_LEVELS = [
   { value: "Draft", label: "Brouillon rapide", desc: "Génération ultra-rapide pour valider la composition de base." },
@@ -399,94 +392,22 @@ function PanelSection({
 }
 
 
-function EmptyConversationState({ onPrompt }: { onPrompt: (value: string) => void }) {
-  return (
-    <div
-      style={{
-        minHeight: "100%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "40px 16px",
-        textAlign: "center",
-        position: "relative",
-        zIndex: 2,
-      }}
-    >
-      <div style={{
-        position: "absolute", top: "28%", left: "50%", transform: "translate(-50%,-50%)",
-        width: 280, height: 280, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(255,255,255,0.035) 0%, transparent 70%)",
-        pointerEvents: "none",
-      }} />
-
-      <div
-        className="anim-logo-breathe"
-        style={{
-          width: 56,
-          height: 56,
-          marginBottom: 24,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))",
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: 16,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        <BrandMark size={32} withWordmark={false} />
-      </div>
-
-      <h2
-        className="display"
-        style={{
-          fontSize: "clamp(22px, 2.8vw, 34px)",
-          margin: "0 0 10px 0",
-          letterSpacing: "-0.02em",
-          textAlign: "center",
-          color: "var(--ink-0)",
-          textShadow: "none",
-        }}
-      >
-        Que voulez-vous créer aujourd'hui ?
-      </h2>
-      <p style={{ margin: "0 0 32px", maxWidth: 480, color: "var(--ink-3)", fontSize: 13.5, lineHeight: 1.6 }}>
-        Configurez vos paramètres à gauche, décrivez votre idée ici — l'IA orchestre le reste.
-      </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 9, justifyContent: "center", maxWidth: 620 }}>
-        {PROMPTS.map((item) => (
-          <PromptChip key={item} onClick={() => onPrompt(item)}>
-            {item}
-          </PromptChip>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function ChatConversation({
   conversationId,
   projectId,
   initialTitle,
-  initialPrompt,
-  initialType,
 }: {
   conversationId?: string
   projectId?: string
   initialTitle?: string
-  initialPrompt?: string
-  initialType?: string
 }) {
   const router = useRouter()
   const { user } = useAuth()
 
   // --- States ---
-  const [prompt, setPrompt] = useState(initialPrompt ?? "")
+  const [prompt, setPrompt] = useState("")
   const [loadingConversation, setLoadingConversation] = useState(Boolean(conversationId))
   const [hasSubmittedInView, setHasSubmittedInView] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -542,7 +463,19 @@ export function ChatConversation({
     setTouchedSections((prev) => { const s = new Set(prev); s.add(key); return s })
   const toggleLibre = (key: string) =>
     setLibreFields((prev) => { const s = new Set(prev); if (s.has(key)) s.delete(key); else s.add(key); return s })
-  const isSectionFilled = (key: string) => touchedSections.has(key) || libreFields.has(key)
+  const isSectionFilled = (key: string) => {
+    // Une section est "remplie" si :
+    //  - l'utilisateur l'a explicitement touchée dans le panneau,
+    //  - ou marquée en mode libre,
+    //  - OU si `config` contient déjà une valeur (défaut ou chargé depuis
+    //    M-CREATIVE-BRIEF). Sans ce 3e cas, un clic "Générer le visuel" après
+    //    une planification 100 % via le chat se bloquait silencieusement.
+    if (touchedSections.has(key) || libreFields.has(key)) return true
+    if (key === "format") return Boolean(config.format && config.format.trim().length > 0)
+    if (key === "colors") return Boolean(config.colors?.primary)
+    if (key === "quality") return Boolean(config.quality && config.quality.trim().length > 0)
+    return false
+  }
 
   const validateCreativeConfig = () => {
     const missing = REQUIRED_CONFIG_KEYS.filter((k) => !isSectionFilled(k))
@@ -562,7 +495,6 @@ export function ChatConversation({
   } = useChatStore()
 
   const messages = (activeConversation?.messages ?? []).filter((message) => message.role !== "system")
-  const showWelcome = !conversationId && messages.length === 0 && !loadingConversation
   const showRetryError = Boolean(hasSubmittedInView && error && failedMessage)
   const showPassiveError = Boolean(error && !failedMessage && !loadingConversation)
   const activeId = activeConversation?.id || conversationId
@@ -758,7 +690,6 @@ export function ChatConversation({
 
   function buildVisualConfigPayload(): Record<string, unknown> {
     return {
-      creationType: initialType,
       format: config.format,
       colors: config.colors,
       quality: config.quality,
@@ -782,16 +713,28 @@ export function ChatConversation({
   }
 
   async function triggerOrchestratedGeneration(projectId: string) {
-    if (isGenerating) return
+    if (isGenerating) {
+      console.info("[chat] orchestrateur déjà en cours, ignore")
+      return
+    }
+    console.info("[chat] ▶ orchestrateur démarré pour projectId =", projectId)
     setIsGenerating(true)
     try {
       const result = await generateFinalPrompt(projectId)
+      console.info("[chat] orchestrateur terminé", {
+        status: (result as { data?: { status?: string } })?.data?.status,
+        ready: (result as { data?: { ready_for_generation?: boolean } })?.data?.ready_for_generation,
+        agents: (result as { data?: { agents_executed?: string[] } })?.data?.agents_executed,
+      })
       if (result?.data?.ready_for_generation) {
+        console.info("[chat] ▶ génération image démarrée (3 variantes)")
         await triggerGeneration(3)
       } else {
+        console.warn("[chat] ❌ ready_for_generation = false → pas de génération image. Vérifiez quality_score / safety.")
         setIsGenerating(false)
       }
-    } catch {
+    } catch (err) {
+      console.error("[chat] ❌ orchestrateur ou génération a échoué :", err)
       setIsGenerating(false)
     }
   }
@@ -803,9 +746,17 @@ export function ChatConversation({
     const isVisualTrigger = /g[eé]r[eé]r.*visuel|g[eé]n[eé]r[eé]r.*visuel/i.test(clean)
 
     if (isVisualTrigger) {
-      const { valid } = validateCreativeConfig()
+      const { valid, missing } = validateCreativeConfig()
       if (!valid) {
+        console.warn("[chat] générer le visuel bloqué — sections manquantes :", missing)
         setLeftOpen(true)
+        // Marque visuellement les sections manquantes (touchedSections active
+        // les badges/borders rouges déjà câblés dans le panneau gauche).
+        setTouchedSections((prev) => {
+          const s = new Set(prev)
+          missing.forEach((k) => s.add(k))
+          return s
+        })
         return
       }
     }
@@ -814,12 +765,31 @@ export function ChatConversation({
     setConfigAttached(false)
     setAwaitingOther(false)
     setHasSubmittedInView(true)
-    const nextConversationId = await sendMessage(clean, user.id, projectId, buildVisualConfigPayload())
 
-    const resolvedProjectId = currentProjectId || activeConversation?.projectId
-    if (isVisualTrigger && resolvedProjectId) {
-      await saveCreativeBriefToMemory(resolvedProjectId)
-      triggerOrchestratedGeneration(resolvedProjectId)
+    // Filet de sécurité : si l'utilisateur clique "Générer le visuel" mais que
+    // la conversation n'a JAMAIS été liée à un projet (cas de DashboardHome
+    // sans upload + sendMessage sans projectId), on crée un projet maintenant
+    // pour permettre à l'orchestrateur de tourner. Sans projet, toute la chaîne
+    // image-gen est désactivée et l'utilisateur ne voit aucune affiche.
+    let effectiveProjectId = projectId || currentProjectId || activeConversation?.projectId
+    if (isVisualTrigger && !effectiveProjectId) {
+      try {
+        const draftTitle = clean.slice(0, 60) || "Brouillon visuel"
+        const newProject = await createProject({ title: draftTitle })
+        effectiveProjectId = (newProject as { id?: string })?.id
+        console.info("[chat] projet créé à la volée pour la génération :", effectiveProjectId)
+      } catch (err) {
+        console.error("[chat] impossible de créer un projet à la volée :", err)
+      }
+    }
+
+    const nextConversationId = await sendMessage(clean, user.id, effectiveProjectId, buildVisualConfigPayload())
+
+    if (isVisualTrigger && effectiveProjectId) {
+      await saveCreativeBriefToMemory(effectiveProjectId)
+      triggerOrchestratedGeneration(effectiveProjectId)
+    } else if (isVisualTrigger) {
+      console.warn("[chat] générer le visuel : impossible de déclencher l'orchestrateur (pas de projectId malgré le fallback)")
     }
 
     if (shouldNavigateToConversation(nextConversationId)) {
@@ -1006,11 +976,26 @@ export function ChatConversation({
     return imageUrl.replace("/upload/", `/upload/${transform},fl_attachment/`)
   }
 
-  const downloadWithFormat = (format: string) => {
+  const downloadWithFormat = async (format: string) => {
     const activeVisual = visuals.find((v) => v.id === selectedVisualId)
-    if (!activeVisual) return
+    if (!activeVisual || !currentProjectId) return
     setActiveExportFormat(null)
-    window.open(buildCloudinaryUrl(activeVisual.imageUrl, format), "_blank")
+    // Map UI label → API param
+    const FORMAT_MAP: Record<string, { format?: "png" | "jpg" | "pdf" | "webp"; width?: number; quality?: number }> = {
+      "PNG": { format: "png" },
+      "JPG": { format: "jpg", quality: 92 },
+      "PDF": { format: "pdf" },
+      "WebP": { format: "webp", quality: 90 },
+      "HD Print": { format: "png", width: 3240, quality: 100 },
+    }
+    const opts = FORMAT_MAP[format] ?? { format: "png" }
+    try {
+      await downloadGeneratedPoster(currentProjectId, activeVisual.id, opts)
+    } catch (err) {
+      // Fallback : si l'endpoint API ne répond pas, on retombe sur la
+      // transformation Cloudinary brute (mode dégradé sans auth/logging).
+      window.open(buildCloudinaryUrl(activeVisual.imageUrl, format), "_blank")
+    }
   }
 
   const downloadActiveVisual = () => downloadWithFormat("PNG")
@@ -1093,44 +1078,40 @@ export function ChatConversation({
           }} />
 
           {/* Scrollable messages box */}
-          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: showWelcome ? 0 : "28px 16px 8px", position: "relative", zIndex: 2 }}>
-            {showWelcome ? (
-              <EmptyConversationState onPrompt={(val) => { setPrompt(val) }} />
-            ) : (
-              <div style={{ maxWidth: 820, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-                {loadingConversation ? (
-                  <>
-                    <div className="anim-skeleton" style={{ height: 84, borderRadius: 14 }} />
-                    <div className="anim-skeleton" style={{ width: "72%", height: 72, borderRadius: 14 }} />
-                  </>
-                ) : (
-                  (() => {
-                    const assistantMessages = messages.filter((m) => m.role === "assistant")
-                    const latestAssistantId = assistantMessages[assistantMessages.length - 1]?.id
-                    return messages.map((message) => (
-                      <ChatBubble
-                        key={message.id}
-                        message={message}
-                        isLatest={message.id === latestAssistantId}
-                        onChoiceClick={handleChoiceClick}
-                      />
-                    ))
-                  })()
-                )}
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "28px 16px 8px", position: "relative", zIndex: 2 }}>
+            <div style={{ maxWidth: 820, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+              {loadingConversation ? (
+                <>
+                  <div className="anim-skeleton" style={{ height: 84, borderRadius: 14 }} />
+                  <div className="anim-skeleton" style={{ width: "72%", height: 72, borderRadius: 14 }} />
+                </>
+              ) : (
+                (() => {
+                  const assistantMessages = messages.filter((m) => m.role === "assistant")
+                  const latestAssistantId = assistantMessages[assistantMessages.length - 1]?.id
+                  return messages.map((message) => (
+                    <ChatBubble
+                      key={message.id}
+                      message={message}
+                      isLatest={message.id === latestAssistantId}
+                      onChoiceClick={handleChoiceClick}
+                    />
+                  ))
+                })()
+              )}
 
-                {isSending && <LoadingBubble />}
+              {isSending && <LoadingBubble />}
 
-                {showRetryError && (
-                  <ErrorNotice message={error} canRetry isSending={isSending} onRetry={handleRetry} />
-                )}
+              {showRetryError && (
+                <ErrorNotice message={error} canRetry isSending={isSending} onRetry={handleRetry} />
+              )}
 
-                {showPassiveError && (
-                  <ErrorNotice message={error} canRetry={false} isSending={isSending} onRetry={handleRetry} />
-                )}
+              {showPassiveError && (
+                <ErrorNotice message={error} canRetry={false} isSending={isSending} onRetry={handleRetry} />
+              )}
 
-                <div ref={bottomRef} />
-              </div>
-            )}
+              <div ref={bottomRef} />
+            </div>
           </div>
 
           {/* Bottom vignette above input */}
@@ -1390,6 +1371,20 @@ export function ChatConversation({
                     }}
                     className="hover:scale-102"
                   />
+                  {/* Overlay loader pendant régénération / nouvelle variante */}
+                  {isGenerating && (
+                    <div style={{
+                      position: "absolute", inset: 0, zIndex: 2,
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                      background: "rgba(8,8,12,0.65)", backdropFilter: "blur(3px)",
+                      gap: 10,
+                    }}>
+                      <div className="cv-gen-spinner" />
+                      <div style={{ color: "#fff", fontSize: 12, fontWeight: 600, letterSpacing: "0.02em" }}>
+                        Nouvelle variante en cours…
+                      </div>
+                    </div>
+                  )}
                   <div style={{
                     position: "absolute", right: 10, bottom: 10,
                     width: 28, height: 28, borderRadius: 6, background: "rgba(0,0,0,0.5)",
@@ -1508,6 +1503,30 @@ export function ChatConversation({
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            ) : isGenerating ? (
+              <div style={{
+                flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+                justifyContent: "center", borderRadius: 16, padding: 28,
+                textAlign: "center", minHeight: 320, gap: 18,
+                background: "linear-gradient(135deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 100%)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                position: "relative", overflow: "hidden",
+              }}>
+                {/* Halo de fond animé */}
+                <div className="cv-gen-halo" />
+                {/* Spinner principal */}
+                <div className="cv-gen-spinner" style={{ width: 56, height: 56, borderWidth: 3 }} />
+                <div style={{ zIndex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 650, color: "var(--ink-1)", letterSpacing: "0.02em" }}>
+                    Génération en cours
+                    <span className="cv-gen-dots" />
+                  </div>
+                  <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: "8px 0 0", lineHeight: 1.55, maxWidth: 240 }}>
+                    Analyse du brief, composition du prompt, puis création de vos affiches par Gemini.
+                    Cela prend 1 à 3 minutes.
+                  </p>
                 </div>
               </div>
             ) : (

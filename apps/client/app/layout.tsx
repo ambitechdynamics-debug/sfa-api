@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthProvider";
 import "./globals.css";
 
@@ -24,18 +23,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr" data-theme="dark" data-density="regular">
       <body className={inter.variable}>
         <AuthProvider>{children}</AuthProvider>
-        <Toaster
-          position="bottom-center"
-          theme="dark"
-          toastOptions={{
-            style: {
-              background: "var(--bg-2)",
-              color: "var(--ink-0)",
-              border: "1px solid var(--line-2)",
-              fontFamily: "var(--font-sans)",
-            },
-          }}
-        />
       </body>
     </html>
   );

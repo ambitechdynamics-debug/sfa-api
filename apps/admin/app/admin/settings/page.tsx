@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, Save, AlertTriangle, Check, RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { fetchSettings, saveSettings, deleteSettings, AppSetting, SettingsByCategory } from '@/lib/admin-api'
+import { fetchSettings, fetchEffectiveSettings, saveSettings, deleteSettings, AppSetting, SettingsByCategory, EffectiveSetting, SettingSource } from '@/lib/admin-api'
 import { toastSuccess, toastError, toastLoadError } from '@/lib/toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -40,14 +40,87 @@ function SavedBadge({ show }: { show: boolean }) {
   )
 }
 
-function FieldGroup({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function SourceBadge({ source, envFallback }: { source: SettingSource; envFallback: string | null }) {
+  if (source === 'db') return null
+  const palette: Record<SettingSource, string> = {
+    db: '',
+    env: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-300/40',
+    default: 'bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300 border-slate-300/40',
+    missing: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-300/40',
+  }
+  const labels: Record<SettingSource, string> = {
+    db: '', env: 'ENV', default: 'défaut', missing: '⚠ non configuré',
+  }
+  const title =
+    source === 'env'    ? `Valeur fournie par la variable d'environnement ${envFallback ?? '?'}. La DB est vide → l'env shadow.` :
+    source === 'default'? `Aucune valeur en DB ni en env. Le code utilise la valeur par défaut.` :
+    source === 'missing'? `Ni DB, ni env, ni défaut. À configurer.` : ''
+  return (
+    <span title={title} className={cn('ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded border', palette[source])}>
+      Source: {labels[source]}{envFallback && source === 'env' ? ` (${envFallback})` : ''}
+    </span>
+  )
+}
+
+function FieldGroup({ label, hint, children, settingKey, effective }: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+  settingKey?: string;
+  effective?: Record<string, EffectiveSetting>;
+}) {
+  const meta = settingKey && effective ? effective[settingKey] : undefined
   return (
     <div className="flex items-start justify-between gap-6 py-4 border-b border-[var(--border)] last:border-0">
       <div className="flex-1">
-        <div className="text-sm font-medium text-[var(--text)]">{label}</div>
+        <div className="text-sm font-medium text-[var(--text)] flex items-center flex-wrap">
+          {label}
+          {meta && <SourceBadge source={meta.source} envFallback={meta.envFallback} />}
+        </div>
         {hint && <div className="text-xs text-[var(--text-muted)] mt-0.5">{hint}</div>}
       </div>
       <div className="flex-1 max-w-xs">{children}</div>
+    </div>
+  )
+}
+
+function EffectiveSourceBanner({ effective }: { effective: Record<string, EffectiveSetting> }) {
+  const items = Object.values(effective).filter((e) => e.source !== 'db')
+  if (items.length === 0) return null
+
+  const byCategory: Record<string, EffectiveSetting[]> = {}
+  for (const item of items) {
+    (byCategory[item.category] = byCategory[item.category] ?? []).push(item)
+  }
+
+  return (
+    <div className="rounded-xl border border-amber-300/40 bg-amber-50 dark:bg-amber-900/10 p-4 text-sm">
+      <div className="font-semibold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2">
+        <AlertTriangle className="w-4 h-4" />
+        {items.length} clé(s) sourcée(s) hors DB
+      </div>
+      <p className="text-xs text-amber-900/80 dark:text-amber-200/80 mb-3">
+        Ces valeurs sont fournies par une variable d'environnement (<span className="font-mono">ENV</span>), un défaut codé en dur, ou ne sont pas configurées. Modifier ces clés dans la DB ne suffira pas tant que l'env override n'est pas vide.
+      </p>
+      <div className="space-y-1 max-h-40 overflow-y-auto">
+        {Object.entries(byCategory).map(([cat, list]) => (
+          <div key={cat} className="text-xs">
+            <span className="font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wide">{cat}</span>
+            <ul className="mt-0.5 space-y-0.5">
+              {list.map((item) => (
+                <li key={item.key} className="flex items-center justify-between gap-3">
+                  <code className="font-mono text-amber-900 dark:text-amber-200">{item.key}</code>
+                  <span className="text-amber-700 dark:text-amber-400">
+                    {item.source === 'env' && `← ${item.envFallback}`}
+                    {item.source === 'default' && '← défaut code'}
+                    {item.source === 'missing' && '⚠ non configuré'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -79,12 +152,17 @@ export default function SettingsPage() {
   const [values, setValues] = useState<Record<string, string>>({})
   // Original data from API (for isSecret metadata)
   const [meta, setMeta] = useState<Record<string, AppSetting>>({})
+  // Effective values + source per key (db / env / default / missing)
+  const [effective, setEffective] = useState<Record<string, EffectiveSetting>>({})
 
   // ── Load all settings on mount ──────────────────────────────────────────────
   const loadSettings = useCallback(async () => {
     setIsLoading(true)
     try {
-      const data: SettingsByCategory = await fetchSettings()
+      const [data, effectiveList] = await Promise.all([
+        fetchSettings(),
+        fetchEffectiveSettings().catch(() => [] as EffectiveSetting[]),
+      ])
       const flat: Record<string, string> = {}
       const flatMeta: Record<string, AppSetting> = {}
       for (const items of Object.values(data)) {
@@ -93,8 +171,11 @@ export default function SettingsPage() {
           flatMeta[s.key] = s
         }
       }
+      const eff: Record<string, EffectiveSetting> = {}
+      for (const item of effectiveList) eff[item.key] = item
       setValues(flat)
       setMeta(flatMeta)
+      setEffective(eff)
     } catch (err) {
       toastLoadError(err, 'Impossible de charger les paramètres')
     } finally {
@@ -289,6 +370,9 @@ export default function SettingsPage() {
           Actualiser
         </button>
       </div>
+
+      {/* Bannière : sources non-DB (env / default / missing) */}
+      <EffectiveSourceBanner effective={effective} />
 
       {/* Tabs */}
       <div className="flex items-center gap-1 p-1 bg-[var(--surface)] border border-[var(--border)] rounded-xl flex-wrap">

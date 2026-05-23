@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
+import { AnimatePresence, motion } from "framer-motion"
 import { DashboardShell } from "@/components/app/DashboardShell"
 import { RouteMetricsTracker } from "@/components/app/RouteMetricsTracker"
 import { Button } from "@/components/ui/Button"
@@ -73,7 +74,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <DashboardShell>
       <RouteMetricsTracker />
-      {children}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={pathname}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}
+        >
+          {children}
+        </motion.div>
+      </AnimatePresence>
     </DashboardShell>
   )
 }

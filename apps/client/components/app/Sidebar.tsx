@@ -237,8 +237,10 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
     alignSelf: "start",
   }
 
-  // Filtrage des conversations
-  const standaloneConversations = history.filter(c => !c.projectId)
+  // Garde défensif sur history/projects (peuvent être undefined transitoirement)
+  const safeHistory = Array.isArray(history) ? history : []
+  const safeProjects = Array.isArray(projects) ? projects : []
+  const standaloneConversations = safeHistory.filter((c) => !c?.projectId)
 
   return (
     <aside style={asideStyle}>
@@ -329,10 +331,10 @@ export function Sidebar({ collapsed = false, mobile = false, onClose, onToggle }
                 <Icon name="folderPlus" size={14} style={{ cursor: "pointer" }} onClick={() => router.push("/dashboard/projects")} />
               </div>
 
-              {projects.map((project) => {
+              {safeProjects.map((project) => {
                 // Par défaut ouvert sauf si expressément fermé dans l'état
                 const isExpanded = expandedProjects[project.id] !== false
-                const projectConversations = history.filter((c) => c.projectId === project.id)
+                const projectConversations = safeHistory.filter((c) => c?.projectId === project.id)
 
                 return (
                   <div key={project.id}>
