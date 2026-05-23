@@ -39,6 +39,41 @@ export async function fetchAIWithTimeout(input: string, init?: RequestInit): Pro
 }
 
 // ─────────────────────────────────────────────────────────
+//  IMAGE → INLINE DATA helper (Gemini)
+// ─────────────────────────────────────────────────────────
+// Gemini's fileData.fileUri requires the URL to be fetchable by Google's
+// infra. Cloudinary URLs are public but Google's fetcher hits "Cannot fetch
+// content from the provided URL" intermittently. Workaround: download the
+// image bytes ourselves and pass them as inlineData (base64).
+// Cloudinary transformation is applied to cap size (1280px wide, JPEG, q_auto)
+// so we don't blow past Gemini's request limits with large originals.
+async function fetchImageAsInline(url: string): Promise<{ mimeType: string; data: string }> {
+  let fetchUrl = url;
+  if (/res\.cloudinary\.com\/.+\/image\/upload\//.test(url) && !/\/upload\/[a-z]_/.test(url)) {
+    fetchUrl = url.replace('/image/upload/', '/image/upload/c_limit,w_1280,f_jpg,q_auto/');
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const response = await fetch(fetchUrl, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`Image fetch failed (${response.status}): ${fetchUrl}`);
+    }
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const mimeType = (response.headers.get('content-type') || 'image/jpeg').split(';')[0].trim();
+    return { mimeType, data: buffer.toString('base64') };
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`Image fetch timed out after 15s: ${fetchUrl}`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
 //  MOCK PROVIDER (développement sans clé API)
 // ─────────────────────────────────────────────────────────
 
@@ -422,11 +457,13 @@ class GeminiProvider implements AIProviderAdapter {
 
   async callVision(options: CallVisionAIOptions): Promise<string> {
     const model = options.model ?? 'gemini-2.0-flash';
-    const imageParts = options.imageUrls.map(url => ({
-      fileData: { mimeType: 'image/jpeg', fileUri: url }
-    }));
+    const imageParts = await Promise.all(
+      options.imageUrls.map(async (url) => {
+        const { mimeType, data } = await fetchImageAsInline(url);
+        return { inlineData: { mimeType, data } };
+      })
+    );
 
-    // Pour les URLs directes (non Google Cloud), utiliser inlineData approche
     const parts = [
       { text: options.userPrompt },
       ...imageParts
@@ -619,9 +656,12 @@ class GeminiCompatibleProvider implements AIProviderAdapter {
 
   async callVision(options: CallVisionAIOptions): Promise<string> {
     const model = options.model ?? 'gemini-2.0-flash';
-    const imageParts = options.imageUrls.map(url => ({
-      fileData: { mimeType: 'image/jpeg', fileUri: url }
-    }));
+    const imageParts = await Promise.all(
+      options.imageUrls.map(async (url) => {
+        const { mimeType, data } = await fetchImageAsInline(url);
+        return { inlineData: { mimeType, data } };
+      })
+    );
 
     const parts = [
       { text: options.userPrompt },
