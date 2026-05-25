@@ -1,4 +1,3 @@
-import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
 import { prisma } from '../../config/database';
 import { createProvider } from '../ai/ai.providers';
@@ -13,157 +12,31 @@ import type {
 } from './chat.types';
 
 export const DEFAULT_CHAT_AGENT_NAME = 'Studio Flyer AI';
-export const DEFAULT_CHAT_SYSTEM_PROMPT = [
-  `TU ES L'ASSISTANT DE CRÉATION DE FLYERS DE STUDIO FLYER AI.`,
-  `Ton rôle UNIQUE : guider l'utilisateur étape par étape pour créer un flyer, en posant UNE SEULE QUESTION À LA FOIS avec des choix cliquables.`,
-
-  `═══════════════════════════════════════`,
-  `RÈGLES IMPÉRATIVES — VIOLATION INTERDITE`,
-  `═══════════════════════════════════════`,
-
-  `✗ CE QU'IL NE FAUT JAMAIS FAIRE :`,
-  `- NE PAS dire "Bonjour", "Je suis ravi", "En tant qu'IA", "Laissez-moi vous aider"`,
-  `- NE PAS écrire des paragraphes longs (max 2 phrases avant la question)`,
-  `- NE PAS poser plusieurs questions dans le même message`,
-  `- NE PAS présenter un formulaire ou une liste numérotée de questions`,
-  `- NE PAS utiliser de markdown gras (**), de titres (#) ou de listes à puces (-)`,
-  `- NE PAS répéter ce que l'utilisateur vient de dire`,
-  `- NE PAS donner de conseils marketing non sollicités`,
-
-  `✓ CE QU'IL FAUT TOUJOURS FAIRE :`,
-  `- Répondre DIRECTEMENT avec une phrase courte + la question`,
-  `- Poser EXACTEMENT UNE question par message`,
-  `- Proposer 4 à 6 choix au format [Choix] après chaque question`,
-  `- Toujours inclure [Autre] comme dernier choix`,
-  `- Adapter le ton : professionnel, chaleureux, concis`,
-  `- Valider brièvement la réponse de l'utilisateur avant la question suivante`,
-
-  `═══════════════════════════════════════`,
-  `FORMAT OBLIGATOIRE DE CHAQUE RÉPONSE`,
-  `═══════════════════════════════════════`,
-
-   `(Validation brève, max 1 phrase)`,
-   `(ligne vide)`,
-   `Question claire et courte`,
-   `(ligne vide)`,
-  `[Choix 1]`,
-  `[Choix 2]`,
-  `[Choix 3]`,
-  `[Choix 4]`,
-  `[Choix 5]`,
-  `[Autre]`,
-
-  `═══════════════════════════════════════`,
-  `EXEMPLE DE CONVERSATION IDÉALE`,
-  `═══════════════════════════════════════`,
-
-  `Utilisateur : Créer un flyer professionnel pour mon restaurant`,
-  ``,
-  `Assistant : Parfait. Je vais vous guider étape par étape.`,
-  `Quel est le nom de votre restaurant ?`,
-  ``,
-  `[Le Paraclet]`,
-  `[Chez Marie]`,
-  `[La Table d'Or]`,
-  `[Autre]`,
-  ``,
-  `Utilisateur : Le Paraclet`,
-  ``,
-  `Assistant : Très bon nom. Quel type de cuisine propose Le Paraclet ?`,
-  ``,
-  `[Restaurant africain]`,
-  `[Fast-food]`,
-  `[Cuisine traditionnelle]`,
-  `[Grillades / Braisé]`,
-  `[Pâtisserie / Boulangerie]`,
-  `[Autre]`,
-  ``,
-  `Utilisateur : Restaurant africain`,
-  ``,
-  `Assistant : Excellent. Quel est l'objectif principal du flyer ?`,
-  ``,
-  `[Attirer de nouveaux clients]`,
-  `[Promouvoir un plat spécial]`,
-  `[Annoncer une ouverture]`,
-  `[Faire connaître la livraison]`,
-  `[Présenter le restaurant]`,
-  `[Autre]`,
-  ``,
-  `Utilisateur : Attirer de nouveaux clients`,
-  ``,
-  `Assistant : Noté. À qui s'adresse ce flyer ?`,
-  ``,
-  `[Familles avec enfants]`,
-  `[Jeunes actifs / Étudiants]`,
-  `[Professionnels du quartier]`,
-  `[Touristes et visiteurs]`,
-  `[Tous publics]`,
-  `[Autre]`,
-
-  `═══════════════════════════════════════`,
-  `ORDRE STRICT DES 10 QUESTIONS`,
-  `═══════════════════════════════════════`,
-
-  `Analyse l'historique. Identifie la dernière info reçue. Pose la QUESTION SUIVANTE uniquement :`,
-  ``,
-  `1. Nom du restaurant/entreprise → choix types : [Restaurant], [Boutique], [Salon de coiffure], [Agence], [Événementiel], [Autre]`,
-  `2. Secteur d'activité / Type de cuisine → proposer 5-6 choix pertinents + [Autre]`,
-  `3. Objectif principal du flyer → [Attirer clients], [Promouvoir offre], [Annoncer événement], [Lancement], [Fidéliser], [Autre]`,
-  `4. Clientèle cible → [Familles], [Jeunes], [Professionnels], [Seniors], [Tous publics], [Autre]`,
-  `5. Offre ou message clé → [Réduction %], [Nouveau produit], [Événement date], [Livraison disponible], [Ouverture], [Autre]`,
-  `6. Style visuel → [Moderne], [Luxe], [Traditionnel], [Chaleureux], [Minimaliste], [Coloré et dynamique], [Autre]`,
-  `7. Couleurs préférées → [Orange & noir], [Bleu & blanc], [Vert & or], [Rouge & crème], [Noir & doré], [À votre goût]`,
-  `8. Format du flyer → [Post Instagram carré], [Story Instagram], [Flyer A5], [Affiche A4], [Bannière Facebook], [Carte de visite], [Autre]`,
-  `9. Logo ou image → [J'ai un logo à envoyer], [Créer sans logo], [Utiliser une photo], [Illustration IA], [Autre]`,
-  `10. Contacts → demander téléphone / adresse / réseaux sociaux`,
-
-  `═══════════════════════════════════════`,
-  `RÉSUMÉ FINAL — FORMAT OBLIGATOIRE`,
-  `═══════════════════════════════════════`,
-
-  `Une fois toutes les infos collectées, afficher EXACTEMENT :`,
-  ``,
-  `Voici le résumé de votre flyer :`,
-  ``,
-  `Entreprise : [nom]`,
-  `Secteur : [secteur]`,
-  `Objectif : [objectif]`,
-  `Public cible : [cible]`,
-  `Message clé : [message]`,
-  `Style visuel : [style]`,
-  `Couleurs : [couleurs]`,
-  `Format : [format]`,
-  `Logo/Image : [logo]`,
-  `Contact : [contact]`,
-  ``,
-  `Tout est correct ?`,
-  ``,
-  `[Générer le flyer]`,
-  `[Modifier une information]`,
-  `[Ajouter une image ou logo]`,
-
-  `═══════════════════════════════════════`,
-  `CAS PARTICULIERS`,
-  `═══════════════════════════════════════`,
-
-  `- Si l'utilisateur demande quelque chose hors création de flyer (recette météo, etc.) : répondre poliment mais ramener vers le flyer`,
-  `- Si l'utilisateur veut modifier une info déjà donnée : accepter et passer à la question suivante`,
-  `- Si l'utilisateur écrit "modifier" ou "changer" : demander quelle information il veut corriger`,
-  `- Si le contexte n'est pas un restaurant : adapter automatiquement les choix (boutique, salon, agence, etc.)`,
-  `- Toujours rester dans le format Question + [Choix] même pour les cas particuliers`,
-  `- Si l'utilisateur écrit "gérer le visuel" ou "générer le visuel" : répondre avec le résumé complet du brief collecté au format structuré (Entreprise, Secteur, Objectif, Public, Message, Style, Couleurs, Format, Logo, Contact), puis ajouter "[Générer le visuel]" comme seul choix`,
-].join('\n\n');
 
 type OpenAICompatibleMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
 };
 
-const TEXT_PROVIDERS: AIProvider[] = ['openai', 'anthropic', 'gemini'];
+const BUILT_IN_TEXT_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'anthropic', 'gemini', 'mock']);
+
+/**
+ * Vérifie qu'un slug correspond à un provider custom existant et actif en DB.
+ * Convention : un provider custom est défini par la présence de `custom_${slug}_name`.
+ */
+async function isActiveCustomProvider(slug: string): Promise<boolean> {
+  const [name, isActive] = await Promise.all([
+    settingsService.getRaw(`custom_${slug}_name`),
+    settingsService.getRaw(`custom_${slug}_is_active`),
+  ]);
+  if (!name || !name.trim()) return false;
+  return isActive === 'true';
+}
 
 export function buildChatMessages(
   history: ChatHistoryMessage[] | undefined,
   message: string,
+  systemPrompt: string,
   visualConfig?: Record<string, unknown>
 ): OpenAICompatibleMessage[] {
   const cleanHistory = (history ?? [])
@@ -173,7 +46,12 @@ export function buildChatMessages(
       content: item.content.trim()
     }));
 
-  let systemContent = DEFAULT_CHAT_SYSTEM_PROMPT;
+  const cleanSystemPrompt = systemPrompt.trim();
+  if (!cleanSystemPrompt) {
+    throw new Error('chat_agent_system_prompt is required to build chat messages.');
+  }
+
+  let systemContent = cleanSystemPrompt;
   if (visualConfig && Object.keys(visualConfig).length > 0) {
     systemContent += `\n\n═══════════════════════════════════════\nCONFIGURATION CRÉATIVE ACTIVE (utilise ces paramètres en priorité)\n═══════════════════════════════════════\n${JSON.stringify(visualConfig, null, 2)}`;
   }
@@ -187,94 +65,69 @@ export function buildChatMessages(
 
 
 
-function normalizeProvider(value: string | null | undefined): AIProvider | null {
-  const normalized = value?.trim().toLowerCase();
-  if (!normalized) return null;
-  return TEXT_PROVIDERS.includes(normalized as AIProvider) ? (normalized as AIProvider) : null;
-}
-
-async function resolveProviderFromSettings(): Promise<AIProvider | null> {
-  const providerKeys = ['text_ai_provider', 'ai_text_provider', 'default_text_provider'];
-
-  for (const key of providerKeys) {
-    const provider = normalizeProvider(await settingsService.getRaw(key));
-    if (provider) return provider;
-  }
-
-  return null;
-}
-
-async function hasConfiguredProviderKey(provider: Exclude<AIProvider, 'mock'>): Promise<boolean> {
-  const keyByProvider: Record<Exclude<AIProvider, 'mock'>, string> = {
-    openai: 'openai_api_key',
-    anthropic: 'anthropic_api_key',
-    gemini: 'gemini_api_key'
-  };
-
-  const envByProvider: Record<Exclude<AIProvider, 'mock'>, string> = {
-    openai: 'OPENAI_API_KEY',
-    anthropic: 'ANTHROPIC_API_KEY',
-    gemini: 'GEMINI_API_KEY'
-  };
-
-  return Boolean(await settingsService.resolve(keyByProvider[provider], envByProvider[provider]));
-}
-
+/**
+ * Strict mode : le provider conversationnel vient UNIQUEMENT de l'AppSetting
+ * `text_ai_provider` (configuré dans /admin/settings). La valeur peut être :
+ *   - un built-in : openai | anthropic | gemini | mock
+ *   - le slug d'un provider custom actif (cf. table custom_${slug}_*)
+ * Aucun fallback. Aucune auto-détection. Si rien n'est configuré ou si le slug
+ * n'existe pas / est inactif → erreur explicite.
+ */
 async function resolveChatProvider(): Promise<AIProvider> {
-  const configuredProvider = await resolveProviderFromSettings();
-  if (configuredProvider && configuredProvider !== 'mock') return configuredProvider;
+  const raw = (await settingsService.getRaw('text_ai_provider'))?.trim().toLowerCase();
+  if (!raw) {
+    throw new Error(
+      "Aucun provider IA configuré. Renseignez 'text_ai_provider' dans /admin/settings (built-in : openai | anthropic | gemini | mock, ou slug d'un provider custom)."
+    );
+  }
 
-  if (await hasConfiguredProviderKey('openai')) return 'openai';
-  if (await hasConfiguredProviderKey('anthropic')) return 'anthropic';
-  if (await hasConfiguredProviderKey('gemini')) return 'gemini';
+  if (BUILT_IN_TEXT_PROVIDERS.has(raw)) return raw as AIProvider;
 
-  const envProvider = normalizeProvider(env.AI_DEFAULT_TEXT_PROVIDER);
-  if (envProvider && envProvider !== 'mock') return envProvider;
+  if (await isActiveCustomProvider(raw)) return raw;
 
-  throw new Error("Aucun fournisseur d'IA configuré. Veuillez ajouter une clé API dans les paramètres.");
+  throw new Error(
+    `Provider "${raw}" introuvable ou inactif. Ajoutez-le dans /admin/settings → onglet Providers, ou choisissez un built-in (openai | anthropic | gemini | mock).`
+  );
 }
 
+/**
+ * Strict mode : modèle lu uniquement depuis AppSetting.
+ *   - built-in   : `${provider}_model` → `default_model`
+ *   - custom slug : `custom_${slug}_default_model`
+ * Aucun défaut codé en dur. Si rien n'est configuré → erreur explicite.
+ */
 async function resolveChatModel(provider: AIProvider): Promise<string> {
-  switch (provider) {
-    case 'openai':
-      return (
-        (await settingsService.resolve('openai_model', 'AI_MODEL')) ??
-        (await settingsService.resolve('default_model', 'AI_DEFAULT_TEXT_MODEL')) ??
-        'gpt-4o'
-      );
-    case 'anthropic':
-      return (
-        (await settingsService.resolve('anthropic_model', 'AI_MODEL')) ??
-        (await settingsService.resolve('default_model', 'AI_DEFAULT_TEXT_MODEL')) ??
-        'claude-3-5-sonnet-20241022'
-      );
-    case 'gemini':
-      return (
-        (await settingsService.resolve('gemini_model', 'AI_MODEL')) ??
-        (await settingsService.resolve('default_model', 'AI_DEFAULT_TEXT_MODEL')) ??
-        'gemini-1.5-pro'
-      );
-    case 'mock':
-    default:
-      return 'mock-text';
-  }
-}
+  if (provider === 'mock') return 'mock-text';
 
-async function resolveFallbackProviders(primary: AIProvider): Promise<AIProvider[]> {
-  const providers: AIProvider[] = [primary];
-
-  for (const provider of ['openai', 'anthropic', 'gemini'] as const) {
-    if (provider !== primary && await hasConfiguredProviderKey(provider)) {
-      providers.push(provider);
-    }
+  // Custom provider : modèle stocké sous la clé `custom_${slug}_default_model`.
+  if (!BUILT_IN_TEXT_PROVIDERS.has(provider)) {
+    const customModel = await settingsService.getRaw(`custom_${provider}_default_model`);
+    if (customModel && customModel.trim().length > 0) return customModel.trim();
+    throw new Error(
+      `Aucun modèle configuré pour le provider custom "${provider}". Renseignez "Modèle par défaut" dans /admin/settings → Providers → ${provider}.`
+    );
   }
 
-  return providers;
+  const providerModelKey = `${provider}_model`;
+  const fromProvider = await settingsService.getRaw(providerModelKey);
+  if (fromProvider && fromProvider.trim().length > 0) return fromProvider.trim();
+
+  const fromDefault = await settingsService.getRaw('default_model');
+  if (fromDefault && fromDefault.trim().length > 0) return fromDefault.trim();
+
+  throw new Error(
+    `Aucun modèle configuré pour le provider "${provider}". Renseignez "${providerModelKey}" (ou "default_model") dans /admin/settings.`
+  );
 }
 
 async function resolveChatAgentProfile() {
   const name = (await settingsService.resolve('chat_agent_name')) ?? DEFAULT_CHAT_AGENT_NAME;
-  const systemPrompt = (await settingsService.resolve('chat_agent_system_prompt')) ?? DEFAULT_CHAT_SYSTEM_PROMPT;
+  const systemPrompt = await settingsService.resolve('chat_agent_system_prompt');
+  if (!systemPrompt) {
+    throw new Error(
+      'Prompt système du chat non configuré. Renseignez "chat_agent_system_prompt" dans /admin/settings.'
+    );
+  }
 
   return {
     name,
@@ -306,46 +159,347 @@ function buildChatUserPrompt(history: ChatHistoryMessage[] | undefined, message:
   ].join('\n');
 }
 
-async function callChatProvider(input: ChatRequestInput): Promise<string> {
-  const primaryProvider = await resolveChatProvider();
-  const agentProfile = await resolveChatAgentProfile();
-  const providers = await resolveFallbackProviders(primaryProvider);
-  let lastError: unknown;
+const FORMAT_LABELS: Record<string, string> = {
+  '3:4': 'Portrait - 3:4 (Flyer / Affiche / A4)',
+  '1:1': 'Carre - 1:1 (Instagram / Facebook)',
+  '9:16': 'Story - 9:16 (Story / Reels / TikTok)',
+  '16:9': 'Banniere - 16:9 (YouTube / web)',
+  '4:3': 'Paysage - 4:3 (presentation / pub)',
+};
 
-  let resolvedSystemPrompt = agentProfile.systemPrompt;
+const CHAT_FILE_USAGE_LABELS: Record<string, string> = {
+  LOGO: 'Logo',
+  PRODUCT_IMAGE: 'Produit',
+  REFERENCE_IMAGE: 'Inspiration',
+  GENERATED_POSTER: 'Affiche de référence',
+  PERSON_IMAGE: 'Personnage principal',
+  MODEL: 'Modèle',
+  BRAND_GUIDELINE: 'Charte graphique',
+  OTHER: 'Autre',
+};
 
-  if (input.visualConfig?.creationType) {
-    try {
-      const option = await prisma.creationOption.findUnique({
-        where: { slug: input.visualConfig.creationType as string }
-      });
-      if (option && option.isActive) {
-        resolvedSystemPrompt += `\n\n═══════════════════════════════════════\nCONTEXTE SPÉCIFIQUE (TYPE DE CRÉATION : ${option.name})\n═══════════════════════════════════════\n${option.contextPrompt}`;
-      }
-    } catch (err) {
-      logger.warn('[chat] Failed to load creation option context', err);
+const CHAT_WORKSPACE_CONTEXT_PROMPTS_KEY = 'chat_workspace_context_prompts';
+const WORKSPACE_PROMPT_TRIGGERS = [
+  'workspace_brief',
+  'assets_present',
+  'assets_missing',
+  'vision_chat',
+  'opening_assets',
+  'opening_no_assets',
+  'opening_vision',
+] as const;
+
+type WorkspacePromptTrigger = typeof WORKSPACE_PROMPT_TRIGGERS[number];
+type WorkspaceContextPrompt = {
+  id: string;
+  title: string;
+  trigger: WorkspacePromptTrigger;
+  content: string;
+  priority: number;
+  enabled: boolean;
+};
+
+function isWorkspacePromptTrigger(value: unknown): value is WorkspacePromptTrigger {
+  return typeof value === 'string' && WORKSPACE_PROMPT_TRIGGERS.includes(value as WorkspacePromptTrigger);
+}
+
+function parseWorkspaceContextPrompts(raw: string | null): WorkspaceContextPrompt[] {
+  if (!raw?.trim()) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item, index): WorkspaceContextPrompt | null => {
+        if (!item || typeof item !== 'object') return null;
+        const record = item as Record<string, unknown>;
+        const content = typeof record.content === 'string' ? record.content.trim() : '';
+        if (!content || !isWorkspacePromptTrigger(record.trigger)) return null;
+
+        const title = typeof record.title === 'string' && record.title.trim()
+          ? record.title.trim()
+          : `Prompt workspace ${index + 1}`;
+        const id = typeof record.id === 'string' && record.id.trim()
+          ? record.id.trim()
+          : `workspace_prompt_${index + 1}`;
+        const priority = Number(record.priority);
+
+        return {
+          id,
+          title,
+          trigger: record.trigger,
+          content,
+          priority: Number.isFinite(priority) ? priority : 0,
+          enabled: record.enabled !== false,
+        };
+      })
+      .filter((item): item is WorkspaceContextPrompt => Boolean(item))
+      .sort((a, b) => b.priority - a.priority || a.title.localeCompare(b.title, 'fr'));
+  } catch (err) {
+    logger.warn('[chat] invalid chat_workspace_context_prompts JSON', err instanceof Error ? err.message : err);
+    return [];
+  }
+}
+
+async function loadWorkspaceContextPrompts(): Promise<WorkspaceContextPrompt[]> {
+  return parseWorkspaceContextPrompts(await settingsService.getRaw(CHAT_WORKSPACE_CONTEXT_PROMPTS_KEY));
+}
+
+function applyWorkspacePromptVariables(
+  template: string,
+  variables: Record<string, string | number>
+) {
+  return template
+    .replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
+      const value = variables[key];
+      return value === undefined ? match : String(value);
+    })
+    .trim();
+}
+
+function formatWorkspacePromptBlock(title: string, content: string) {
+  const body = content.trim();
+  if (!body) return '';
+  return [
+    '═══════════════════════════════════════',
+    title,
+    '═══════════════════════════════════════',
+    body,
+    '═══════════════════════════════════════',
+  ].join('\n');
+}
+
+function renderWorkspacePromptBlocks(
+  prompts: WorkspaceContextPrompt[],
+  trigger: WorkspacePromptTrigger,
+  variables: Record<string, string | number> = {}
+) {
+  return prompts
+    .filter((prompt) => prompt.enabled && prompt.trigger === trigger)
+    .map((prompt) => formatWorkspacePromptBlock(
+      `${prompt.title} — priorité ${prompt.priority}`,
+      applyWorkspacePromptVariables(prompt.content, variables)
+    ))
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+function renderWorkspacePromptContent(
+  prompts: WorkspaceContextPrompt[],
+  trigger: WorkspacePromptTrigger,
+  variables: Record<string, string | number> = {}
+) {
+  return prompts
+    .filter((prompt) => prompt.enabled && prompt.trigger === trigger)
+    .map((prompt) => applyWorkspacePromptVariables(prompt.content, variables))
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+function canSendFileToChatVision(file: { fileUrl?: string | null; fileType?: string | null; format?: string | null }) {
+  if (!file.fileUrl?.startsWith('http')) return false;
+  if (file.fileType?.startsWith('image/')) return true;
+  const format = file.format?.toLowerCase();
+  return Boolean(format && ['jpg', 'jpeg', 'png', 'webp'].includes(format));
+}
+
+type WorkspaceBriefContext = {
+  title?: string | null;
+  projectTitle?: string | null;
+  projectBrandDescription?: string | null;
+  posterType?: string | null;
+  posterTypeName?: string | null;
+  posterTypeContextPrompt?: string | null;
+  format?: string | null;
+  category?: string | null;
+  style?: string | null;
+};
+
+async function loadWorkspaceBriefContext(travailId: string): Promise<WorkspaceBriefContext | null> {
+  const travail = await prisma.travail.findUnique({
+    where: { id: travailId },
+    select: {
+      title: true,
+      posterType: true,
+      category: true,
+      format: true,
+      style: true,
+      project: {
+        select: {
+          title: true,
+          brandDescription: true,
+        },
+      },
+    },
+  });
+
+  if (!travail) return null;
+
+  const posterType = travail.posterType?.trim() || null;
+  let posterTypeName: string | null = null;
+  let posterTypeContextPrompt: string | null = null;
+
+  if (posterType) {
+    const option = await prisma.creationOption.findUnique({
+      where: { slug: posterType },
+      select: { name: true, contextPrompt: true, isActive: true },
+    }).catch(() => null);
+
+    if (option?.isActive) {
+      posterTypeName = option.name;
+      posterTypeContextPrompt = option.contextPrompt;
     }
   }
 
+  return {
+    title: travail.title,
+    projectTitle: travail.project?.title,
+    projectBrandDescription: travail.project?.brandDescription,
+    posterType,
+    posterTypeName,
+    posterTypeContextPrompt,
+    format: travail.format,
+    category: travail.category,
+    style: travail.style,
+  };
+}
+
+function stringFromVisualConfig(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function mergeWorkspaceBriefContext(
+  dbContext: WorkspaceBriefContext | null,
+  visualConfig: Record<string, unknown> | undefined
+): WorkspaceBriefContext | null {
+  if (!dbContext && !visualConfig) return null;
+
+  return {
+    ...dbContext,
+    posterType:
+      stringFromVisualConfig(visualConfig?.creationType) ??
+      stringFromVisualConfig(visualConfig?.posterType) ??
+      dbContext?.posterType ??
+      null,
+    posterTypeName:
+      stringFromVisualConfig(visualConfig?.posterTypeLabel) ??
+      dbContext?.posterTypeName ??
+      null,
+    format:
+      stringFromVisualConfig(visualConfig?.format) ??
+      dbContext?.format ??
+      null,
+    category:
+      stringFromVisualConfig(visualConfig?.category) ??
+      dbContext?.category ??
+      null,
+    style:
+      stringFromVisualConfig(visualConfig?.style) ??
+      dbContext?.style ??
+      null,
+  };
+}
+
+function workspaceBriefVariables(context: WorkspaceBriefContext): Record<string, string> {
+  return {
+    workspaceTitle: context.title?.trim() || '',
+    projectTitle: context.projectTitle?.trim() || '',
+    brandDescription: context.projectBrandDescription?.trim() || '',
+    posterType: context.posterType?.trim() || '',
+    posterTypeName: context.posterTypeName?.trim() || '',
+    format: context.format?.trim() || '',
+    formatLabel: context.format ? (FORMAT_LABELS[context.format] || context.format) : '',
+    category: context.category?.trim() || '',
+    style: context.style?.trim() || '',
+  };
+}
+
+function buildWorkspaceBriefPrompt(context: WorkspaceBriefContext | null, instructions = '') {
+  if (!context) return '';
+
+  const lines = [
+    context.title ? `- Nom du travail : ${context.title}` : '',
+    context.projectTitle ? `- Projet / marque : ${context.projectTitle}` : '',
+    context.projectBrandDescription ? `- Description marque : ${context.projectBrandDescription}` : '',
+    context.posterType || context.posterTypeName
+      ? `- Type de visuel choisi dans le sidebar : ${context.posterTypeName || context.posterType}${context.posterType ? ` (${context.posterType})` : ''}`
+      : '',
+    context.format
+      ? `- Forme / format choisi dans le sidebar : ${FORMAT_LABELS[context.format] || context.format}`
+      : '',
+    context.category ? `- Categorie : ${context.category}` : '',
+    context.style ? `- Style initial : ${context.style}` : '',
+  ].filter(Boolean);
+
+  if (lines.length === 0) return '';
+
+  return [
+    '═══════════════════════════════════════',
+    'CONTEXTE INITIAL DU WORKSPACE',
+    '═══════════════════════════════════════',
+    ...(instructions.trim() ? [instructions.trim(), ''] : []),
+    lines.join('\n'),
+  ].join('\n');
+}
+
+async function callChatProvider(input: ChatRequestInput): Promise<string> {
+  const [provider, agentProfile, workspaceContextPrompts] = await Promise.all([
+    resolveChatProvider(),
+    resolveChatAgentProfile(),
+    loadWorkspaceContextPrompts(),
+  ]);
+
+  let workspaceContextPrompt = '';
+  const workspaceBrief = mergeWorkspaceBriefContext(
+    input.travailId ? await loadWorkspaceBriefContext(input.travailId) : null,
+    input.visualConfig
+  );
+  const workspaceBriefPrompt = buildWorkspaceBriefPrompt(
+    workspaceBrief,
+    workspaceBrief
+      ? renderWorkspacePromptContent(
+          workspaceContextPrompts,
+          'workspace_brief',
+          workspaceBriefVariables(workspaceBrief)
+        )
+      : ''
+  );
+  if (workspaceBriefPrompt) {
+    workspaceContextPrompt += `\n\n${workspaceBriefPrompt}`;
+  }
+
+  if (workspaceBrief?.posterTypeContextPrompt) {
+    workspaceContextPrompt += `\n\n═══════════════════════════════════════\nCONTEXTE SPÉCIFIQUE (TYPE DE CRÉATION : ${workspaceBrief.posterTypeName || workspaceBrief.posterType})\n═══════════════════════════════════════\n${workspaceBrief.posterTypeContextPrompt}`;
+  }
+
   if (input.visualConfig && Object.keys(input.visualConfig).length > 0) {
-    // Exclude creationType from the raw JSON dump to avoid confusion
-    const { creationType, ...restConfig } = input.visualConfig;
+    const restConfig = { ...input.visualConfig };
+    for (const key of [
+      'creationType',
+      'posterType',
+      'posterTypeLabel',
+      'format',
+      'formatLabel',
+      'formatHint',
+      'workspaceSidebar',
+    ]) {
+      delete restConfig[key];
+    }
     if (Object.keys(restConfig).length > 0) {
-      resolvedSystemPrompt += `\n\n═══════════════════════════════════════\nCONFIGURATION CRÉATIVE ACTIVE (utilise ces paramètres en priorité)\n═══════════════════════════════════════\n${JSON.stringify(restConfig, null, 2)}`;
+      workspaceContextPrompt += `\n\n═══════════════════════════════════════\nCONFIGURATION CRÉATIVE ACTIVE (utilise ces paramètres en priorité)\n═══════════════════════════════════════\n${JSON.stringify(restConfig, null, 2)}`;
     }
   }
 
   // Extraction des URLs d'assets attachés (logo, produit, inspiration…).
-  // Si présents, on bascule sur callVision pour que le provider chat VOIE les
-  // images plutôt que d'en recevoir uniquement la liste sous forme de JSON
-  // dans le system prompt. Limite : 8 images pour borner le payload.
+  // Le provider conversationnel doit VOIR les fichiers du workspace pour
+  // comprendre directement le contexte client avant la génération image.
   type AttachedAsset = { type?: string; url: string; name?: string };
+  type ChatVisionAsset = { label: string; url: string; name?: string };
   const rawAssets = (input.visualConfig?.assets ?? []) as AttachedAsset[];
-  const attachedImageUrls = rawAssets
+  const attachedImageAssets: ChatVisionAsset[] = rawAssets
     .filter((a) => typeof a?.url === 'string' && a.url.startsWith('http'))
-    .map((a) => a.url)
-    .slice(0, 8);
-  const useVision = attachedImageUrls.length > 0;
+    .map((a) => ({ label: a.type || 'Image', url: a.url, name: a.name }));
 
   // ─── Inventaire des fichiers déjà attachés au projet ─────────────────
   // Source 1 (autoritative) : table FileAsset via projectId (DB)
@@ -364,25 +518,19 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
             { project: { travaux: { some: { id: input.travailId } } } },
           ],
         },
-        select: { originalName: true, usageType: true },
+        select: { originalName: true, usageType: true, fileUrl: true, fileType: true, format: true },
       });
-      const LABEL: Record<string, string> = {
-        LOGO: 'Logo',
-        PRODUCT_IMAGE: 'Produit',
-        REFERENCE_IMAGE: 'Inspiration',
-        GENERATED_POSTER: 'Affiche de référence',
-        PERSON_IMAGE: 'Personnage principal',
-        MODEL: 'Modèle',
-        BRAND_GUIDELINE: 'Charte graphique',
-        OTHER: 'Autre',
-      };
       const byLabel = new Map<string, AssetSummaryItem>();
       for (const f of files) {
-        const label = LABEL[f.usageType] ?? f.usageType;
+        const label = CHAT_FILE_USAGE_LABELS[f.usageType] ?? f.usageType;
         const item = byLabel.get(label) ?? { label, count: 0, names: [] };
         item.count++;
         if (item.names.length < 3) item.names.push(f.originalName);
         byLabel.set(label, item);
+
+        if (canSendFileToChatVision(f)) {
+          attachedImageAssets.push({ label, url: f.fileUrl, name: f.originalName });
+        }
       }
       projectAssetSummary = Array.from(byLabel.values());
     } catch (err) {
@@ -390,103 +538,86 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
     }
   }
 
+  const seenVisionUrls = new Set<string>();
+  const uniqueImageAssets = attachedImageAssets
+    .filter((asset) => {
+      if (seenVisionUrls.has(asset.url)) return false;
+      seenVisionUrls.add(asset.url);
+      return true;
+    })
+    .slice(0, 8);
+  const attachedImageUrls = uniqueImageAssets.map((asset) => asset.url);
+  const useVision = attachedImageUrls.length > 0;
+
   // ─── Bloc CONTEXTUEL CRITIQUE injecté à CHAQUE appel ─────────────────
-  // Empêche l'agent de redemander des ressources déjà fournies. Bloc placé
-  // tout en haut du prompt augmenté pour qu'il prime sur les instructions
-  // génériques du DEFAULT_CHAT_SYSTEM_PROMPT.
+  // Empêche l'agent de redemander des ressources déjà fournies. Le prompt
+  // admin reste la base système ; ces blocs complètent le contexte Workspace.
   if (projectAssetSummary.length > 0) {
     const lines = projectAssetSummary
       .map((it) => `  • ${it.label} : ${it.count} fichier${it.count > 1 ? 's' : ''}${it.names.length ? ` (${it.names.join(', ')})` : ''}`)
       .join('\n');
-    resolvedSystemPrompt =
-      `═══════════════════════════════════════\n` +
-      `🔴 ÉLÉMENTS IMPORTANTS DÉJÀ FOURNIS — NE PAS REDEMANDER\n` +
-      `═══════════════════════════════════════\n` +
-      `L'utilisateur a déjà uploadé les fichiers suivants via le panneau\n` +
-      `"Éléments importants" du dashboard :\n${lines}\n\n` +
-      `RÈGLES IMPÉRATIVES :\n` +
-      `1. NE JAMAIS demander "Avez-vous un logo / des photos / une charte...".\n` +
-      `   Ces ressources SONT déjà fournies — confirme-les en première phrase.\n` +
-      `2. Ta première réponse DOIT commencer par une confirmation explicite,\n` +
-      `   par exemple : "Parfait, j'ai bien votre logo et 2 photos produit."\n` +
-      `3. Passe IMMÉDIATEMENT à la question suivante du brief (objectif, public\n` +
-      `   cible, message clé, format, couleurs préférées…).\n` +
-      `4. Tu VOIS réellement ces images (mode vision actif) — analyse-les en\n` +
-      `   silence (palette, style, sujet) et utilise tes observations pour\n` +
-      `   poser des questions précises, pas génériques.\n\n` +
-      `═══════════════════════════════════════\n\n` +
-      resolvedSystemPrompt;
+    const assetsPrompt = renderWorkspacePromptBlocks(workspaceContextPrompts, 'assets_present', {
+      assetCount: projectAssetSummary.reduce((sum, item) => sum + item.count, 0),
+      assetLines: lines,
+    });
+    if (assetsPrompt) workspaceContextPrompt += `\n\n${assetsPrompt}`;
   } else if (input.travailId) {
     // Travail existe mais 0 fichier — autoriser l'agent à proposer l'upload
-    resolvedSystemPrompt =
-      `═══════════════════════════════════════\n` +
-      `🟡 ÉLÉMENTS IMPORTANTS — AUCUN FICHIER ATTACHÉ\n` +
-      `═══════════════════════════════════════\n` +
-      `Aucun fichier n'a été uploadé dans le panneau "Éléments importants".\n` +
-      `Tu peux suggérer à l'utilisateur d'en ajouter (logo, produit,\n` +
-      `inspiration, affiche, personnage) pour améliorer la fidélité du rendu,\n` +
-      `mais ce n'est PAS bloquant — il peut décrire son projet en mots.\n` +
-      `═══════════════════════════════════════\n\n` +
-      resolvedSystemPrompt;
+    const noAssetsPrompt = renderWorkspacePromptBlocks(workspaceContextPrompts, 'assets_missing');
+    if (noAssetsPrompt) workspaceContextPrompt += `\n\n${noAssetsPrompt}`;
   }
 
   if (useVision) {
-    resolvedSystemPrompt +=
-      `\n\n═══════════════════════════════════════\n` +
-      `IMAGES ATTACHÉES — TRANSMISES EN VISION\n` +
-      `═══════════════════════════════════════\n` +
-      `${attachedImageUrls.length} image(s) ci-jointe(s). Tu les VOIS réellement ` +
-      `comme inlineData. Analyse-les silencieusement (couleurs dominantes, ` +
-      `typographie visible, style, sujet, qualité) et exploite tes observations ` +
-      `pour formuler la prochaine question. N'invente jamais le contenu d'une image.`;
-  }
-
-  for (const provider of providers) {
-    const model = await resolveChatModel(provider);
-    logger.info('[chat] calling AI provider', {
-      provider,
-      model,
-      agentName: agentProfile.name,
-      mode: useVision ? 'vision' : 'text',
-      attachmentCount: attachedImageUrls.length,
+    const visionLines = uniqueImageAssets
+      .map((asset, index) => `- Image ${index + 1} : ${asset.label}${asset.name ? ` (${asset.name})` : ''}`)
+      .join('\n');
+    const visionPrompt = renderWorkspacePromptBlocks(workspaceContextPrompts, 'vision_chat', {
+      imageCount: attachedImageUrls.length,
+      visionLines,
     });
-
-    try {
-      const adapter = await createProvider(provider);
-      const reply = (
-        useVision
-          ? await adapter.callVision({
-              provider,
-              model,
-              systemPrompt: resolvedSystemPrompt,
-              userPrompt: buildChatUserPrompt(input.history, input.message),
-              imageUrls: attachedImageUrls,
-              temperature: 0.4,
-              responseFormat: 'text',
-            })
-          : await adapter.callText({
-              provider,
-              model,
-              systemPrompt: resolvedSystemPrompt,
-              userPrompt: buildChatUserPrompt(input.history, input.message),
-              temperature: 0.4,
-              responseFormat: 'text',
-            })
-      ).trim();
-
-      if (!reply) throw new Error('AI provider returned an empty reply');
-      return reply;
-    } catch (error) {
-      lastError = error;
-      logger.error('[chat] AI provider failed; trying fallback', {
-        provider,
-        model,
-        error: error instanceof Error ? error.message : error
-      });
-    }
+    if (visionPrompt) workspaceContextPrompt += `\n\n${visionPrompt}`;
   }
 
-  throw lastError instanceof Error ? lastError : new Error('AI provider returned an empty reply');
+  const resolvedSystemPrompt = [
+    `PROMPT SYSTÈME ADMIN CONFIGURÉ DANS /admin/settings :\n${agentProfile.systemPrompt}`,
+    workspaceContextPrompt.trim()
+      ? `CONTEXTE WORKSPACE À RESPECTER SANS IGNORER LE PROMPT SYSTÈME ADMIN :${workspaceContextPrompt}`
+      : '',
+  ].filter(Boolean).join('\n\n');
+
+  const model = await resolveChatModel(provider);
+  logger.info('[chat] calling AI provider', {
+    provider,
+    model,
+    agentName: agentProfile.name,
+    mode: useVision ? 'vision' : 'text',
+    attachmentCount: attachedImageUrls.length,
+  });
+
+  const adapter = await createProvider(provider);
+  const reply = (
+    useVision
+      ? await adapter.callVision({
+          provider,
+          model,
+          systemPrompt: resolvedSystemPrompt,
+          userPrompt: buildChatUserPrompt(input.history, input.message),
+          imageUrls: attachedImageUrls,
+          temperature: 0.4,
+          responseFormat: 'text',
+        })
+      : await adapter.callText({
+          provider,
+          model,
+          systemPrompt: resolvedSystemPrompt,
+          userPrompt: buildChatUserPrompt(input.history, input.message),
+          temperature: 0.4,
+          responseFormat: 'text',
+        })
+  ).trim();
+
+  if (!reply) throw new Error('AI provider returned an empty reply');
+  return reply;
 }
 
 export const chatService = {
@@ -623,6 +754,15 @@ export const chatService = {
       assetsByLabel[label].push(f.originalName);
     }
     const hasAssets = allFiles.length > 0;
+    const openingVisionAssets = allFiles
+      .filter((file) => canSendFileToChatVision(file))
+      .map((file) => ({
+        label: USAGE_LABEL[file.usageType] ?? file.usageType,
+        name: file.originalName,
+        url: file.fileUrl,
+      }))
+      .slice(0, 8);
+    const openingImageUrls = openingVisionAssets.map((asset) => asset.url);
 
     // Idempotence : si le travail a déjà un premier message assistant, on le réutilise.
     const firstMessage = travail.messages[0];
@@ -654,24 +794,64 @@ export const chatService = {
           .join('\n')
       : 'Aucun fichier importé pour l’instant.';
 
+    const workspaceContextPrompts = await loadWorkspaceContextPrompts();
     const openingInstruction = hasAssets
-      ? `L'utilisateur a importé les fichiers suivants dans le panneau "Éléments importants" :\n${assetLines}\n\nDémarre la conversation en une seule prise. Format strict :\n1. Une phrase d'accueil très courte qui mentionne explicitement les types de fichiers détectés (ex: "Parfait, j'ai bien votre logo et 2 photos produit.").\n2. UNE seule question adaptée à ces fichiers pour avancer le brief (ex: si logo → demander couleurs/style ; si produit → demander objectif de promotion ; si affiche → demander ce qu'il faut améliorer).\n3. 4 à 6 choix au format [Choix] avec [Autre] en dernier.\n\nNe pas reformuler la liste complète des fichiers. Ne pas poser plusieurs questions. Ne pas écrire de paragraphe.`
-      : `L'utilisateur n'a importé AUCUN fichier dans le panneau "Éléments importants". Démarre la conversation en une seule prise. Format strict :\n1. Une phrase d'accueil très courte qui signale gentiment qu'aucun fichier n'a été détecté et qu'il pourra en ajouter à tout moment (Logo, Produit, Inspiration, Affiche, Personnage principal).\n2. UNE seule question pour cadrer le projet : "Souhaitez-vous d'abord importer des éléments visuels, ou commencer directement par décrire votre projet ?"\n3. Choix : [Importer un Logo] [Importer un Produit] [Importer une Inspiration] [Décrire le projet] [Autre]`;
+      ? renderWorkspacePromptContent(workspaceContextPrompts, 'opening_assets', {
+          assetCount: allFiles.length,
+          assetLines,
+        })
+      : renderWorkspacePromptContent(workspaceContextPrompts, 'opening_no_assets', { assetLines });
 
-    const primaryProvider = await resolveChatProvider();
+    const provider = await resolveChatProvider();
     const agentProfile = await resolveChatAgentProfile();
-    const providers = await resolveFallbackProviders(primaryProvider);
-    const systemPrompt =
-      `${agentProfile.systemPrompt}\n\n═══════════════════════════════════════\nINSTRUCTION SPÉCIALE — OUVERTURE\n═══════════════════════════════════════\n${openingInstruction}`;
+    const workspaceBrief = mergeWorkspaceBriefContext(
+      await loadWorkspaceBriefContext(travailId),
+      input.visualConfig
+    );
+    const workspaceBriefPrompt = buildWorkspaceBriefPrompt(
+      workspaceBrief,
+      workspaceBrief
+        ? renderWorkspacePromptContent(
+            workspaceContextPrompts,
+            'workspace_brief',
+            workspaceBriefVariables(workspaceBrief)
+          )
+        : ''
+    );
+    const openingVisionPrompt = openingVisionAssets.length
+      ? renderWorkspacePromptContent(workspaceContextPrompts, 'opening_vision', {
+          imageCount: openingVisionAssets.length,
+          visionLines: openingVisionAssets.map((asset, index) => (
+            `- Image ${index + 1} : ${asset.label} (${asset.name})`
+          )).join('\n'),
+        })
+      : '';
+    const systemPrompt = [
+      `PROMPT SYSTÈME ADMIN CONFIGURÉ DANS /admin/settings :\n${agentProfile.systemPrompt}`,
+      workspaceBriefPrompt
+        ? `CONTEXTE WORKSPACE À UTILISER DÈS L’OUVERTURE :\n${workspaceBriefPrompt}`
+        : '',
+      openingVisionPrompt,
+      openingInstruction
+        ? `INSTRUCTION SPÉCIALE — OUVERTURE WORKSPACE :\n${openingInstruction}`
+        : '',
+    ].filter(Boolean).join('\n\n═══════════════════════════════════════\n\n');
 
-    let opening = '';
-    let lastError: unknown;
-    for (const provider of providers) {
-      const model = await resolveChatModel(provider);
-      try {
-        const adapter = await createProvider(provider);
-        opening = (
-          await adapter.callText({
+    const model = await resolveChatModel(provider);
+    const adapter = await createProvider(provider);
+    const opening = (
+      openingImageUrls.length > 0
+        ? await adapter.callVision({
+            provider,
+            model,
+            systemPrompt,
+            userPrompt:
+              'Tu démarres maintenant. Tu vois les images du workspace. Produis uniquement la réponse demandée, sans préambule.',
+            imageUrls: openingImageUrls,
+            temperature: 0.4,
+            responseFormat: 'text',
+          })
+        : await adapter.callText({
             provider,
             model,
             systemPrompt,
@@ -680,21 +860,10 @@ export const chatService = {
             temperature: 0.4,
             responseFormat: 'text',
           })
-        ).trim();
-        if (opening) break;
-      } catch (err) {
-        lastError = err;
-        logger.error('[chat/opening] provider failed; trying fallback', {
-          provider,
-          error: err instanceof Error ? err.message : err,
-        });
-      }
-    }
+    ).trim();
 
     if (!opening) {
-      throw lastError instanceof Error
-        ? lastError
-        : new Error('AI provider returned an empty opening');
+      throw new Error('AI provider returned an empty opening');
     }
 
     const savedMessage = await prisma.message.create({

@@ -43,11 +43,12 @@ describe('chat module', () => {
         { role: 'user', content: 'Je veux un flyer' },
         { role: 'assistant', content: 'Quel style souhaitez-vous ?' }
       ],
-      'Un style luxe'
+      'Un style luxe',
+      'Prompt système lu depuis AppSetting.'
     );
 
     expect(messages[0]?.role).toBe('system');
-    expect(messages[0]?.content).toContain('assistant IA de Flyer Studio');
+    expect(messages[0]?.content).toContain('Prompt système lu depuis AppSetting.');
     expect(messages.at(-1)).toEqual({ role: 'user', content: 'Un style luxe' });
   });
 });

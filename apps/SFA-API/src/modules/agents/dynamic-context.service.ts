@@ -8,6 +8,7 @@ export interface AgentContextData {
   promptText: string;
   provider: AIProvider;
   model: string;
+  systemPrompt: string;
 }
 
 /**
@@ -45,7 +46,8 @@ export async function buildAgentContext(
     return {
       promptText: "Aucune mémoire en entrée pour cet agent.",
       provider: agent.provider as AIProvider,
-      model: agent.model
+      model: agent.model,
+      systemPrompt: agent.systemPrompt
     };
   }
 
@@ -91,7 +93,8 @@ export async function buildAgentContext(
   return {
     promptText: promptText.trim(),
     provider: agent.provider as AIProvider,
-    model: agent.model
+    model: agent.model,
+    systemPrompt: agent.systemPrompt
   };
 }
 

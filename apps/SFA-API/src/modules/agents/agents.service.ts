@@ -13,17 +13,6 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { callTextAI, callVisionAI } from '../ai/ai.service';
 import { AIProvider, AIResponse } from '../ai/ai.types';
-
-
-import { PLANNER_SYSTEM_PROMPT } from './system-prompts/planner.prompt';
-import { IMAGE_ANALYST_SYSTEM_PROMPT } from './system-prompts/imageAnalyst.prompt';
-import { TEXT_ANALYST_SYSTEM_PROMPT } from './system-prompts/textAnalyst.prompt';
-import { BRAND_AGENT_SYSTEM_PROMPT } from './system-prompts/brandAgent.prompt';
-import { ARTISTIC_BASE_SYSTEM_PROMPT } from './system-prompts/artisticBase.prompt';
-import { PROMPT_ARCHITECT_SYSTEM_PROMPT } from './system-prompts/promptArchitect.prompt';
-import { QUALITY_AGENT_SYSTEM_PROMPT } from './system-prompts/qualityAgent.prompt';
-import { SAFETY_AGENT_SYSTEM_PROMPT } from './system-prompts/safetyAgent.prompt';
-
 import { buildAgentContext, saveAgentOutputs, type MemorySnapshot } from './dynamic-context.service';
 
 // ─── Types de sortie de chaque agent ────────────────────
@@ -213,7 +202,7 @@ export interface RunPlannerParams {
 }
 
 export async function runPlannerAgent(params: RunPlannerParams): Promise<PlannerOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('PLANNER_AGENT', params.travailId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel, systemPrompt } = await buildAgentContext('PLANNER_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `${promptText}\n\nAnalyse cette demande et retourne le JSON demandé.`.trim();
 
   let agentRunStatus: 'SUCCESS' | 'FAILED' = 'SUCCESS';
@@ -224,7 +213,7 @@ export async function runPlannerAgent(params: RunPlannerParams): Promise<Planner
     result = await callTextAI({
       provider: params.provider || agentProvider,
       model: params.model || agentModel,
-      systemPrompt: PLANNER_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt,
       temperature: 0.7,
       responseFormat: 'json'
@@ -274,7 +263,7 @@ export interface RunImageAnalystParams {
 }
 
 export async function runImageAnalystAgent(params: RunImageAnalystParams): Promise<ImageAnalystOutput[]> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('IMAGE_ANALYST_AGENT', params.travailId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel, systemPrompt } = await buildAgentContext('IMAGE_ANALYST_AGENT', params.travailId, params.memorySnapshot);
   const results: ImageAnalystOutput[] = [];
 
   for (const file of params.files) {
@@ -294,7 +283,7 @@ Retourne le JSON d'analyse demandé.
       result = await callVisionAI({
         provider: params.provider || agentProvider,
         model: params.model || agentModel,
-        systemPrompt: IMAGE_ANALYST_SYSTEM_PROMPT,
+        systemPrompt,
         userPrompt,
         imageUrls: [file.fileUrl],
         temperature: 0.3,
@@ -338,7 +327,7 @@ export interface RunTextAnalystParams {
 }
 
 export async function runTextAnalystAgent(params: RunTextAnalystParams): Promise<TextAnalystOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('TEXT_ANALYST_AGENT', params.travailId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel, systemPrompt } = await buildAgentContext('TEXT_ANALYST_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `
 ${promptText}
 
@@ -358,7 +347,7 @@ Corrige, améliore et hiérarchise les textes pour cette affiche.
     result = await callTextAI({
       provider: params.provider || agentProvider,
       model: params.model || agentModel,
-      systemPrompt: TEXT_ANALYST_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt,
       temperature: 0.5,
       responseFormat: 'json'
@@ -401,7 +390,7 @@ export interface RunBrandAgentParams {
 }
 
 export async function runBrandAgent(params: RunBrandAgentParams): Promise<BrandAgentOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('BRAND_AGENT', params.travailId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel, systemPrompt } = await buildAgentContext('BRAND_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `
 ${promptText}
 
@@ -420,7 +409,7 @@ Structure l'identité visuelle complète et retourne le JSON demandé.
     result = await callTextAI({
       provider: params.provider || agentProvider,
       model: params.model || agentModel,
-      systemPrompt: BRAND_AGENT_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt,
       temperature: 0.4,
       responseFormat: 'json'
@@ -474,7 +463,7 @@ export interface RunArtisticBaseParams {
 }
 
 export async function runArtisticBaseAgent(params: RunArtisticBaseParams): Promise<ArtisticBaseOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('ARTISTIC_BASE_AGENT', params.travailId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel, systemPrompt } = await buildAgentContext('ARTISTIC_BASE_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `
 ${promptText}
 
@@ -501,7 +490,7 @@ Sélectionne les ressources les plus appropriées et retourne le JSON demandé.
     result = await callTextAI({
       provider: params.provider || agentProvider,
       model: params.model || agentModel,
-      systemPrompt: ARTISTIC_BASE_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt,
       temperature: 0.5,
       responseFormat: 'json'
@@ -551,7 +540,7 @@ export interface RunPromptArchitectParams {
 }
 
 export async function runPromptArchitectAgent(params: RunPromptArchitectParams): Promise<PromptArchitectOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('PROMPT_ARCHITECT_AGENT', params.travailId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel, systemPrompt } = await buildAgentContext('PROMPT_ARCHITECT_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `
 ${promptText}
 
@@ -578,7 +567,7 @@ Génère le prompt final M-PROMPT1 professionnel pour cette affiche.
     result = await callTextAI({
       provider: params.provider || agentProvider,
       model: params.model || agentModel,
-      systemPrompt: PROMPT_ARCHITECT_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt,
       temperature: 0.6,
       responseFormat: 'json'
@@ -624,7 +613,7 @@ export interface RunQualityAgentParams {
 }
 
 export async function runQualityAgent(params: RunQualityAgentParams): Promise<QualityAgentOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('QUALITY_AGENT', params.travailId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel, systemPrompt } = await buildAgentContext('QUALITY_AGENT', params.travailId, params.memorySnapshot);
   const userPrompt = `
 ${promptText}
 
@@ -642,7 +631,7 @@ ${JSON.stringify(params.mPrompt1, null, 2)}
     result = await callTextAI({
       provider: params.provider || agentProvider,
       model: params.model || agentModel,
-      systemPrompt: QUALITY_AGENT_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt,
       temperature: 0.3,
       responseFormat: 'json'
@@ -693,7 +682,7 @@ export interface RunSafetyAgentParams {
 }
 
 export async function runSafetyAgent(params: RunSafetyAgentParams): Promise<SafetyAgentOutput> {
-  const { promptText, provider: agentProvider, model: agentModel } = await buildAgentContext('SAFETY_AGENT', params.travailId, params.memorySnapshot);
+  const { promptText, provider: agentProvider, model: agentModel, systemPrompt } = await buildAgentContext('SAFETY_AGENT', params.travailId, params.memorySnapshot);
 
   const rulesBlock = (params.forbiddenRules ?? [])
     .map(
@@ -721,7 +710,7 @@ Analyse le prompt ci-dessus. Bloque si violation CRITICAL, amende si HIGH/MEDIUM
     result = await callTextAI({
       provider: params.provider || agentProvider,
       model: params.model || agentModel,
-      systemPrompt: SAFETY_AGENT_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt,
       temperature: 0.2,
       responseFormat: 'json',
@@ -757,4 +746,3 @@ Analyse le prompt ci-dessus. Bloque si violation CRITICAL, amende si HIGH/MEDIUM
 
 // Exports des helpers pour l'orchestrateur
 export { upsertMemory, saveAgentRun };
-
