@@ -1,10 +1,13 @@
 node_modules
+**/node_modules
 dist
+**/dist
 .git
 .env
-.env.local
+.env.*
 *.log
-admin-dashboard
-frontend-client
-docs
+.dev-logs
+.claude
 .vscode
+apps/admin
+apps/client
