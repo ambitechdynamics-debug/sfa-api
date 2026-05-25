@@ -179,6 +179,20 @@ export async function fetchProjectFiles(projectId: string): Promise<FileAsset[]>
   return apiFetch<FileAsset[]>(`/api/projects/${projectId}/files`)
 }
 
+export async function deleteProjectFile(fileId: string): Promise<void> {
+  return apiFetch<void>(`/api/files/${fileId}`, { method: "DELETE" })
+}
+
+export async function updateProjectFile(
+  fileId: string,
+  data: Partial<Pick<FileAsset, "usageType">>,
+): Promise<FileAsset> {
+  return apiFetch<FileAsset>(`/api/files/${fileId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  })
+}
+
 // ─── Orchestration (travail-scoped) ─────────────────────────────────────────
 
 export interface OrchestrationResult {

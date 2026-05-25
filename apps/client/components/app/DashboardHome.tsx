@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/app/dashboard-ui"
 import { useProjectStore } from "@/store/project-store"
 import { useAuthStore } from "@/store/auth-store"
 import { createProject, createTravail, uploadProjectFile } from "@/lib/projects"
+import { getProjectWorkspacePath } from "@/lib/project-navigation"
 import type { Project, Travail, TravailStatus } from "@/types/project"
 
 import { useCreationOptionsStore } from "@/store/creation-options-store"
@@ -353,6 +354,15 @@ export function DashboardHome() {
     // les lit directement (travail.project.files). Pas besoin de matérialiser
     // une mémoire M-ASSETS (l'API attend un travailId mais on n'en a pas encore
     // à ce stade — le travail est créé au moment du premier message).
+  }
+
+  async function openProject(project: Project) {
+    try {
+      router.push(await getProjectWorkspacePath(project))
+    } catch (err) {
+      console.error("[dashboard home] open project failed", err)
+      router.push("/dashboard")
+    }
   }
 
   function removeHomeAsset(id: string) {
@@ -865,7 +875,7 @@ export function DashboardHome() {
                 <ProjectCard
                   key={p.id}
                   project={p}
-                  onOpen={() => router.push(`/dashboard/projects/${p.id}`)}
+                  onOpen={() => void openProject(p)}
                   onRename={() => startRename(p)}
                   onDelete={() => removeProject(p.id)}
                 />
@@ -877,7 +887,7 @@ export function DashboardHome() {
                 <ProjectListRow
                   key={p.id}
                   project={p}
-                  onOpen={() => router.push(`/dashboard/projects/${p.id}`)}
+                  onOpen={() => void openProject(p)}
                   onRename={() => startRename(p)}
                   onDelete={() => removeProject(p.id)}
                 />

@@ -50,15 +50,18 @@ const envSchema = z.object({
     z.string().min(1).default('http://localhost:3000')
   ),
 
-  // AI Providers
+  // AI Providers — NB : ces variables ne sont plus lues au runtime (la source
+  // unique est AppSetting, configurable dans /admin/settings). Conservées
+  // facultativement dans le schéma pour la rétro-compat des .env legacy et
+  // pour permettre une éventuelle utilisation hors-runtime (scripts).
   AI_API_KEY: emptyToUndefined,
   AI_API_URL: emptyToUndefinedUrl,
   AI_MODEL: emptyToUndefined,
   OPENAI_API_KEY: emptyToUndefined,
   ANTHROPIC_API_KEY: emptyToUndefined,
   GEMINI_API_KEY: emptyToUndefined,
-  AI_DEFAULT_TEXT_PROVIDER: z.string().default('mock'),
-  AI_DEFAULT_VISION_PROVIDER: z.string().default('mock'),
+  AI_DEFAULT_TEXT_PROVIDER: emptyToUndefined,
+  AI_DEFAULT_VISION_PROVIDER: emptyToUndefined,
   AI_DEFAULT_TEXT_MODEL: emptyToUndefined,
   AI_DEFAULT_VISION_MODEL: emptyToUndefined,
 

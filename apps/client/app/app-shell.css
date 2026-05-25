@@ -1,0 +1,1056 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Studio Flyer AI — connected app shell (Claude Design inspired).
+   Two scopes: .csl-app-dashboard (project browser) and .csl-app-workspace
+   (chat + canvas). Warm-clay palette (cream / peach) on white.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.csl-app-dashboard,
+.csl-app-workspace {
+  /* Warm-clay palette local to these screens */
+  --csl-bg:       #ffffff;
+  --csl-bg-soft:  #FAF8F4;
+  --csl-bg-mute:  #F2EEE7;
+  --csl-border:   #ECE8E1;
+  --csl-border-2: #E5E0D7;
+  --csl-border-3: #D2C9BC;
+  --csl-ink-0:    #2d2a26;
+  --csl-ink-1:    #6d6660;
+  --csl-ink-2:    #8a827a;
+  --csl-ink-3:    #a8a098;
+  --csl-accent:       #E89376;
+  --csl-accent-hover: #d97a5a;
+  --csl-accent-soft:  #F9C7B0;
+  --csl-accent-on:    #ffffff;
+
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  color: var(--csl-ink-0);
+  background: var(--csl-bg);
+
+  /* Scrollbar styling scoped */
+}
+
+.csl-app-dashboard,
+.csl-app-workspace {
+  height: 100%;
+  width: 100%;
+  display: flex;
+}
+
+.csl-app-dashboard *,
+.csl-app-workspace * { box-sizing: border-box; }
+
+/* ─── DASHBOARD layout ────────────────────────────────────────────── */
+/* Sidebar — dark theme based on #1a2127, contrasts the light main area */
+.csl-app-dashboard .csl-sb {
+  /* Local dark palette nuances */
+  --sb-bg:        #1a2127;
+  --sb-bg-elev:   #222a31;
+  --sb-bg-hover:  #2b343c;
+  --sb-bg-soft:   rgba(255,255,255,0.04);
+  --sb-border:    rgba(255,255,255,0.08);
+  --sb-border-2:  rgba(255,255,255,0.12);
+  --sb-border-3:  rgba(255,255,255,0.18);
+  --sb-ink-0:     #ffffff;
+  --sb-ink-1:     rgba(255,255,255,0.78);
+  --sb-ink-2:     rgba(255,255,255,0.56);
+  --sb-ink-3:     rgba(255,255,255,0.38);
+
+  width: 340px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--sb-border);
+  display: flex;
+  flex-direction: column;
+  background: var(--sb-bg);
+  color: var(--sb-ink-0);
+}
+.csl-app-dashboard .csl-sb-head {
+  padding: 28px 28px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.csl-app-dashboard .csl-sb-logo {
+  width: 38px;
+  height: 38px;
+  display: block;
+  flex-shrink: 0;
+}
+.csl-app-dashboard .csl-sb-logo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.22));
+}
+.csl-app-dashboard .csl-sb-brand-row {
+  display: flex; align-items: center; gap: 8px;
+  /* Police très lisible — Inter bold (déjà chargée par le layout) */
+  font-family: var(--font-inter), "Inter", "Segoe UI", system-ui, sans-serif;
+  /* Calibré pour que le couple Consilium + Design rentre dans la hauteur
+     du logo (36px) — chaque ligne ~17px + 2px gap ≈ 36px */
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--sb-ink-0);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.18);
+  line-height: 1;
+}
+
+/* "Design" — italique artistique sous le wordmark, aligné à gauche
+   sur la même colonne que "Consilium" */
+.csl-app-dashboard .csl-sb-brand-script {
+  font-family: var(--font-artistic), "Playfair Display", "Georgia", serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 17px;
+  letter-spacing: 0.01em;
+  color: var(--csl-accent);
+  margin-top: 2px;
+  line-height: 1;
+}
+.csl-app-dashboard .csl-sb-chip-preview {
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--sb-border-2);
+  color: var(--sb-ink-1);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.csl-app-dashboard .csl-sb-subtitle {
+  font-size: 12px;
+  color: var(--sb-ink-2);
+  margin-top: 2px;
+}
+
+.csl-app-dashboard .csl-sb-tabs {
+  padding: 0 28px;
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--sb-border);
+  font-size: 13px;
+}
+.csl-app-dashboard .csl-sb-tab {
+  padding: 0 0 10px;
+  margin-bottom: -1px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--sb-ink-2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color .15s, border-color .15s;
+}
+.csl-app-dashboard .csl-sb-tab:hover { color: var(--sb-ink-0); }
+.csl-app-dashboard .csl-sb-tab.active {
+  border-bottom-color: var(--sb-ink-0);
+  color: var(--sb-ink-0);
+  font-weight: 500;
+}
+
+.csl-app-dashboard .csl-sb-form {
+  padding: 24px 28px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+}
+.csl-app-dashboard .csl-form-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--sb-ink-0);
+}
+
+/* Inputs and pickers inside the dark sidebar */
+.csl-app-dashboard .csl-sb .csl-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--sb-border-2);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--sb-bg-elev);
+  color: var(--sb-ink-0);
+  outline: none;
+  transition: border-color .15s, background .15s;
+}
+.csl-app-dashboard .csl-sb .csl-input::placeholder { color: var(--sb-ink-3); }
+.csl-app-dashboard .csl-sb .csl-input:hover { background: var(--sb-bg-hover); }
+.csl-app-dashboard .csl-sb .csl-input:focus { border-color: var(--csl-accent); background: var(--sb-bg-hover); }
+.csl-app-dashboard .csl-sb .csl-input:disabled { opacity: .5; cursor: not-allowed; }
+
+.csl-app-dashboard .csl-form-label {
+  font-size: 12.5px;
+  color: var(--sb-ink-1);
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+.csl-app-dashboard .csl-form-picker {
+  width: 100%;
+  height: 48px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--sb-border-2);
+  background: var(--sb-bg-elev);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--sb-ink-0);
+  transition: background .15s;
+}
+.csl-app-dashboard .csl-form-picker:hover { background: var(--sb-bg-hover); }
+.csl-app-dashboard .csl-form-picker-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: rgba(232,147,118,0.18);
+  color: var(--csl-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.csl-app-dashboard .csl-form-picker-label { font-size: 12.5px; font-weight: 500; line-height: 1.2; color: var(--sb-ink-0); }
+.csl-app-dashboard .csl-form-picker-sub { font-size: 10.5px; color: var(--sb-ink-2); line-height: 1.2; margin-top: 2px; }
+
+.csl-app-dashboard .csl-btn-primary {
+  margin-top: 16px;
+  width: 100%;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--csl-accent);
+  color: var(--csl-accent-on);
+  font-size: 13.5px;
+  font-weight: 500;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  transition: background .15s;
+}
+.csl-app-dashboard .csl-btn-primary:hover { background: var(--csl-accent-hover); }
+.csl-app-dashboard .csl-btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+
+.csl-app-dashboard .csl-form-hint {
+  font-size: 11.5px;
+  color: var(--sb-ink-2);
+  text-align: center;
+  margin-top: 20px;
+}
+
+.csl-app-dashboard .csl-sb-foot {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Main area — flat dark surface */
+.csl-app-dashboard .csl-main {
+  /* Local dark palette for the main panel */
+  --main-bg:       #181f25;
+  --main-bg-elev:  #212a32;
+  --main-bg-hover: #2a343c;
+  --main-border:   rgba(255,255,255,0.06);
+  --main-border-2: rgba(255,255,255,0.10);
+  --main-border-3: rgba(255,255,255,0.18);
+  --main-ink-0:    #ffffff;
+  --main-ink-1:    rgba(255,255,255,0.78);
+  --main-ink-2:    rgba(255,255,255,0.55);
+  --main-ink-3:    rgba(255,255,255,0.38);
+
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background: var(--main-bg);
+  color: var(--main-ink-0);
+}
+
+.csl-app-dashboard .csl-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 36px 8px;
+}
+.csl-app-dashboard .csl-toptabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+}
+.csl-app-dashboard .csl-toptab {
+  padding: 0 0 8px;
+  margin-bottom: -1px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  color: var(--main-ink-2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color .15s, border-color .15s;
+}
+.csl-app-dashboard .csl-toptab:hover { color: var(--main-ink-0); }
+.csl-app-dashboard .csl-toptab.active {
+  border-bottom-color: var(--csl-accent);
+  color: var(--main-ink-0);
+  font-weight: 500;
+}
+
+.csl-app-dashboard .csl-search {
+  position: relative;
+  width: 260px;
+}
+.csl-app-dashboard .csl-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--main-ink-3);
+}
+/* Search input override (read on dark main) */
+.csl-app-dashboard .csl-main .csl-input {
+  background: var(--main-bg-elev);
+  border-color: var(--main-border-2);
+  color: var(--main-ink-0);
+}
+.csl-app-dashboard .csl-main .csl-input::placeholder { color: var(--main-ink-3); }
+.csl-app-dashboard .csl-main .csl-input:hover { background: var(--main-bg-hover); }
+.csl-app-dashboard .csl-main .csl-input:focus { border-color: var(--csl-accent); background: var(--main-bg-hover); }
+
+.csl-app-dashboard .csl-divider { border-bottom: 1px solid var(--main-border); }
+
+.csl-app-dashboard .csl-grid-wrap {
+  flex: 1;
+  overflow: auto;
+  padding: 28px 36px;
+}
+.csl-app-dashboard .csl-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+@media (min-width: 700px)  { .csl-app-dashboard .csl-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 980px)  { .csl-app-dashboard .csl-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1280px) { .csl-app-dashboard .csl-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1600px) { .csl-app-dashboard .csl-grid { grid-template-columns: repeat(6, 1fr); } }
+
+/* Project card — dark elevated on the dark main bg */
+.csl-app-dashboard .csl-card {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--main-border-2);
+  background: var(--main-bg-elev);
+  cursor: pointer;
+  transition: box-shadow .2s, transform .2s, border-color .2s, background .2s;
+  color: var(--main-ink-0);
+}
+.csl-app-dashboard .csl-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  transform: translateY(-1px);
+  border-color: var(--main-border-3);
+  background: var(--main-bg-hover);
+}
+.csl-app-dashboard .csl-card-thumb {
+  position: relative;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.4);
+}
+.csl-app-dashboard .csl-card-thumb.featured {
+  background: linear-gradient(135deg, rgba(232,147,118,0.18) 0%, rgba(232,147,118,0.06) 100%);
+  color: rgba(232,147,118,0.55);
+}
+.csl-app-dashboard .csl-card-thumb.system {
+  background: rgba(232,147,118,0.14);
+  color: rgba(232,147,118,0.6);
+}
+.csl-app-dashboard .csl-card-meta {
+  padding: 14px 14px 14px;
+}
+.csl-app-dashboard .csl-card-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--main-ink-0);
+}
+.csl-app-dashboard .csl-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+.csl-app-dashboard .csl-card-sub {
+  font-size: 11px;
+  color: var(--main-ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.csl-app-dashboard .csl-card-chip {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.06);
+  color: var(--main-ink-2);
+  border: 1px solid var(--main-border);
+}
+.csl-app-dashboard .csl-card-pill {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--csl-accent-soft);
+  color: #9c5a3d;
+}
+.csl-app-dashboard .csl-card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.csl-app-dashboard .csl-card:hover .csl-card-actions { opacity: 1; }
+.csl-app-dashboard .csl-card-action {
+  width: 24px; height: 24px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid var(--main-border-2);
+  color: var(--main-ink-1);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  backdrop-filter: blur(4px);
+}
+.csl-app-dashboard .csl-card-action:hover { background: rgba(0,0,0,0.75); color: var(--main-ink-0); }
+
+.csl-app-dashboard .csl-empty {
+  text-align: center;
+  padding: 64px 0;
+  color: var(--main-ink-2);
+  font-size: 13px;
+}
+
+.csl-app-dashboard .csl-error {
+  margin: 16px 28px 0;
+  padding: 10px 12px;
+  background: rgba(232,147,118,0.10);
+  border: 1px solid rgba(232,147,118,0.30);
+  color: #f3b59f;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+
+/* ─── WORKSPACE layout — palette dark identique au Dashboard ─────── */
+/* Override des tokens --csl-* localement sur la workspace.
+   Les règles ci-dessous ne changent pas — elles consomment automatiquement
+   les nouvelles valeurs dark via le cascade CSS. */
+.csl-app-workspace {
+  --csl-bg:        #181f25;   /* fond principal (main) */
+  --csl-bg-soft:   rgba(255,255,255,0.04); /* hover subtil */
+  --csl-bg-mute:   #212a32;   /* surfaces élevées (cards) */
+  --csl-border:    rgba(255,255,255,0.06);
+  --csl-border-2:  rgba(255,255,255,0.10);
+  --csl-border-3:  rgba(255,255,255,0.18);
+  --csl-ink-0:     #ffffff;
+  --csl-ink-1:     rgba(255,255,255,0.78);
+  --csl-ink-2:     rgba(255,255,255,0.55);
+  --csl-ink-3:     rgba(255,255,255,0.38);
+  --csl-accent-soft: rgba(232,147,118,0.18);
+
+  flex-direction: column;
+  height: 100%;
+  background: var(--csl-bg);
+  color: var(--csl-ink-0);
+}
+.csl-app-workspace .csl-ws-top {
+  height: 48px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--csl-border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  background: #1a2127; /* même teinte que la sidebar du Dashboard */
+}
+.csl-app-workspace .csl-ws-brand {
+  display: flex; align-items: center; gap: 8px;
+  width: 260px;
+}
+.csl-app-workspace .csl-ws-brand-logo {
+  width: 24px;
+  height: 24px;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.22));
+}
+.csl-app-workspace .csl-ws-title {
+  font-family: "Source Serif 4", serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.csl-app-workspace .csl-ws-tabbar {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  padding-left: 8px;
+}
+.csl-app-workspace .csl-ws-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 36px;
+  border-left: 1px solid var(--csl-border);
+  border-top: 1px solid var(--csl-border);
+  border-right: 1px solid var(--csl-border);
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  background: var(--csl-bg);
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-bottom: -1px;
+}
+.csl-app-workspace .csl-ws-actions {
+  display: flex; align-items: center; gap: 12px;
+}
+.csl-app-workspace .csl-ws-share {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background: var(--csl-accent);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.csl-app-workspace .csl-ws-share:hover { background: var(--csl-accent-hover); }
+.csl-app-workspace .csl-ws-avatar {
+  width: 32px; height: 32px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #E89376, #c66a45);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+.csl-app-workspace .csl-ws-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.csl-app-workspace .csl-ws-left {
+  width: 470px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--csl-border);
+  background: #1a2127; /* même teinte que la sidebar du Dashboard */
+}
+.csl-app-workspace .csl-ws-left-top {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80px 40px 24px;
+  overflow: auto;
+}
+.csl-app-workspace .csl-ws-h1 {
+  font-family: "Source Serif 4", serif;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  text-align: center;
+}
+.csl-app-workspace .csl-ws-h1-sub {
+  font-size: 12.5px;
+  color: var(--csl-ink-2);
+  margin: 0 0 28px;
+  text-align: center;
+}
+
+.csl-app-workspace .csl-ctx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+}
+.csl-app-workspace .csl-ctx-card {
+  background: var(--csl-bg);
+  border: 1px solid var(--csl-border-2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+  color: var(--csl-ink-0);
+  transition: box-shadow .15s;
+}
+.csl-app-workspace .csl-ctx-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+.csl-app-workspace .csl-ctx-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.csl-app-workspace .csl-ctx-label {
+  font-size: 12.5px; font-weight: 500;
+  flex: 1; line-height: 1.2;
+}
+
+.csl-app-workspace .csl-ws-chatbox {
+  margin: 16px 16px 20px;
+  border: 1px solid var(--csl-border-2);
+  background: var(--csl-bg);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.csl-app-workspace .csl-ws-chat-textarea {
+  width: 100%;
+  min-height: 64px;
+  resize: none;
+  border: 0;
+  outline: 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--csl-ink-0);
+  background: transparent;
+}
+.csl-app-workspace .csl-ws-chat-textarea::placeholder { color: var(--csl-ink-3); }
+.csl-app-workspace .csl-ws-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding-top: 8px;
+}
+.csl-app-workspace .csl-ws-chip {
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--csl-border-2);
+  color: var(--csl-ink-1);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+.csl-app-workspace .csl-ws-chip:hover { background: var(--csl-bg-soft); }
+.csl-app-workspace .csl-ws-chat-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--csl-border);
+}
+.csl-app-workspace .csl-ws-chat-tools {
+  display: flex; align-items: center; gap: 4px;
+  color: var(--csl-ink-2);
+}
+.csl-app-workspace .csl-icon-btn {
+  width: 28px; height: 28px;
+  border: 0; background: transparent;
+  border-radius: 6px;
+  color: var(--csl-ink-1);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.csl-app-workspace .csl-icon-btn:hover { background: var(--csl-bg-mute); }
+.csl-app-workspace .csl-ws-send {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background: var(--csl-accent);
+  color: var(--csl-accent-on);
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.csl-app-workspace .csl-ws-send:hover { background: var(--csl-accent-hover); }
+.csl-app-workspace .csl-ws-send:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Canvas */
+.csl-app-workspace .csl-canvas {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--csl-bg);
+  position: relative;
+  overflow: hidden;
+}
+.csl-app-workspace .csl-canvas-tools {
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--csl-border);
+  font-size: 12.5px;
+  color: var(--csl-ink-1);
+}
+.csl-app-workspace .csl-canvas-area {
+  flex: 1;
+  position: relative;
+  /* Points blancs translucides sur fond dark */
+  background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.csl-app-workspace .csl-canvas-empty {
+  position: absolute;
+  inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px;
+  color: var(--csl-ink-2);
+}
+.csl-app-workspace .csl-canvas-empty-title {
+  font-family: "Source Serif 4", serif;
+  font-size: 20px;
+}
+.csl-app-workspace .csl-canvas-empty-btn {
+  height: 36px; padding: 0 16px;
+  border-radius: 8px;
+  background: var(--csl-bg);
+  border: 1px solid var(--csl-border-2);
+  font-size: 12.5px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--csl-ink-0);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.csl-app-workspace .csl-canvas-empty-btn:hover { background: var(--csl-bg-soft); }
+
+/* Workspace asset panel — remplace l'ancien "Déposer des fichiers ici".
+   Cadre intégré au bas du canvas avec upload immédiat sur le projet. */
+.csl-app-workspace .csl-ws-assets {
+  flex-shrink: 0;
+  border-top: 1px solid var(--csl-border);
+  background: #1a2127;
+  padding: 14px 20px 16px;
+  max-height: 340px;
+  overflow: hidden;
+}
+.csl-app-workspace .csl-ws-assets-title {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  color: var(--csl-ink-1);
+  margin-bottom: 10px;
+}
+.csl-app-workspace .csl-ws-assets-sub {
+  font-size: 11.5px;
+  color: var(--csl-ink-2);
+  margin-bottom: 10px;
+}
+.csl-app-workspace .csl-ws-assets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+/* Generated poster tiles in canvas */
+.csl-app-workspace .csl-posters {
+  position: absolute;
+  inset: 24px 24px 56px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  overflow: auto;
+  padding-right: 4px;
+}
+.csl-app-workspace .csl-poster {
+  border-radius: 10px;
+  background: var(--csl-bg);
+  border: 1px solid var(--csl-border);
+  overflow: hidden;
+  aspect-ratio: 3/4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+.csl-app-workspace .csl-poster img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.csl-app-workspace .csl-poster-loading {
+  background: linear-gradient(135deg, var(--csl-bg-soft), var(--csl-bg-mute));
+  color: var(--csl-ink-2);
+  font-size: 11.5px;
+}
+
+/* Chat messages list (below context cards) */
+.csl-app-workspace .csl-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 360px;
+  margin-top: 8px;
+}
+.csl-app-workspace .csl-msg {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.csl-app-workspace .csl-msg.assistant {
+  color: var(--csl-ink-0);
+}
+.csl-app-workspace .csl-msg.user {
+  color: var(--csl-ink-1);
+  background: var(--csl-bg-soft);
+  border-radius: 12px;
+  padding: 10px 12px;
+  align-self: flex-end;
+}
+.csl-app-workspace .csl-msg-label {
+  font-size: 10.5px;
+  color: var(--csl-ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .csl-app-dashboard {
+    flex-direction: column;
+  }
+  .csl-app-dashboard .csl-sb {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--csl-border);
+  }
+
+  .csl-app-workspace {
+    min-height: 100dvh;
+    height: auto;
+    overflow-x: hidden;
+  }
+  .csl-app-workspace .csl-ws-top {
+    min-height: 56px;
+    height: auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 10px 12px 0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .csl-app-workspace .csl-ws-brand {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 calc(100% - 96px);
+  }
+  .csl-app-workspace .csl-ws-brand-logo {
+    width: 26px;
+    height: 26px;
+  }
+  .csl-app-workspace .csl-ws-title {
+    min-width: 0;
+    font-size: 13px;
+  }
+  .csl-app-workspace .csl-ws-actions {
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  .csl-app-workspace .csl-ws-share {
+    display: none;
+  }
+  .csl-app-workspace .csl-ws-avatar {
+    width: 30px;
+    height: 30px;
+  }
+  .csl-app-workspace .csl-ws-tabbar {
+    order: 3;
+    flex: 1 0 100%;
+    height: 34px;
+    padding-left: 0;
+    overflow-x: auto;
+    align-items: flex-end;
+    scrollbar-width: none;
+  }
+  .csl-app-workspace .csl-ws-tabbar::-webkit-scrollbar {
+    display: none;
+  }
+  .csl-app-workspace .csl-ws-tab {
+    height: 32px;
+    flex-shrink: 0;
+    max-width: 100%;
+  }
+
+  .csl-app-workspace .csl-ws-body {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 90px);
+    overflow: visible;
+  }
+  .csl-app-workspace .csl-ws-left {
+    width: 100%;
+    min-height: calc(100dvh - 90px);
+    border-right: 0;
+    border-bottom: 1px solid var(--csl-border);
+  }
+  .csl-app-workspace .csl-ws-left-top {
+    flex: 1 1 auto;
+    align-items: stretch;
+    padding: 24px 16px 16px;
+    overflow: visible;
+  }
+  .csl-app-workspace .csl-ws-h1 {
+    font-size: 22px;
+    text-align: left;
+  }
+  .csl-app-workspace .csl-ws-h1-sub {
+    text-align: left;
+    margin-bottom: 18px;
+  }
+  .csl-app-workspace .csl-ctx-list,
+  .csl-app-workspace .csl-msgs {
+    max-width: none;
+  }
+  .csl-app-workspace .csl-ctx-list {
+    gap: 8px;
+  }
+  .csl-app-workspace .csl-msgs {
+    margin-top: 4px;
+    gap: 12px;
+  }
+  .csl-app-workspace .csl-msg.user {
+    max-width: 86%;
+  }
+  .csl-app-workspace .csl-ws-chatbox {
+    margin: 0 12px 14px;
+    padding: 10px;
+    border-radius: 12px;
+    position: sticky;
+    bottom: 10px;
+    z-index: 12;
+    box-shadow: 0 14px 32px rgba(0,0,0,0.24);
+  }
+  .csl-app-workspace .csl-ws-chat-textarea {
+    min-height: 72px;
+    font-size: 16px;
+  }
+  .csl-app-workspace .csl-ws-chat-foot {
+    gap: 10px;
+  }
+  .csl-app-workspace .csl-ws-send {
+    min-width: 106px;
+    justify-content: center;
+  }
+
+  .csl-app-workspace .csl-canvas {
+    flex: none;
+    min-height: 72dvh;
+    overflow: visible;
+  }
+  .csl-app-workspace .csl-canvas-tools {
+    height: auto;
+    min-height: 46px;
+    padding: 8px 12px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .csl-app-workspace .csl-canvas-tools > div {
+    min-width: 0;
+  }
+  .csl-app-workspace .csl-canvas-tools span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .csl-app-workspace .csl-canvas-area {
+    min-height: 420px;
+    flex: none;
+  }
+  .csl-app-workspace .csl-canvas-empty-title {
+    font-size: 18px;
+    padding: 0 24px;
+    text-align: center;
+  }
+  .csl-app-workspace .csl-posters {
+    position: static;
+    inset: auto;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 12px;
+    padding: 14px;
+    max-height: none;
+  }
+  .csl-app-workspace .csl-ws-assets {
+    padding: 12px;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 560px) {
+  .csl-app-workspace .csl-ws-left {
+    min-height: calc(100dvh - 90px);
+  }
+  .csl-app-workspace .csl-ws-left-top {
+    padding: 20px 12px 14px;
+  }
+  .csl-app-workspace .csl-ctx-card {
+    padding: 9px 10px;
+    border-radius: 10px;
+  }
+  .csl-app-workspace .csl-canvas {
+    min-height: 68dvh;
+  }
+  .csl-app-workspace .csl-canvas-area {
+    min-height: 360px;
+  }
+  .csl-app-workspace .csl-posters {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+}

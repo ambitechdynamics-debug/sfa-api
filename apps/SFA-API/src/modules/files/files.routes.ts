@@ -4,7 +4,7 @@ import { uploadSingle } from '../../middlewares/upload.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { filesController } from './files.controller';
-import { createFileSchema, fileIdParamsSchema, projectFileParamsSchema } from './files.validation';
+import { createFileSchema, fileIdParamsSchema, projectFileParamsSchema, updateFileSchema } from './files.validation';
 
 const router = Router();
 
@@ -31,6 +31,12 @@ router.get(
   '/projects/:projectId/files',
   validate({ params: projectFileParamsSchema }),
   asyncHandler(filesController.listByProject),
+);
+
+router.patch(
+  '/files/:fileId',
+  validate({ params: fileIdParamsSchema, body: updateFileSchema }),
+  asyncHandler(filesController.update),
 );
 
 router.delete(

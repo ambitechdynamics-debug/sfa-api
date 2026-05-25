@@ -14,6 +14,7 @@ type ChatProxyResponse = {
   success?: boolean
   reply?: string
   conversationId?: string
+  travailId?: string
   projectId?: string
   title?: string
   error?: string
@@ -25,6 +26,7 @@ type ChatProxyResponse = {
   data?: {
     reply?: string
     conversationId?: string
+    travailId?: string
     projectId?: string
     title?: string
     message?: {
@@ -37,10 +39,11 @@ type ChatProxyResponse = {
 type ChatProxyRequest = {
   message?: unknown
   conversationId?: unknown
+  travailId?: unknown
   projectId?: unknown
   history?: unknown
+  visualConfig?: unknown
 }
-
 function findAuthToken(value: unknown, seen = new Set<unknown>(), acceptString = true): string {
   if (typeof value === "string") return acceptString && value.trim() ? value.trim() : ""
   if (!value || typeof value !== "object" || seen.has(value)) return ""
@@ -132,11 +135,14 @@ async function readChatBody(request: NextRequest) {
     throw new Error("INVALID_JSON")
   }
 
+  const travailId = normalizeOptionalString(payload.travailId) || normalizeOptionalString(payload.conversationId)
+
   return {
     message: typeof payload.message === "string" ? payload.message : "",
-    conversationId: normalizeOptionalString(payload.conversationId),
+    travailId,
     projectId: normalizeOptionalString(payload.projectId),
     history: normalizeHistory(payload.history),
+    visualConfig: payload.visualConfig && typeof payload.visualConfig === "object" ? payload.visualConfig : undefined,
   }
 }
 
@@ -213,7 +219,7 @@ export async function POST(request: NextRequest) {
 
     const upstreamBody = {
       ...body,
-      conversationId: isLocalConversationId(body.conversationId) ? undefined : body.conversationId,
+      travailId: isLocalConversationId(body.travailId) ? undefined : body.travailId,
     }
 
     let upstream: Response
@@ -245,7 +251,7 @@ export async function POST(request: NextRequest) {
     }
 
     const reply = extractAssistantContent(data.message) ?? data.reply ?? data.data?.message?.content ?? data.data?.reply
-    const conversationId = data.conversationId ?? data.data?.conversationId
+    const travailId = data.travailId ?? data.data?.travailId ?? data.conversationId ?? data.data?.conversationId
     if (!reply) {
       return unavailableResponse(
         body,
@@ -257,7 +263,7 @@ export async function POST(request: NextRequest) {
 
     return successResponse({
       reply,
-      conversationId,
+      conversationId: travailId, // keep returning conversationId for old clients just in case, but successResponse doesn't strictly depend on name
       projectId: data.projectId ?? data.data?.projectId,
       title: data.title ?? data.data?.title,
     })

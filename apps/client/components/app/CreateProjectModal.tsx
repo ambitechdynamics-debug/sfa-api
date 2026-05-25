@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Icon } from "@/components/ui/Icon"
 import { useProjectStore } from "@/store/project-store"
+import { getProjectWorkspacePath } from "@/lib/project-navigation"
 
 interface CreateProjectModalProps {
   isOpen: boolean
@@ -28,7 +29,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
       const project = await addProject(projectName)
       setProjectName("")
       onClose()
-      router.push(`/dashboard/projects/${project.id}`)
+      router.push(await getProjectWorkspacePath(project))
     } catch {
       setError("Impossible de créer le projet. Vérifiez votre connexion.")
     } finally {

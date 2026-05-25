@@ -135,21 +135,27 @@ class GeminiImageProvider implements ImageGenAdapter {
   constructor(private readonly modelOverride: string | null = null) {}
 
   async generate(input: ImageGenInput): Promise<ImageGenResult> {
-    // Resolve API key: DB (AppSetting "gemini_api_key") → env (GEMINI_API_KEY) → error
-    const apiKey = await settingsService.resolve('gemini_api_key', 'GEMINI_API_KEY');
+    // Clé API Gemini : source unique AppSetting (configurable via /admin/settings).
+    const apiKey = await settingsService.getRaw('gemini_api_key');
     if (!apiKey) {
       throw new AppError(
-        'Clé Gemini manquante. Configurez "gemini_api_key" dans /admin/settings, ou définissez GEMINI_API_KEY dans .env, ou basculez "image_gen_provider" sur "mock".',
+        'Clé Gemini manquante. Renseignez "gemini_api_key" dans /admin/settings.',
         500,
       );
     }
 
-    // Resolve model — priorité : override Generator-Agent → AppSetting/env → défaut
+    // Modèle : Generator-Agent.model (DB) → AppSetting `image_gen_model` → erreur.
+    // Aucun défaut codé : l'admin doit saisir le modèle exact à utiliser.
     const model =
       this.modelOverride ||
-      (await settingsService.resolve('image_gen_model', 'IMAGE_GEN_MODEL')) ||
-      'gemini-2.5-flash-image-preview';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      (await settingsService.getRaw('image_gen_model'));
+    if (!model || !model.trim()) {
+      throw new AppError(
+        'Aucun modèle de génération d\'image configuré. Renseignez "image_gen_model" (ex: gemini-2.5-flash-image-preview) dans /admin/settings, ou définissez le champ Model du Generator-Agent dans /admin/agents.',
+        500,
+      );
+    }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.trim()}:generateContent?key=${apiKey}`;
 
     // Instructions textuelles par type d'asset utilisateur — guide Gemini sur
     // l'usage attendu de chaque image attachée.
@@ -286,7 +292,8 @@ export async function createImageGenProvider(provider?: ImageGenProvider): Promi
   let resolved: ImageGenProvider | undefined = provider;
   let modelOverride: string | null = null;
 
-  // (2) Generator-Agent en DB
+  // (1) Override explicite via param API (route image-gen)
+  // (2) Generator-Agent (DB) — provider + model
   if (!resolved) {
     const agentCfg = await resolveGeneratorAgentConfig();
     if (agentCfg) {
@@ -295,23 +302,29 @@ export async function createImageGenProvider(provider?: ImageGenProvider): Promi
     }
   }
 
-  // (3 + 4) AppSetting / env
+  // (3) AppSetting `image_gen_provider`
   if (!resolved) {
-    const fromSettings = await settingsService.resolve('image_gen_provider', 'IMAGE_GEN_PROVIDER');
+    const fromSettings = await settingsService.getRaw('image_gen_provider');
     if (fromSettings && ALLOWED_PROVIDERS.has(fromSettings as ImageGenProvider)) {
       resolved = fromSettings as ImageGenProvider;
     }
   }
 
-  // (5) Défaut
-  resolved = resolved ?? 'mock';
+  // Aucun défaut : si rien n'est configuré, on erreur.
+  if (!resolved) {
+    throw new AppError(
+      'Aucun provider de génération d\'image configuré. Choisissez "image_gen_provider" (mock | gemini | openai-image) dans /admin/settings, ou activez le Generator-Agent dans /admin/agents.',
+      500,
+    );
+  }
 
   console.log(`[imageGen] provider=${resolved} modelOverride=${modelOverride ?? '(none)'}`);
 
   switch (resolved) {
     case 'gemini':       return new GeminiImageProvider(modelOverride);
     case 'openai-image': throw new AppError('OpenAI image provider not implemented yet', 501);
-    case 'mock':
-    default:             return new MockImageProvider();
+    case 'mock':         return new MockImageProvider();
+    default:
+      throw new AppError(`Provider de génération d'image "${resolved}" non supporté.`, 500);
   }
 }

@@ -483,10 +483,13 @@ export const adminService = {
 
     const findVal = (key: string) => allSettings.find(s => s.key === key)?.value ?? '';
 
-    // Standard key existence checks (DB + ENV)
-    const openaiKey = findVal('openai_api_key') || process.env.OPENAI_API_KEY || '';
-    const anthropicKey = findVal('anthropic_api_key') || process.env.ANTHROPIC_API_KEY || '';
-    const geminiKey = findVal('gemini_api_key') || process.env.GEMINI_API_KEY || '';
+    // Strict mode : la source unique des clés est AppSetting (configurable
+    // dans /admin/settings). Plus aucun fallback environnement runtime, et
+    // plus aucun modèle par défaut codé — l'admin doit saisir explicitement
+    // le modèle souhaité pour chaque provider qu'il active.
+    const openaiKey = findVal('openai_api_key');
+    const anthropicKey = findVal('anthropic_api_key');
+    const geminiKey = findVal('gemini_api_key');
 
     const standardProviders = [
       {
@@ -495,7 +498,7 @@ export const adminService = {
         slug: 'openai',
         type: 'openai',
         baseUrl: 'https://api.openai.com/v1',
-        defaultModel: findVal('openai_model') || 'gpt-4o',
+        defaultModel: findVal('openai_model'),
         enabled: openaiKey.trim() !== '',
         supportsText: true,
         supportsVision: true,
@@ -508,7 +511,7 @@ export const adminService = {
         slug: 'anthropic',
         type: 'anthropic',
         baseUrl: 'https://api.anthropic.com',
-        defaultModel: findVal('anthropic_model') || 'claude-3-5-sonnet-20241022',
+        defaultModel: findVal('anthropic_model'),
         enabled: anthropicKey.trim() !== '',
         supportsText: true,
         supportsVision: true,
@@ -521,7 +524,7 @@ export const adminService = {
         slug: 'gemini',
         type: 'gemini',
         baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-        defaultModel: findVal('gemini_model') || 'gemini-2.0-flash',
+        defaultModel: findVal('gemini_model'),
         enabled: geminiKey.trim() !== '',
         supportsText: true,
         supportsVision: true,

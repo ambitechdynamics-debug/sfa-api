@@ -41,7 +41,7 @@ interface ChatState {
   failedMessageId: string
 
   fetchHistory: (userId: string) => Promise<void>
-  loadTravail: (travailId: string, userId: string) => Promise<void>
+  loadTravail: (travailId: string, userId: string) => Promise<"ok" | "not-found" | "error">
   sendMessage: (
     content: string,
     userId: string,
@@ -209,7 +209,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   loadTravail: async (travailId: string, userId: string) => {
-    if (!userId) return
+    if (!userId) return "error"
     if (isLocalTravail(travailId)) {
       const travail = readLocalTravaux(userId).find((item) => item.id === travailId)
       set({
@@ -218,7 +218,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         failedMessage: "",
         failedMessageId: "",
       })
-      return
+      return travail ? "ok" : "not-found"
     }
 
     try {
@@ -229,10 +229,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
         failedMessage: "",
         failedMessageId: "",
       })
+      return "ok"
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
         set({ activeTravail: null, error: "", failedMessage: "", failedMessageId: "" })
-        return
+        return "error"
+      }
+      if (error instanceof ApiError && error.status === 404) {
+        removeLocalTravail(userId, travailId)
+        set((state) => ({
+          activeTravail: null,
+          travaux: state.travaux.filter((t) => t.id !== travailId),
+          error: TRAVAIL_LOAD_ERROR,
+          failedMessage: "",
+          failedMessageId: "",
+        }))
+        return "not-found"
       }
       const localTravail = readLocalTravaux(userId).find((item) => item.id === travailId)
       set({
@@ -241,6 +253,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         failedMessage: "",
         failedMessageId: "",
       })
+      return localTravail ? "ok" : "error"
     }
   },
 

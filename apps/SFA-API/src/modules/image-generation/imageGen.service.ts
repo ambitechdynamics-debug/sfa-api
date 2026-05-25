@@ -167,33 +167,6 @@ async function ensureTravailAccess(travailId: string, userId: string, userRole: 
   return travail;
 }
 
-/**
- * Récupère les assets utilisables comme images de référence pour le générateur :
- *   - les fichiers attachés directement au Travail (références spécifiques au livrable)
- *   - les fichiers attachés au Project parent (logo, brand book, autres assets de marque)
- * Mapping FileUsageType → type métier image-gen.
- */
-async function loadUserAssetsForGen(travailId: string, projectId: string): Promise<NonNullable<import('./imageGen.types').ImageGenInput['userAssets']>> {
-  const files = await prisma.fileAsset.findMany({
-    where: {
-      OR: [{ travailId }, { projectId }],
-      usageType: { in: ['LOGO', 'PRODUCT_IMAGE', 'REFERENCE_IMAGE', 'PERSON_IMAGE', 'GENERATED_POSTER'] },
-    },
-    orderBy: { createdAt: 'asc' },
-    select: { fileUrl: true, usageType: true },
-  });
-
-  const MAP: Record<string, 'logo' | 'product' | 'reference' | 'poster' | 'character' | 'other'> = {
-    LOGO: 'logo',
-    PRODUCT_IMAGE: 'product',
-    REFERENCE_IMAGE: 'reference',
-    PERSON_IMAGE: 'character',
-    GENERATED_POSTER: 'poster',
-  };
-
-  return files.map((f) => ({ type: MAP[f.usageType] ?? 'other', url: f.fileUrl }));
-}
-
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 export interface GenerateImagesInput {
@@ -229,17 +202,6 @@ export const imageGenService = {
       validateRemoteUrl(rawStyleUrl),
     ]);
 
-    // Assets uploadés (logo de marque, produit/référence du travail…) transmis
-    // à Gemini comme images de référence pour que le visuel généré utilise les
-    // vrais éléments et pas une invention.
-    const rawUserAssets = await loadUserAssetsForGen(travail.id, travail.projectId);
-    const validatedAssets = await Promise.all(
-      rawUserAssets.map(async (a) => ({ ...a, validUrl: await validateRemoteUrl(a.url) })),
-    );
-    const userAssets = validatedAssets
-      .filter((a) => Boolean(a.validUrl))
-      .map((a) => ({ type: a.type, url: a.validUrl as string }));
-
     const variations = Math.min(8, Math.max(1, input.variations ?? 4));
     const ratio = ratioFromFormat(travail.format);
 
@@ -263,7 +225,6 @@ export const imageGenService = {
           styleSeed: travail.style ?? travail.id,
           layoutReferenceUrl: layoutUrl,
           styleReferenceUrl: styleUrl,
-          userAssets,
         });
 
         // 2) Upload to Cloudinary avec retry exponentiel (3 tentatives)

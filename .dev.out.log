@@ -1,0 +1,2403 @@
+
+> dev
+> concurrently --names "API,ADMIN,CLIENT" --prefix-colors "cyan,magenta,green" "npm run dev --workspace=apps/SFA-API" "npm run dev --workspace=apps/admin" "npm run dev --workspace=apps/client"
+
+[ADMIN] 
+[ADMIN] > admin-dashboard@0.1.0 dev
+[ADMIN] > next dev --webpack -p 3000
+[ADMIN] 
+[API] 
+[API] > studio-flyer-ai-backend@0.1.0 dev
+[API] > ts-node-dev --respawn --transpile-only src/server.ts
+[API] 
+[CLIENT] 
+[CLIENT] > frontend-client@0.1.0 dev
+[CLIENT] > next dev --webpack -p 3001
+[CLIENT] 
+[CLIENT] ▲ Next.js 16.2.6 (webpack)
+[ADMIN] ▲ Next.js 16.2.6 (webpack)
+[CLIENT] - Local:         http://localhost:3001
+[CLIENT] - Network:       http://10.252.52.226:3001
+[CLIENT] - Environments: .env.local
+[CLIENT] ✓ Ready in 8.4s
+[ADMIN] - Local:         http://localhost:3000
+[ADMIN] - Network:       http://10.252.52.226:3000
+[ADMIN] - Environments: .env.local
+[ADMIN] ✓ Ready in 8.7s
+[API] [INFO] 01:37:22 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 5.9.3)
+[ADMIN] 
+[CLIENT] 
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/dashboard..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[CLIENT] ○ Compiling /login ...
+[ADMIN] ○ Compiling /admin/settings ...
+[CLIENT]  GET /login?next=%2Fdashboard%2Fprojects%2Fcmpkf70o0000rv8mkwybbg863 200 in 30.6s (next.js: 26.5s, application-code: 4.2s)
+[ADMIN]  GET /admin/settings 200 in 35.4s (next.js: 31.0s, application-code: 4.3s)
+[ADMIN]  GET /admin/settings 200 in 35.6s (next.js: 31.3s, application-code: 4.3s)
+[CLIENT] ○ Compiling /api/auth/[...path] ...
+[ADMIN] ○ Compiling /api/auth/[...path] ...
+[API] STUDIO FLYER AI backend listening on port 5000
+[ADMIN]  GET /api/auth/get-session 200 in 5.3s (next.js: 2.9s, application-code: 2.4s)
+[ADMIN]  GET /api/auth/get-session 200 in 11.2s (next.js: 8.8s, application-code: 2.4s)
+[ADMIN]  GET /api/auth/get-session 200 in 421ms (next.js: 15ms, application-code: 406ms)
+[ADMIN]  GET /api/auth/get-session 200 in 543ms (next.js: 71ms, application-code: 472ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Fprojects%2Fcmpkf70o0000rv8mkwybbg863 200 in 866ms (next.js: 302ms, application-code: 564ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Neon Auth session lookup returned no user
+[API] [0mGET /api/users/me [33m401[0m 1758.295 ms - 81[0m
+[CLIENT]  GET /login?next=%2Fdashboard%2Fprojects%2Fcmpkf70o0000rv8mkwybbg863 200 in 917ms (next.js: 30ms, application-code: 887ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Fprojects%2Fcmpkf70o0000rv8mkwybbg863 200 in 1474ms (next.js: 43ms, application-code: 1432ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[CLIENT]  GET /api/auth/get-session 200 in 22.1s (next.js: 19.3s, application-code: 2.8s)
+[ADMIN]  POST /api/auth/sign-out 200 in 2.4s (next.js: 77ms, application-code: 2.3s)
+[ADMIN]  POST /api/auth/sign-out 200 in 2.3s (next.js: 29ms, application-code: 2.2s)
+[API] [0mGET /api/users/me [36m304[0m 6280.236 ms - -[0m
+[ADMIN] ○ Compiling /login ...
+[CLIENT]  GET /api/auth/token 401 in 527ms (next.js: 101ms, application-code: 425ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET /api/auth/token 401 in 423ms (next.js: 13ms, application-code: 409ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET /api/auth/get-session 200 in 441ms (next.js: 16ms, application-code: 425ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [36m304[0m 1888.411 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET /api/auth/get-session 200 in 451ms (next.js: 18ms, application-code: 433ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /login 200 in 8.9s (next.js: 8.1s, application-code: 784ms)
+[ADMIN]  GET /login 200 in 251ms (next.js: 21ms, application-code: 230ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/settings [36m304[0m 1838.339 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[CLIENT]  GET /api/auth/get-session 200 in 1735ms (next.js: 16ms, application-code: 1718ms)
+[API] [0mGET /api/users/me [33m401[0m 4.077 ms - 74[0m
+[CLIENT]  GET /api/auth/get-session 200 in 454ms (next.js: 58ms, application-code: 396ms)
+[API] [0mGET /api/users/me [33m401[0m 3.679 ms - 74[0m
+[CLIENT]  GET /api/auth/token 401 in 450ms (next.js: 14ms, application-code: 436ms)
+[API] [0mGET /api/admin/settings/effective [36m304[0m 4819.313 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /api/auth/get-session 200 in 5.4s (next.js: 3.2s, application-code: 2.1s)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET /api/auth/get-session 200 in 419ms (next.js: 12ms, application-code: 407ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET /api/auth/get-session 200 in 406ms (next.js: 13ms, application-code: 393ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[CLIENT]  GET /api/auth/token 401 in 398ms (next.js: 10ms, application-code: 388ms)
+[CLIENT]  POST /api/auth/sign-out 200 in 419ms (next.js: 11ms, application-code: 409ms)
+[API] [scheduled-cleanup] enabled — every 10 min
+[CLIENT]  GET /api/auth/get-session 200 in 381ms (next.js: 7ms, application-code: 374ms)
+[API] [0mGET /api/admin/settings/effective [36m304[0m 1821.907 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 392ms (next.js: 9ms, application-code: 383ms)
+[CLIENT]  GET /api/auth/get-session 200 in 394ms (next.js: 12ms, application-code: 383ms)
+[API] [0mGET /api/users/me [33m401[0m 1.716 ms - 74[0m
+[CLIENT]  POST /api/auth/sign-out 200 in 1683ms (next.js: 17ms, application-code: 1667ms)
+[CLIENT]  GET /api/auth/token 401 in 422ms (next.js: 38ms, application-code: 385ms)
+[CLIENT]  GET /api/auth/get-session 200 in 398ms (next.js: 6ms, application-code: 392ms)
+[CLIENT]  GET /api/auth/get-session 200 in 408ms (next.js: 9ms, application-code: 400ms)
+[CLIENT]  GET /api/auth/get-session 200 in 401ms (next.js: 14ms, application-code: 387ms)
+[CLIENT]  POST /api/auth/sign-out 200 in 404ms (next.js: 8ms, application-code: 396ms)
+[CLIENT]  GET /api/auth/get-session 200 in 389ms (next.js: 7ms, application-code: 382ms)
+[API] [0mGET /api/health [32m200[0m 1.264 ms - 93[0m
+[CLIENT] ○ Compiling / ...
+[CLIENT]  GET / 200 in 5.4s (next.js: 4.2s, application-code: 1171ms)
+[ADMIN]  GET / 307 in 3.7s (next.js: 3.2s, application-code: 592ms)
+[ADMIN] ○ Compiling /admin ...
+[ADMIN]  GET /admin 200 in 12.2s (next.js: 9.9s, application-code: 2.3s)
+[ADMIN]  GET / 307 in 564ms (next.js: 96ms, application-code: 468ms)
+[ADMIN]  GET /admin 200 in 349ms (next.js: 17ms, application-code: 331ms)
+[CLIENT]  GET / 200 in 355ms (next.js: 22ms, application-code: 332ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Fprojects%2Fcmpkf70o0000rv8mkwybbg863 200 in 759ms (next.js: 91ms, application-code: 669ms)
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 85ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 504ms (next.js: 50ms, application-code: 454ms)
+[CLIENT]  GET /login 200 in 91ms (next.js: 14ms, application-code: 77ms)
+[CLIENT]  POST /api/auth/sign-in/email 401 in 2.2s (next.js: 32ms, application-code: 2.2s)
+[CLIENT]  POST /api/auth/sign-in/email 200 in 1877ms (next.js: 35ms, application-code: 1841ms)
+[CLIENT]  GET /api/auth/token 200 in 476ms (next.js: 31ms, application-code: 446ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1663ms (next.js: 5ms, application-code: 1659ms)
+[CLIENT]  GET /api/auth/token 200 in 453ms (next.js: 27ms, application-code: 425ms)
+[API] [0mGET /api/users/me [36m304[0m 1439.942 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 434ms (next.js: 4ms, application-code: 430ms)
+[API] [0mGET /api/users/me [36m304[0m 731.160 ms - -[0m
+[API] [0mGET /api/users/me [36m304[0m 723.883 ms - -[0m
+[CLIENT] ○ Compiling /dashboard ...
+[CLIENT]  GET /dashboard 200 in 8.8s (next.js: 8.6s, application-code: 220ms)
+[CLIENT]  GET /dashboard 200 in 98ms (next.js: 10ms, application-code: 89ms)
+[CLIENT]  GET /api/auth/token 200 in 1655ms (next.js: 5ms, application-code: 1650ms)
+[CLIENT]  GET /api/auth/token 200 in 1783ms (next.js: 79ms, application-code: 1704ms)
+[CLIENT]  GET /api/auth/token 200 in 1662ms (next.js: 5ms, application-code: 1656ms)
+[CLIENT]  GET /api/auth/token 200 in 1693ms (next.js: 5ms, application-code: 1688ms)
+[CLIENT]  GET /api/auth/token 200 in 1672ms (next.js: 4ms, application-code: 1668ms)
+[API] [0mGET /api/projects [32m200[0m 1825.992 ms - 547[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2488.665 ms - 335[0m
+[API] [0mGET /api/projects [36m304[0m 1073.813 ms - -[0m
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 5322.333 ms - -[0m
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 1773.011 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1696ms (next.js: 40ms, application-code: 1656ms)
+[CLIENT]  GET /api/auth/get-session 200 in 470ms (next.js: 28ms, application-code: 442ms)
+[CLIENT]  GET /dashboard/projects/cmpkf70o0000rv8mkwybbg863 200 in 4.8s (next.js: 4.7s, application-code: 127ms)
+[CLIENT]  GET /api/auth/token 200 in 1988ms (next.js: 4ms, application-code: 1983ms)
+[CLIENT]  GET /api/auth/token 200 in 2.1s (next.js: 44ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/token 200 in 2.0s (next.js: 4ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/token 200 in 2.0s (next.js: 4ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/token 200 in 1935ms (next.js: 5ms, application-code: 1930ms)
+[CLIENT]  GET /api/auth/token 200 in 1958ms (next.js: 5ms, application-code: 1954ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2153.436 ms - 378[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2125.226 ms - 423[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863 [32m200[0m 2847.653 ms - 1190[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863 [36m304[0m 1416.894 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863 [36m304[0m 1415.848 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863 [36m304[0m 1422.715 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1740ms (next.js: 33ms, application-code: 1706ms)
+[CLIENT]  GET /api/auth/get-session 200 in 596ms (next.js: 28ms, application-code: 568ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 35ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 464ms (next.js: 38ms, application-code: 426ms)
+[CLIENT] ○ Compiling /dashboard/t/[id] ...
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 6.4s (next.js: 6.1s, application-code: 284ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 128ms (next.js: 35ms, application-code: 93ms)
+[CLIENT]  GET /api/auth/token 200 in 1849ms (next.js: 92ms, application-code: 1757ms)
+[CLIENT]  GET /api/auth/token 200 in 1690ms (next.js: 7ms, application-code: 1683ms)
+[CLIENT]  GET /api/auth/token 200 in 1788ms (next.js: 10ms, application-code: 1777ms)
+[CLIENT]  GET /api/auth/token 200 in 1721ms (next.js: 6ms, application-code: 1715ms)
+[CLIENT]  GET /api/auth/token 200 in 1696ms (next.js: 12ms, application-code: 1683ms)
+[CLIENT]  GET /api/auth/token 200 in 1740ms (next.js: 9ms, application-code: 1731ms)
+[CLIENT]  GET /api/auth/token 200 in 402ms (next.js: 7ms, application-code: 395ms)
+[CLIENT]  GET /api/auth/token 200 in 385ms (next.js: 7ms, application-code: 378ms)
+[CLIENT]  GET /api/auth/token 200 in 387ms (next.js: 5ms, application-code: 382ms)
+[CLIENT]  GET /api/auth/token 200 in 408ms (next.js: 8ms, application-code: 400ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 5168.272 ms - 406[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 5380.358 ms - 444[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 7205.483 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 7331.348 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1723ms (next.js: 38ms, application-code: 1685ms)
+[CLIENT]  GET /api/auth/token 200 in 1689ms (next.js: 6ms, application-code: 1683ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2148.159 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2556.483 ms - -[0m
+[CLIENT]  POST /api/chat/opening 400 in 1778ms (next.js: 1732ms, application-code: 46ms)
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 2524.018 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2564.686 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 3972.380 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2558.419 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2172.535 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1761ms (next.js: 35ms, application-code: 1726ms)
+[CLIENT]  GET /api/auth/get-session 200 in 453ms (next.js: 27ms, application-code: 426ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 51ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 546ms (next.js: 10ms, application-code: 535ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 57ms, application-code: 1969ms)
+[CLIENT]  GET /api/auth/get-session 200 in 429ms (next.js: 6ms, application-code: 423ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 42ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 588ms (next.js: 38ms, application-code: 550ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 44ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 442ms (next.js: 5ms, application-code: 437ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 1321ms (next.js: 669ms, application-code: 652ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Fprojects%2Fcmpkf70o0000rv8mkwybbg863 200 in 307ms (next.js: 104ms, application-code: 204ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1864ms (next.js: 115ms, application-code: 1748ms)
+[CLIENT]  GET /api/auth/get-session 200 in 466ms (next.js: 13ms, application-code: 453ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.4s (next.js: 51ms, application-code: 2.3s)
+[CLIENT]  GET /api/auth/get-session 200 in 481ms (next.js: 42ms, application-code: 440ms)
+[CLIENT]  GET /dashboard/projects/cmpkf70o0000rv8mkwybbg863 200 in 2.0s (next.js: 143ms, application-code: 1897ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 371ms (next.js: 51ms, application-code: 321ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 41ms, application-code: 2000ms)
+[CLIENT]  GET /api/auth/get-session 200 in 439ms (next.js: 8ms, application-code: 431ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 45ms, application-code: 1968ms)
+[CLIENT]  GET /api/auth/get-session 200 in 434ms (next.js: 6ms, application-code: 428ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 52ms, application-code: 1969ms)
+[CLIENT]  GET /api/auth/get-session 200 in 426ms (next.js: 8ms, application-code: 418ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1773ms (next.js: 49ms, application-code: 1725ms)
+[CLIENT]  GET /api/auth/get-session 200 in 479ms (next.js: 28ms, application-code: 451ms)
+[CLIENT]  GET /api/auth/get-session 200 in 454ms (next.js: 5ms, application-code: 448ms)
+[CLIENT]  GET /api/auth/get-session 200 in 391ms (next.js: 4ms, application-code: 387ms)
+[CLIENT]  GET /api/auth/token 200 in 1647ms (next.js: 4ms, application-code: 1643ms)
+[CLIENT]  GET /api/auth/token 200 in 1712ms (next.js: 35ms, application-code: 1677ms)
+[API] [0mPOST /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generate-final-prompt [33m400[0m 6844.811 ms - 148[0m
+[CLIENT] [browser] [user-new workspace] generation failed ApiError: Le pipeline ne peut pas démarrer — agents requis absents : BRAND_AGENT. Activez-les dans /admin/agents.
+[CLIENT]     at apiFetch (lib\api.ts:102:11)
+[CLIENT]     at async triggerGeneration (components\app\user-new\Workspace.tsx:195:22)
+[CLIENT]   100 |   if (!response.ok || data.success === false) {
+[CLIENT]   101 |     notifyAuthFailure(response.status, suppressAuthRedirect)
+[CLIENT] > 102 |     throw new ApiError(readErrorMessage(data, response.status, suppressAuthRedirect), res...
+[CLIENT]       |           ^
+[CLIENT]   103 |   }
+[CLIENT]   104 |
+[CLIENT]   105 |   return data.data as T (components\app\user-new\Workspace.tsx:204:15)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 8862.085 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1919ms (next.js: 31ms, application-code: 1887ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 3250.469 ms - -[0m
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/login" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[ADMIN] [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 43ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 448ms (next.js: 6ms, application-code: 442ms)
+[CLIENT]  GET /api/auth/get-session 200 in 441ms (next.js: 7ms, application-code: 434ms)
+[CLIENT]  GET /api/auth/get-session 200 in 399ms (next.js: 6ms, application-code: 393ms)
+[CLIENT]  GET /api/auth/token 200 in 1703ms (next.js: 36ms, application-code: 1667ms)
+[CLIENT]  GET /api/auth/token 200 in 1660ms (next.js: 4ms, application-code: 1655ms)
+[CLIENT]  GET /api/auth/get-session 200 in 427ms (next.js: 29ms, application-code: 398ms)
+[CLIENT]  GET /api/auth/token 200 in 393ms (next.js: 5ms, application-code: 388ms)
+[CLIENT]  GET /api/auth/get-session 200 in 394ms (next.js: 4ms, application-code: 389ms)
+[API] [0mGET /api/users/me [36m304[0m 1469.181 ms - -[0m
+[CLIENT]  GET /dashboard/projects/cmpkf70o0000rv8mkwybbg863 200 in 177ms (next.js: 37ms, application-code: 140ms)
+[CLIENT]  GET /api/auth/token 200 in 401ms (next.js: 6ms, application-code: 394ms)
+[API] [0mGET /api/users/me [36m304[0m 747.835 ms - -[0m
+[API] [0mGET /api/users/me [36m304[0m 746.051 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 429ms (next.js: 38ms, application-code: 390ms)
+[CLIENT]  GET /api/auth/token 200 in 399ms (next.js: 6ms, application-code: 393ms)
+[CLIENT]  GET /api/auth/token 200 in 394ms (next.js: 7ms, application-code: 387ms)
+[API] [0mGET /api/users/me [36m304[0m 744.755 ms - -[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2198.822 ms - 370[0m
+[API] [0mGET /api/travaux?projectId=cmpkf70o0000rv8mkwybbg863 [32m200[0m 4671.044 ms - 523[0m
+[API] [0mGET /api/travaux?projectId=cmpkf70o0000rv8mkwybbg863 [36m304[0m 1069.852 ms - -[0m
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 119ms (next.js: 30ms, application-code: 89ms)
+[CLIENT]  GET /api/auth/token 200 in 1648ms (next.js: 8ms, application-code: 1640ms)
+[CLIENT]  GET /api/auth/token 200 in 1717ms (next.js: 34ms, application-code: 1683ms)
+[CLIENT]  GET /api/auth/token 200 in 1625ms (next.js: 7ms, application-code: 1619ms)
+[CLIENT]  GET /api/auth/token 200 in 1684ms (next.js: 7ms, application-code: 1677ms)
+[CLIENT]  GET /api/auth/token 200 in 1640ms (next.js: 5ms, application-code: 1635ms)
+[CLIENT]  GET /api/auth/token 200 in 1668ms (next.js: 5ms, application-code: 1663ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1834.414 ms - 406[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 3255.432 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 4007.892 ms - -[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 4682.672 ms - 443[0m
+[CLIENT]  GET /api/auth/token 200 in 1739ms (next.js: 29ms, application-code: 1709ms)
+[CLIENT]  GET /api/auth/token 200 in 1714ms (next.js: 8ms, application-code: 1706ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2184.302 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 3585.036 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 2510.927 ms - -[0m
+[CLIENT] ○ Compiling /api/chat/opening ...
+[CLIENT]  POST /api/chat/opening 400 in 4.7s (next.js: 4.6s, application-code: 108ms)
+[CLIENT]  GET /api/auth/token 200 in 4.4s (next.js: 3.7s, application-code: 663ms)
+[CLIENT]  GET /api/auth/token 200 in 4.4s (next.js: 3.7s, application-code: 665ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 784ms (next.js: 331ms, application-code: 453ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 147ms (next.js: 10ms, application-code: 137ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1686ms (next.js: 7ms, application-code: 1679ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1698ms (next.js: 8ms, application-code: 1690ms)
+[API] [0mPOST /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generate-final-prompt [33m400[0m 2137.432 ms - 148[0m
+[CLIENT] [browser] [user-new workspace] generation failed ApiError: Le pipeline ne peut pas démarrer — agents requis absents : BRAND_AGENT. Activez-les dans /admin/agents.
+[CLIENT]     at apiFetch (lib\api.ts:102:11)
+[CLIENT]     at async triggerGeneration (components\app\user-new\Workspace.tsx:195:22)
+[CLIENT]   100 |   if (!response.ok || data.success === false) {
+[CLIENT]   101 |     notifyAuthFailure(response.status, suppressAuthRedirect)
+[CLIENT] > 102 |     throw new ApiError(readErrorMessage(data, response.status, suppressAuthRedirect), res...
+[CLIENT]       |           ^
+[CLIENT]   103 |   }
+[CLIENT]   104 |
+[CLIENT]   105 |   return data.data as T (components\app\user-new\Workspace.tsx:204:15)
+[CLIENT]  GET /api/auth/token 200 in 447ms (next.js: 42ms, application-code: 404ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2505.331 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2843.059 ms - -[0m
+[CLIENT]  GET /dashboard/projects/cmpkf70o0000rv8mkwybbg863 200 in 213ms (next.js: 72ms, application-code: 141ms)
+[CLIENT]  GET /api/auth/token 200 in 1754ms (next.js: 35ms, application-code: 1719ms)
+[CLIENT]  GET /api/auth/token 200 in 1685ms (next.js: 5ms, application-code: 1680ms)
+[CLIENT]  GET /api/auth/token 200 in 1761ms (next.js: 11ms, application-code: 1750ms)
+[CLIENT]  GET /api/auth/token 200 in 1646ms (next.js: 4ms, application-code: 1642ms)
+[CLIENT]  GET /api/auth/token 200 in 1748ms (next.js: 9ms, application-code: 1739ms)
+[CLIENT]  GET /api/auth/token 200 in 1662ms (next.js: 6ms, application-code: 1655ms)
+[CLIENT]  GET /dashboard 200 in 133ms (next.js: 57ms, application-code: 76ms)
+[CLIENT]  GET /api/auth/token 200 in 429ms (next.js: 34ms, application-code: 394ms)
+[CLIENT]  GET /api/auth/token 200 in 470ms (next.js: 8ms, application-code: 462ms)
+[CLIENT]  GET /api/auth/token 200 in 457ms (next.js: 8ms, application-code: 448ms)
+[CLIENT]  GET /api/auth/token 200 in 452ms (next.js: 7ms, application-code: 445ms)
+[CLIENT]  GET /api/auth/token 200 in 438ms (next.js: 10ms, application-code: 429ms)
+[CLIENT]  GET /api/auth/token 200 in 435ms (next.js: 8ms, application-code: 428ms)
+[CLIENT]  GET /api/auth/token 200 in 404ms (next.js: 6ms, application-code: 398ms)
+[CLIENT]  GET /api/auth/token 200 in 411ms (next.js: 8ms, application-code: 402ms)
+[CLIENT]  GET /api/auth/token 200 in 400ms (next.js: 6ms, application-code: 395ms)
+[CLIENT]  GET /api/auth/token 200 in 413ms (next.js: 13ms, application-code: 400ms)
+[API] [0mGET /api/travaux?projectId=cmpkf70o0000rv8mkwybbg863 [36m304[0m 1441.999 ms - -[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1811.233 ms - 452[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2193.180 ms - 406[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2230.481 ms - 387[0m
+[API] [0mGET /api/travaux?projectId=cmpkf70o0000rv8mkwybbg863 [36m304[0m 1448.438 ms - -[0m
+[API] [0mGET /api/travaux?projectId=cmpkf70o0000rv8mkwybbg863 [36m304[0m 1085.325 ms - -[0m
+[API] [0mGET /api/travaux?projectId=cmpkf70o0000rv8mkwybbg863 [36m304[0m 1081.443 ms - -[0m
+[API] [0mGET /api/projects [36m304[0m 4856.767 ms - -[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 4936.163 ms - 378[0m
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 4360.468 ms - -[0m
+[API] [0mGET /api/projects [36m304[0m 1059.281 ms - -[0m
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 1434.450 ms - -[0m
+[API] [0mGET /api/projects [36m304[0m 1060.588 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1672ms (next.js: 35ms, application-code: 1638ms)
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 1434.746 ms - -[0m
+[API] [0mGET /api/projects [36m304[0m 1061.680 ms - -[0m
+[API] [0mGET /api/travaux?projectId=cmpkf70o0000rv8mkwybbg863 [36m304[0m 1065.571 ms - -[0m
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 116ms (next.js: 32ms, application-code: 83ms)
+[CLIENT]  GET /api/auth/token 200 in 438ms (next.js: 40ms, application-code: 399ms)
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 1474.765 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 413ms (next.js: 8ms, application-code: 405ms)
+[CLIENT]  GET /api/auth/token 200 in 392ms (next.js: 6ms, application-code: 386ms)
+[CLIENT]  GET /api/auth/token 200 in 393ms (next.js: 10ms, application-code: 383ms)
+[CLIENT]  GET /api/auth/token 200 in 388ms (next.js: 4ms, application-code: 384ms)
+[CLIENT]  GET /api/auth/token 200 in 1980ms (next.js: 7ms, application-code: 1973ms)
+[CLIENT]  GET /api/auth/token 200 in 1930ms (next.js: 7ms, application-code: 1923ms)
+[CLIENT]  GET /api/auth/token 200 in 1975ms (next.js: 8ms, application-code: 1968ms)
+[CLIENT]  GET /api/auth/token 200 in 2.1s (next.js: 7ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/token 200 in 2.1s (next.js: 11ms, application-code: 2.1s)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1807.525 ms - 408[0m
+[CLIENT]  GET /api/auth/token 200 in 414ms (next.js: 28ms, application-code: 385ms)
+[CLIENT]  GET /api/auth/token 200 in 394ms (next.js: 4ms, application-code: 389ms)
+[CLIENT]  POST /api/chat/opening 400 in 16ms (next.js: 5ms, application-code: 11ms)
+[CLIENT]  GET /api/auth/token 200 in 406ms (next.js: 4ms, application-code: 402ms)
+[CLIENT]  GET /api/auth/token 200 in 387ms (next.js: 4ms, application-code: 383ms)
+[CLIENT]  POST /api/chat/opening 400 in 16ms (next.js: 4ms, application-code: 12ms)
+[CLIENT]  GET /api/auth/token 200 in 400ms (next.js: 4ms, application-code: 396ms)
+[CLIENT]  GET /api/auth/token 200 in 394ms (next.js: 5ms, application-code: 389ms)
+[CLIENT]  GET /api/auth/get-session 200 in 392ms (next.js: 4ms, application-code: 388ms)
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 2488.042 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 390ms (next.js: 4ms, application-code: 386ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1433.202 ms - 371[0m
+[CLIENT]  GET /api/auth/get-session 200 in 420ms (next.js: 32ms, application-code: 387ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2530.844 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 384ms (next.js: 4ms, application-code: 380ms)
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 1788.867 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 3882.119 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2852.281 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2124.073 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 2144.113 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 1798.410 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2134.104 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2518.003 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2478.610 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2498.279 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1741ms (next.js: 52ms, application-code: 1690ms)
+[CLIENT]  GET /api/auth/get-session 200 in 456ms (next.js: 8ms, application-code: 448ms)
+[CLIENT]  GET /api/auth/token 200 in 1746ms (next.js: 41ms, application-code: 1704ms)
+[CLIENT]  GET /api/auth/token 200 in 1745ms (next.js: 9ms, application-code: 1736ms)
+[CLIENT]  GET /api/auth/token 200 in 1728ms (next.js: 8ms, application-code: 1720ms)
+[CLIENT]  GET /api/auth/token 200 in 1709ms (next.js: 6ms, application-code: 1703ms)
+[CLIENT]  GET /api/auth/token 200 in 1697ms (next.js: 11ms, application-code: 1686ms)
+[CLIENT]  GET /api/auth/token 200 in 1678ms (next.js: 5ms, application-code: 1674ms)
+[CLIENT]  GET /api/auth/token 200 in 385ms (next.js: 4ms, application-code: 381ms)
+[CLIENT]  GET /api/auth/token 200 in 422ms (next.js: 31ms, application-code: 391ms)
+[CLIENT]  GET /api/auth/token 200 in 396ms (next.js: 4ms, application-code: 392ms)
+[CLIENT]  GET /api/auth/token 200 in 390ms (next.js: 5ms, application-code: 386ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2141.982 ms - 381[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2125.704 ms - 371[0m
+[API] [0mGET /api/projects [36m304[0m 2135.439 ms - -[0m
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 2136.078 ms - -[0m
+[API] [0mGET /api/projects [36m304[0m 1081.477 ms - -[0m
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 1427.286 ms - -[0m
+[API] [0mGET /api/projects [36m304[0m 1071.806 ms - -[0m
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 1423.020 ms - -[0m
+[API] [0mGET /api/projects [36m304[0m 1070.289 ms - -[0m
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 1425.741 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 27ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 474ms (next.js: 33ms, application-code: 441ms)
+[CLIENT]  GET /api/auth/get-session 200 in 425ms (next.js: 5ms, application-code: 420ms)
+[CLIENT]  GET /api/auth/get-session 200 in 411ms (next.js: 30ms, application-code: 381ms)
+[CLIENT]  GET /api/auth/token 200 in 1749ms (next.js: 43ms, application-code: 1706ms)
+[API] [0mGET /api/travaux?projectId=cmpkf70o0000rv8mkwybbg863 [36m304[0m 2126.710 ms - -[0m
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 119ms (next.js: 31ms, application-code: 88ms)
+[CLIENT]  GET /api/auth/token 200 in 495ms (next.js: 39ms, application-code: 456ms)
+[CLIENT]  GET /api/auth/token 200 in 444ms (next.js: 5ms, application-code: 439ms)
+[CLIENT]  GET /api/auth/token 200 in 401ms (next.js: 5ms, application-code: 395ms)
+[CLIENT]  GET /api/auth/token 200 in 408ms (next.js: 5ms, application-code: 402ms)
+[CLIENT]  GET /api/auth/token 200 in 1755ms (next.js: 12ms, application-code: 1743ms)
+[CLIENT]  GET /api/auth/token 200 in 1694ms (next.js: 6ms, application-code: 1688ms)
+[CLIENT]  GET /api/auth/token 200 in 1734ms (next.js: 8ms, application-code: 1726ms)
+[CLIENT]  GET /api/auth/token 200 in 1688ms (next.js: 5ms, application-code: 1683ms)
+[CLIENT]  GET /api/auth/token 200 in 1834ms (next.js: 15ms, application-code: 1820ms)
+[CLIENT]  GET /api/auth/token 200 in 404ms (next.js: 5ms, application-code: 399ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1774.256 ms - 409[0m
+[CLIENT]  GET /api/auth/token 200 in 397ms (next.js: 6ms, application-code: 391ms)
+[CLIENT]  POST /api/chat/opening 400 in 15ms (next.js: 4ms, application-code: 10ms)
+[CLIENT]  GET /api/auth/token 200 in 391ms (next.js: 4ms, application-code: 387ms)
+[CLIENT]  POST /api/chat/opening 400 in 13ms (next.js: 4ms, application-code: 9ms)
+[CLIENT]  GET /api/auth/token 200 in 403ms (next.js: 4ms, application-code: 399ms)
+[CLIENT]  GET /api/auth/token 200 in 398ms (next.js: 4ms, application-code: 394ms)
+[CLIENT]  GET /api/auth/token 200 in 392ms (next.js: 4ms, application-code: 388ms)
+[CLIENT]  GET /api/auth/token 200 in 417ms (next.js: 26ms, application-code: 390ms)
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 2143.242 ms - -[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1846.889 ms - 371[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 1808.644 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 3926.851 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 3932.150 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 1790.111 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2142.965 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 1779.579 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2507.953 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2134.204 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2495.734 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2133.421 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2507.831 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1812ms (next.js: 75ms, application-code: 1737ms)
+[CLIENT]  GET /api/auth/get-session 200 in 428ms (next.js: 6ms, application-code: 421ms)
+[CLIENT]  GET /api/auth/get-session 200 in 449ms (next.js: 31ms, application-code: 418ms)
+[CLIENT]  GET /api/auth/get-session 200 in 391ms (next.js: 5ms, application-code: 386ms)
+[CLIENT]  GET /api/auth/get-session 200 in 436ms (next.js: 43ms, application-code: 393ms)
+[CLIENT]  GET /api/auth/get-session 200 in 399ms (next.js: 6ms, application-code: 393ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 69ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 446ms (next.js: 34ms, application-code: 412ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1772ms (next.js: 43ms, application-code: 1729ms)
+[CLIENT]  GET /api/auth/get-session 200 in 433ms (next.js: 8ms, application-code: 424ms)
+[CLIENT]  GET /api/auth/get-session 200 in 481ms (next.js: 45ms, application-code: 436ms)
+[CLIENT]  GET /api/auth/get-session 200 in 419ms (next.js: 12ms, application-code: 407ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 40ms, application-code: 1988ms)
+[CLIENT]  GET /api/auth/get-session 200 in 430ms (next.js: 5ms, application-code: 425ms)
+[CLIENT]  GET /api/auth/get-session 200 in 471ms (next.js: 53ms, application-code: 418ms)
+[CLIENT]  GET /api/auth/get-session 200 in 403ms (next.js: 7ms, application-code: 396ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1997ms (next.js: 44ms, application-code: 1953ms)
+[CLIENT]  GET /api/auth/get-session 200 in 445ms (next.js: 9ms, application-code: 437ms)
+[CLIENT]  GET /api/auth/get-session 200 in 476ms (next.js: 46ms, application-code: 430ms)
+[CLIENT]  GET /api/auth/get-session 200 in 419ms (next.js: 13ms, application-code: 407ms)
+[CLIENT] ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[CLIENT] ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 345ms (next.js: 35ms, application-code: 310ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 20.1s (next.js: 16.9s, application-code: 3.2s)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 998ms (next.js: 21ms, application-code: 977ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 102ms, application-code: 1940ms)
+[CLIENT]  GET /api/auth/get-session 200 in 501ms (next.js: 13ms, application-code: 488ms)
+[CLIENT]  GET /api/auth/token 200 in 448ms (next.js: 6ms, application-code: 442ms)
+[CLIENT]  GET /api/auth/token 200 in 1629ms (next.js: 10ms, application-code: 1619ms)
+[API] [0mGET /api/users/me [36m304[0m 4673.751 ms - -[0m
+[API] [0mGET /api/users/me [36m304[0m 733.144 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1967ms (next.js: 50ms, application-code: 1917ms)
+[CLIENT]  GET /api/auth/token 200 in 1927ms (next.js: 14ms, application-code: 1913ms)
+[CLIENT]  GET /api/auth/token 200 in 1982ms (next.js: 12ms, application-code: 1970ms)
+[CLIENT]  GET /api/auth/token 200 in 1899ms (next.js: 15ms, application-code: 1884ms)
+[CLIENT]  GET /api/auth/token 200 in 1888ms (next.js: 12ms, application-code: 1876ms)
+[CLIENT]  GET /api/auth/token 200 in 431ms (next.js: 7ms, application-code: 425ms)
+[CLIENT]  GET /api/auth/token 200 in 1760ms (next.js: 11ms, application-code: 1749ms)
+[CLIENT]  GET /api/auth/token 200 in 786ms (next.js: 7ms, application-code: 779ms)
+[CLIENT]  GET /api/auth/token 200 in 829ms (next.js: 11ms, application-code: 818ms)
+[CLIENT]  GET /api/auth/token 200 in 865ms (next.js: 8ms, application-code: 857ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1856.379 ms - 363[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 5060.363 ms - 363[0m
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 836ms (next.js: 499ms, application-code: 337ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 131ms (next.js: 14ms, application-code: 117ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 6662.470 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 6975.101 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2478.503 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2163.144 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 2.2s (next.js: 110ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/token 200 in 2.0s (next.js: 14ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/token 200 in 1952ms (next.js: 14ms, application-code: 1937ms)
+[CLIENT]  POST /api/chat/opening 400 in 2.3s (next.js: 2.3s, application-code: 35ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 3688.028 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 3387.078 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 502ms (next.js: 69ms, application-code: 432ms)
+[CLIENT]  GET /api/auth/token 200 in 459ms (next.js: 12ms, application-code: 448ms)
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 3892.324 ms - -[0m
+[CLIENT]  POST /api/chat/opening 400 in 34ms (next.js: 8ms, application-code: 26ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2265.292 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2626.957 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 1920.956 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 1918.896 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1773ms (next.js: 38ms, application-code: 1735ms)
+[CLIENT]  GET /api/auth/get-session 200 in 433ms (next.js: 6ms, application-code: 427ms)
+[CLIENT]  GET /api/auth/get-session 200 in 473ms (next.js: 41ms, application-code: 432ms)
+[CLIENT]  GET /api/auth/get-session 200 in 396ms (next.js: 5ms, application-code: 391ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 1701ms (next.js: 252ms, application-code: 1449ms)
+[CLIENT]  GET /dashboard 200 in 201ms (next.js: 54ms, application-code: 147ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.4s (next.js: 37ms, application-code: 2.4s)
+[CLIENT]  GET /api/auth/get-session 200 in 455ms (next.js: 31ms, application-code: 424ms)
+[CLIENT]  GET /api/auth/get-session 200 in 433ms (next.js: 9ms, application-code: 424ms)
+[CLIENT]  GET /api/auth/get-session 200 in 400ms (next.js: 9ms, application-code: 391ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 41ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 438ms (next.js: 6ms, application-code: 432ms)
+[CLIENT]  GET /api/auth/get-session 200 in 453ms (next.js: 13ms, application-code: 440ms)
+[CLIENT]  GET /api/auth/get-session 200 in 441ms (next.js: 38ms, application-code: 404ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.5s (next.js: 43ms, application-code: 2.4s)
+[CLIENT]  GET /api/auth/get-session 200 in 458ms (next.js: 9ms, application-code: 449ms)
+[CLIENT]  GET /api/auth/get-session 200 in 593ms (next.js: 51ms, application-code: 542ms)
+[CLIENT]  GET /api/auth/get-session 200 in 434ms (next.js: 31ms, application-code: 403ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 1177ms (next.js: 735ms, application-code: 442ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 164ms (next.js: 14ms, application-code: 150ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 88ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 447ms (next.js: 16ms, application-code: 431ms)
+[CLIENT]  GET /api/auth/get-session 200 in 425ms (next.js: 9ms, application-code: 416ms)
+[CLIENT]  GET /api/auth/get-session 200 in 443ms (next.js: 53ms, application-code: 390ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.3s (next.js: 51ms, application-code: 2.3s)
+[CLIENT]  GET /api/auth/get-session 200 in 443ms (next.js: 11ms, application-code: 431ms)
+[CLIENT]  GET /api/auth/get-session 200 in 478ms (next.js: 37ms, application-code: 441ms)
+[CLIENT]  GET /api/auth/get-session 200 in 417ms (next.js: 10ms, application-code: 407ms)
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/dashboard..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[CLIENT]  GET /api/auth/get-session 200 in 2.4s (next.js: 47ms, application-code: 2.4s)
+[CLIENT]  GET /api/auth/get-session 200 in 650ms (next.js: 32ms, application-code: 618ms)
+[CLIENT]  GET /api/auth/get-session 200 in 453ms (next.js: 27ms, application-code: 426ms)
+[CLIENT]  GET /api/auth/get-session 200 in 536ms (next.js: 5ms, application-code: 531ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 29ms, application-code: 1985ms)
+[CLIENT]  GET /api/auth/get-session 200 in 422ms (next.js: 27ms, application-code: 396ms)
+[CLIENT]  GET /api/auth/token 200 in 462ms (next.js: 42ms, application-code: 420ms)
+[CLIENT]  GET /api/auth/token 200 in 1784ms (next.js: 53ms, application-code: 1731ms)
+[API] [0mPOST /api/projects/cmpkf70o0000rv8mkwybbg863/files/upload [32m201[0m 3603.859 ms - 597[0m
+[API] [0mPOST /api/projects/cmpkf70o0000rv8mkwybbg863/files/upload [32m201[0m 13715.457 ms - 604[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1679ms (next.js: 31ms, application-code: 1648ms)
+[CLIENT]  GET /api/auth/get-session 200 in 439ms (next.js: 27ms, application-code: 411ms)
+[CLIENT]  GET /api/auth/get-session 200 in 448ms (next.js: 36ms, application-code: 411ms)
+[CLIENT]  GET /api/auth/get-session 200 in 390ms (next.js: 5ms, application-code: 385ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1964ms (next.js: 29ms, application-code: 1935ms)
+[CLIENT]  GET /api/auth/get-session 200 in 435ms (next.js: 33ms, application-code: 402ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1688ms (next.js: 27ms, application-code: 1661ms)
+[CLIENT]  GET /api/auth/get-session 200 in 432ms (next.js: 28ms, application-code: 405ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 31ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 417ms (next.js: 29ms, application-code: 388ms)
+[CLIENT]  GET /login 200 in 761ms (next.js: 86ms, application-code: 675ms)
+[ADMIN]  GET / 307 in 469ms (next.js: 21ms, application-code: 448ms)
+[ADMIN]  GET /admin 200 in 161ms (next.js: 16ms, application-code: 145ms)
+[ADMIN]  GET /login 200 in 345ms (next.js: 62ms, application-code: 283ms)
+[ADMIN]  GET /api/auth/get-session 200 in 1875ms (next.js: 101ms, application-code: 1774ms)
+[ADMIN]  GET /api/auth/get-session 200 in 444ms (next.js: 11ms, application-code: 433ms)
+[API] [auth] Neon token verification failed Neon Auth session lookup returned no user
+[API] [0mGET /api/users/me [33m401[0m 1648.481 ms - 81[0m
+[ADMIN]  GET /login 200 in 175ms (next.js: 13ms, application-code: 162ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 456ms (next.js: 39ms, application-code: 417ms)
+[ADMIN]  GET /api/auth/get-session 200 in 417ms (next.js: 10ms, application-code: 407ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1661ms (next.js: 31ms, application-code: 1629ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 122ms (next.js: 9ms, application-code: 113ms)
+[CLIENT]  GET /api/auth/get-session 200 in 384ms (next.js: 7ms, application-code: 377ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 37ms, application-code: 2.1s)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 187ms (next.js: 12ms, application-code: 175ms)
+[CLIENT]  GET /api/auth/get-session 200 in 448ms (next.js: 37ms, application-code: 411ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 821ms (next.js: 561ms, application-code: 260ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 137ms (next.js: 10ms, application-code: 127ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 106ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 475ms (next.js: 44ms, application-code: 431ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1684ms (next.js: 33ms, application-code: 1651ms)
+[CLIENT]  GET /api/auth/get-session 200 in 389ms (next.js: 6ms, application-code: 383ms)
+[CLIENT]  GET /login 200 in 703ms (next.js: 13ms, application-code: 690ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 218ms (next.js: 7ms, application-code: 211ms)
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/login" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[CLIENT]  GET /api/auth/get-session 200 in 3.4s (next.js: 70ms, application-code: 3.4s)
+[CLIENT]  GET /api/auth/get-session 200 in 485ms (next.js: 33ms, application-code: 452ms)
+[CLIENT]  POST /api/auth/sign-in/email 200 in 1877ms (next.js: 29ms, application-code: 1847ms)
+[CLIENT]  GET /api/auth/token 200 in 448ms (next.js: 30ms, application-code: 419ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1651ms (next.js: 4ms, application-code: 1647ms)
+[CLIENT]  GET /api/auth/token 200 in 450ms (next.js: 25ms, application-code: 425ms)
+[API] [0mGET /api/users/me [36m304[0m 4340.846 ms - -[0m
+[CLIENT]  GET /dashboard 200 in 201ms (next.js: 55ms, application-code: 146ms)
+[CLIENT]  GET /dashboard 200 in 74ms (next.js: 10ms, application-code: 64ms)
+[CLIENT]  GET /api/auth/token 200 in 426ms (next.js: 34ms, application-code: 391ms)
+[API] [0mGET /api/users/me [36m304[0m 726.786 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 437ms (next.js: 7ms, application-code: 430ms)
+[CLIENT]  GET /api/auth/token 200 in 400ms (next.js: 5ms, application-code: 395ms)
+[API] [0mGET /api/users/me [36m304[0m 734.984 ms - -[0m
+[API] [0mGET /api/users/me [36m304[0m 726.965 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1954ms (next.js: 7ms, application-code: 1947ms)
+[CLIENT]  GET /api/auth/token 200 in 1869ms (next.js: 6ms, application-code: 1862ms)
+[CLIENT]  GET /api/auth/token 200 in 1961ms (next.js: 8ms, application-code: 1954ms)
+[CLIENT]  GET /api/auth/token 200 in 1910ms (next.js: 5ms, application-code: 1905ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1806.968 ms - 335[0m
+[API] [0mGET /api/projects [32m200[0m 4687.422 ms - 547[0m
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 7195.455 ms - -[0m
+[API] [0mGET /api/projects [36m304[0m 1079.208 ms - -[0m
+[API] [0mGET /api/creation-options?includeInactive=false [36m304[0m 1424.512 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1735ms (next.js: 28ms, application-code: 1707ms)
+[CLIENT]  GET /api/auth/get-session 200 in 456ms (next.js: 32ms, application-code: 424ms)
+[CLIENT]  GET /api/auth/token 200 in 1725ms (next.js: 29ms, application-code: 1696ms)
+[API] [0mPOST /api/projects [32m201[0m 2881.961 ms - 296[0m
+[CLIENT]  GET /api/auth/token 200 in 455ms (next.js: 31ms, application-code: 425ms)
+[CLIENT]  GET /api/auth/token 200 in 452ms (next.js: 40ms, application-code: 412ms)
+[API] [0mGET /api/travaux?projectId=cmpkipr9w001bv8xk38rqari0 [32m200[0m 1066.863 ms - 69[0m
+[CLIENT]  GET /api/auth/token 200 in 424ms (next.js: 6ms, application-code: 418ms)
+[API] [0mPOST /api/projects/cmpkipr9w001bv8xk38rqari0/files/upload [32m201[0m 6256.573 ms - 616[0m
+[CLIENT]  GET /api/auth/token 200 in 419ms (next.js: 29ms, application-code: 390ms)
+[API] [0mPOST /api/projects/cmpkipr9w001bv8xk38rqari0/travaux [32m201[0m 3271.578 ms - 455[0m
+[CLIENT]  GET /dashboard/t/cmpkipxi4001dv8xk3ib2bfyn 200 in 161ms (next.js: 72ms, application-code: 89ms)
+[CLIENT]  GET /api/auth/token 200 in 440ms (next.js: 39ms, application-code: 401ms)
+[CLIENT]  GET /api/auth/token 200 in 403ms (next.js: 9ms, application-code: 394ms)
+[CLIENT]  GET /api/auth/token 200 in 391ms (next.js: 5ms, application-code: 386ms)
+[CLIENT]  GET /api/auth/token 200 in 427ms (next.js: 4ms, application-code: 423ms)
+[CLIENT]  GET /api/auth/token 200 in 1937ms (next.js: 5ms, application-code: 1931ms)
+[CLIENT]  GET /api/auth/token 200 in 2.0s (next.js: 6ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/token 200 in 2000ms (next.js: 12ms, application-code: 1987ms)
+[CLIENT]  GET /api/auth/token 200 in 1951ms (next.js: 12ms, application-code: 1940ms)
+[CLIENT]  GET /api/auth/token 200 in 385ms (next.js: 4ms, application-code: 381ms)
+[CLIENT]  GET /api/auth/token 200 in 2.0s (next.js: 4ms, application-code: 2.0s)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1788.304 ms - 409[0m
+[API] [0mPOST /api/projects/cmpkipr9w001bv8xk38rqari0/travaux [32m201[0m 3602.952 ms - 458[0m
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 116ms (next.js: 32ms, application-code: 84ms)
+[CLIENT]  GET /api/auth/token 200 in 429ms (next.js: 37ms, application-code: 392ms)
+[CLIENT]  GET /api/auth/token 200 in 390ms (next.js: 7ms, application-code: 383ms)
+[CLIENT]  GET /api/auth/token 200 in 402ms (next.js: 8ms, application-code: 394ms)
+[CLIENT]  GET /api/auth/token 200 in 414ms (next.js: 7ms, application-code: 406ms)
+[CLIENT]  GET /api/auth/token 200 in 418ms (next.js: 9ms, application-code: 409ms)
+[CLIENT]  GET /api/auth/token 200 in 425ms (next.js: 8ms, application-code: 417ms)
+[CLIENT]  GET /api/auth/token 200 in 386ms (next.js: 5ms, application-code: 381ms)
+[CLIENT]  GET /api/auth/token 200 in 382ms (next.js: 6ms, application-code: 376ms)
+[CLIENT]  GET /api/auth/token 200 in 374ms (next.js: 4ms, application-code: 370ms)
+[CLIENT]  GET /api/auth/token 200 in 459ms (next.js: 6ms, application-code: 454ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1798.537 ms - 371[0m
+[API] [0mGET /api/travaux/cmpkipxi4001dv8xk3ib2bfyn [32m200[0m 4321.401 ms - 543[0m
+[CLIENT]  GET /api/auth/token 200 in 426ms (next.js: 34ms, application-code: 392ms)
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [32m200[0m 3986.730 ms - 546[0m
+[API] [0mGET /api/travaux/cmpkipxi4001dv8xk3ib2bfyn [36m304[0m 2167.683 ms - -[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 4729.174 ms - 399[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 4789.351 ms - 436[0m
+[CLIENT]  GET /api/auth/token 200 in 477ms (next.js: 38ms, application-code: 439ms)
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [32m200[0m 3948.848 ms - 66[0m
+[API] [0mGET /api/travaux/cmpkipxi4001dv8xk3ib2bfyn/generated-posters [32m200[0m 6728.536 ms - 66[0m
+[API] [0mGET /api/projects/cmpkipr9w001bv8xk38rqari0/files [32m200[0m 2180.749 ms - 622[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 2182.217 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 2522.771 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipxi4001dv8xk3ib2bfyn/generated-posters [36m304[0m 2488.326 ms - -[0m
+[CLIENT]  POST /api/chat/opening 400 in 3.3s (next.js: 3.2s, application-code: 57ms)
+[API] [0mGET /api/travaux/cmpkipxi4001dv8xk3ib2bfyn [36m304[0m 3958.704 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 2163.578 ms - -[0m
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 852ms (next.js: 340ms, application-code: 511ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 366ms (next.js: 101ms, application-code: 265ms)
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 2526.162 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipxi4001dv8xk3ib2bfyn/generated-posters [36m304[0m 2518.394 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipxi4001dv8xk3ib2bfyn [36m304[0m 2159.588 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 2170.882 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 2498.976 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipxi4001dv8xk3ib2bfyn/generated-posters [36m304[0m 2478.601 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1763ms (next.js: 37ms, application-code: 1726ms)
+[CLIENT]  GET /api/auth/get-session 200 in 450ms (next.js: 41ms, application-code: 408ms)
+[CLIENT]  GET /api/auth/token 200 in 458ms (next.js: 10ms, application-code: 447ms)
+[API] [0mPOST /api/projects/cmpkipr9w001bv8xk38rqari0/files/upload [32m201[0m 6710.502 ms - 597[0m
+[CLIENT]  GET /api/auth/token 200 in 1740ms (next.js: 30ms, application-code: 1710ms)
+[API] [0mDELETE /api/files/cmpkiqmkb001rv8xk86ujdqh8 [32m200[0m 6249.751 ms - 102[0m
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 29ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 458ms (next.js: 27ms, application-code: 431ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1707ms (next.js: 27ms, application-code: 1680ms)
+[CLIENT]  GET /api/auth/get-session 200 in 436ms (next.js: 26ms, application-code: 410ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 32ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 456ms (next.js: 27ms, application-code: 428ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1995ms (next.js: 31ms, application-code: 1964ms)
+[CLIENT]  GET /api/auth/get-session 200 in 445ms (next.js: 32ms, application-code: 413ms)
+[API] [INFO] 02:23:56 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\files\files.validation.ts has been modified
+[CLIENT] ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[CLIENT] ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[API] STUDIO FLYER AI backend listening on port 5000
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 201ms (next.js: 32ms, application-code: 169ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 8.5s (next.js: 6.9s, application-code: 1618ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 7.6s (next.js: 6.0s, application-code: 1617ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.3s (next.js: 127ms, application-code: 2.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 444ms (next.js: 6ms, application-code: 438ms)
+[CLIENT]  GET /api/auth/token 200 in 433ms (next.js: 6ms, application-code: 427ms)
+[CLIENT]  GET /api/auth/token 200 in 1680ms (next.js: 7ms, application-code: 1673ms)
+[API] [0mGET /api/users/me [36m304[0m 6176.170 ms - -[0m
+[API] [0mGET /api/users/me [36m304[0m 734.498 ms - -[0m
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 282ms (next.js: 76ms, application-code: 206ms)
+[API] [scheduled-cleanup] enabled — every 10 min
+[CLIENT]  GET /api/auth/token 200 in 1776ms (next.js: 56ms, application-code: 1720ms)
+[CLIENT]  GET /api/auth/token 200 in 1901ms (next.js: 9ms, application-code: 1892ms)
+[CLIENT]  GET /api/auth/token 200 in 1867ms (next.js: 12ms, application-code: 1855ms)
+[CLIENT]  GET /api/auth/token 200 in 1864ms (next.js: 8ms, application-code: 1856ms)
+[CLIENT]  GET /api/auth/token 200 in 1859ms (next.js: 12ms, application-code: 1847ms)
+[CLIENT]  GET /api/auth/token 200 in 409ms (next.js: 12ms, application-code: 397ms)
+[CLIENT]  GET /api/auth/token 200 in 407ms (next.js: 9ms, application-code: 398ms)
+[CLIENT]  GET /api/auth/token 200 in 407ms (next.js: 8ms, application-code: 399ms)
+[CLIENT]  GET /api/auth/token 200 in 400ms (next.js: 6ms, application-code: 394ms)
+[CLIENT]  GET /api/auth/token 200 in 414ms (next.js: 9ms, application-code: 405ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1830.953 ms - 363[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 4738.812 ms - 363[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 4266.047 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 6934.416 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 6693.696 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1785ms (next.js: 49ms, application-code: 1736ms)
+[CLIENT]  GET /api/auth/token 200 in 1742ms (next.js: 7ms, application-code: 1734ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2130.406 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 6565.254 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 2198.922 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 2.5s (next.js: 7ms, application-code: 2.5s)
+[CLIENT]  GET /api/auth/token 200 in 2.5s (next.js: 9ms, application-code: 2.5s)
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 2669.195 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2561.794 ms - -[0m
+[CLIENT] ○ Compiling /api/chat/opening ...
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [32m200[0m 2885.975 ms - 1659[0m
+[CLIENT]  POST /api/chat/opening 400 in 2.0s (next.js: 1959ms, application-code: 53ms)
+[CLIENT]  POST /api/chat/opening 400 in 3.8s (next.js: 3.7s, application-code: 53ms)
+[API] [0mGET /api/projects/cmpkipr9w001bv8xk38rqari0/files [36m304[0m 2555.337 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 115ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 534ms (next.js: 24ms, application-code: 510ms)
+[CLIENT]  GET /api/auth/get-session 200 in 521ms (next.js: 57ms, application-code: 464ms)
+[CLIENT]  GET /api/auth/get-session 200 in 472ms (next.js: 25ms, application-code: 447ms)
+[ADMIN] [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/dashboard..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[CLIENT]  GET /api/auth/get-session 200 in 1782ms (next.js: 56ms, application-code: 1726ms)
+[CLIENT]  GET /api/auth/get-session 200 in 467ms (next.js: 6ms, application-code: 461ms)
+[CLIENT]  GET /api/auth/token 200 in 470ms (next.js: 49ms, application-code: 421ms)
+[CLIENT]  GET /api/auth/token 200 in 393ms (next.js: 9ms, application-code: 384ms)
+[CLIENT]  GET /api/auth/token 200 in 406ms (next.js: 7ms, application-code: 399ms)
+[CLIENT]  GET /api/auth/token 200 in 402ms (next.js: 12ms, application-code: 390ms)
+[CLIENT]  GET /api/auth/token 200 in 391ms (next.js: 8ms, application-code: 384ms)
+[CLIENT]  GET /api/auth/token 200 in 1736ms (next.js: 7ms, application-code: 1729ms)
+[CLIENT]  GET /api/auth/token 200 in 403ms (next.js: 5ms, application-code: 399ms)
+[CLIENT]  GET /api/auth/token 200 in 1709ms (next.js: 6ms, application-code: 1703ms)
+[CLIENT]  GET /api/auth/token 200 in 399ms (next.js: 7ms, application-code: 392ms)
+[CLIENT]  GET /api/auth/token 200 in 384ms (next.js: 4ms, application-code: 380ms)
+[CLIENT]  GET /api/auth/token 200 in 1654ms (next.js: 7ms, application-code: 1647ms)
+[CLIENT]  GET /api/auth/token 200 in 402ms (next.js: 8ms, application-code: 394ms)
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 2553.496 ms - 618[0m
+[CLIENT]  GET /api/auth/token 200 in 407ms (next.js: 7ms, application-code: 399ms)
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 2483.174 ms - 614[0m
+[CLIENT]  GET /api/auth/token 200 in 1715ms (next.js: 36ms, application-code: 1679ms)
+[CLIENT]  GET /api/auth/token 200 in 383ms (next.js: 5ms, application-code: 378ms)
+[CLIENT]  GET /api/auth/token 200 in 1661ms (next.js: 19ms, application-code: 1643ms)
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 2512.459 ms - 606[0m
+[CLIENT]  GET /api/auth/token 200 in 413ms (next.js: 7ms, application-code: 405ms)
+[CLIENT]  GET /api/auth/token 200 in 425ms (next.js: 5ms, application-code: 420ms)
+[CLIENT]  GET /api/auth/token 200 in 389ms (next.js: 7ms, application-code: 382ms)
+[CLIENT]  GET /api/auth/token 200 in 430ms (next.js: 35ms, application-code: 394ms)
+[CLIENT]  GET /api/auth/token 200 in 403ms (next.js: 8ms, application-code: 394ms)
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 2588.101 ms - 617[0m
+[CLIENT]  GET /api/auth/token 200 in 385ms (next.js: 8ms, application-code: 378ms)
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1461.255 ms - 615[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1432.824 ms - 615[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 2541.189 ms - 614[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1453.216 ms - 617[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 2916.063 ms - 607[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1520.327 ms - 618[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1554.637 ms - 618[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1522.826 ms - 614[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1583.240 ms - 607[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1626.242 ms - 607[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1610.609 ms - 606[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1609.250 ms - 606[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1573.212 ms - 614[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1580.945 ms - 607[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1610.634 ms - 615[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1543.903 ms - 617[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1500.945 ms - 618[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 1446.912 ms - 614[0m
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 157ms, application-code: 1963ms)
+[CLIENT]  GET /api/auth/get-session 200 in 423ms (next.js: 8ms, application-code: 416ms)
+[CLIENT]  GET /api/auth/get-session 200 in 394ms (next.js: 7ms, application-code: 387ms)
+[CLIENT]  GET /api/auth/get-session 200 in 430ms (next.js: 4ms, application-code: 426ms)
+[API] [0mGET /api/health [32m200[0m 0.798 ms - 93[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1938ms (next.js: 38ms, application-code: 1900ms)
+[CLIENT]  GET /api/auth/get-session 200 in 510ms (next.js: 28ms, application-code: 482ms)
+[CLIENT]  GET /api/auth/get-session 200 in 414ms (next.js: 5ms, application-code: 408ms)
+[CLIENT]  GET /api/auth/get-session 200 in 370ms (next.js: 5ms, application-code: 365ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1990ms (next.js: 32ms, application-code: 1958ms)
+[CLIENT]  GET /api/auth/get-session 200 in 490ms (next.js: 43ms, application-code: 447ms)
+[CLIENT]  GET /api/auth/get-session 200 in 578ms (next.js: 6ms, application-code: 573ms)
+[CLIENT]  GET /api/auth/get-session 200 in 612ms (next.js: 5ms, application-code: 607ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 28ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 449ms (next.js: 29ms, application-code: 419ms)
+[CLIENT]  GET /api/auth/get-session 200 in 433ms (next.js: 4ms, application-code: 429ms)
+[CLIENT]  GET /api/auth/get-session 200 in 390ms (next.js: 4ms, application-code: 386ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1969ms (next.js: 31ms, application-code: 1938ms)
+[CLIENT]  GET /api/auth/get-session 200 in 486ms (next.js: 33ms, application-code: 454ms)
+[CLIENT]  GET /api/auth/get-session 200 in 425ms (next.js: 4ms, application-code: 421ms)
+[CLIENT]  GET /api/auth/get-session 200 in 395ms (next.js: 7ms, application-code: 388ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 32ms, application-code: 1969ms)
+[CLIENT]  GET /api/auth/get-session 200 in 441ms (next.js: 29ms, application-code: 412ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1705ms (next.js: 34ms, application-code: 1671ms)
+[CLIENT]  GET /api/auth/get-session 200 in 452ms (next.js: 26ms, application-code: 425ms)
+[CLIENT]  GET /api/auth/get-session 200 in 3.3s (next.js: 28ms, application-code: 3.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 435ms (next.js: 32ms, application-code: 403ms)
+[CLIENT]  GET /api/auth/get-session 200 in 431ms (next.js: 6ms, application-code: 425ms)
+[CLIENT]  GET /api/auth/get-session 200 in 398ms (next.js: 6ms, application-code: 393ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1982ms (next.js: 35ms, application-code: 1947ms)
+[CLIENT]  GET /api/auth/get-session 200 in 460ms (next.js: 30ms, application-code: 430ms)
+[CLIENT]  GET /api/auth/get-session 200 in 415ms (next.js: 7ms, application-code: 408ms)
+[CLIENT]  GET /api/auth/get-session 200 in 397ms (next.js: 5ms, application-code: 392ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 32ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 451ms (next.js: 33ms, application-code: 418ms)
+[CLIENT]  GET /api/auth/get-session 200 in 434ms (next.js: 6ms, application-code: 428ms)
+[CLIENT]  GET /api/auth/get-session 200 in 383ms (next.js: 5ms, application-code: 379ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 35ms, application-code: 1972ms)
+[CLIENT]  GET /api/auth/get-session 200 in 457ms (next.js: 30ms, application-code: 427ms)
+[CLIENT]  GET /api/auth/get-session 200 in 424ms (next.js: 6ms, application-code: 419ms)
+[CLIENT]  GET /api/auth/get-session 200 in 391ms (next.js: 5ms, application-code: 386ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 36ms, application-code: 1982ms)
+[CLIENT]  GET /api/auth/get-session 200 in 467ms (next.js: 41ms, application-code: 426ms)
+[CLIENT]  GET /api/auth/get-session 200 in 450ms (next.js: 5ms, application-code: 445ms)
+[CLIENT]  GET /api/auth/get-session 200 in 393ms (next.js: 4ms, application-code: 388ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1967ms (next.js: 34ms, application-code: 1933ms)
+[CLIENT]  GET /api/auth/get-session 200 in 472ms (next.js: 29ms, application-code: 443ms)
+[CLIENT]  GET /api/auth/get-session 200 in 385ms (next.js: 5ms, application-code: 379ms)
+[CLIENT]  GET /api/auth/get-session 200 in 379ms (next.js: 5ms, application-code: 374ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 29ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 470ms (next.js: 32ms, application-code: 438ms)
+[CLIENT]  GET /api/auth/get-session 200 in 394ms (next.js: 4ms, application-code: 390ms)
+[CLIENT]  GET /api/auth/get-session 200 in 423ms (next.js: 5ms, application-code: 418ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1725ms (next.js: 44ms, application-code: 1681ms)
+[CLIENT]  GET /api/auth/get-session 200 in 460ms (next.js: 42ms, application-code: 418ms)
+[CLIENT]  GET /api/auth/get-session 200 in 421ms (next.js: 4ms, application-code: 417ms)
+[CLIENT]  GET /api/auth/get-session 200 in 399ms (next.js: 5ms, application-code: 394ms)
+[ADMIN]  POST /api/auth/sign-in/email 401 in 1809ms (next.js: 37ms, application-code: 1773ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 456ms (next.js: 29ms, application-code: 427ms)
+[ADMIN]  GET /api/auth/get-session 200 in 406ms (next.js: 7ms, application-code: 399ms)
+[API] [0mPOST /api/auth/login [32m200[0m 1750.479 ms - 663[0m
+[ADMIN]  GET /admin 200 in 83ms (next.js: 9ms, application-code: 74ms)
+[ADMIN]  GET /login 200 in 173ms (next.js: 11ms, application-code: 162ms)
+[ADMIN]  GET /login 200 in 82ms (next.js: 7ms, application-code: 76ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/users/me [32m200[0m 3356.807 ms - 435[0m
+[ADMIN]  GET /login 200 in 202ms (next.js: 17ms, application-code: 185ms)
+[ADMIN]  GET /login? 200 in 232ms (next.js: 11ms, application-code: 221ms)
+[ADMIN]  GET /login? 200 in 180ms (next.js: 11ms, application-code: 169ms)
+[ADMIN]  GET /login? 200 in 511ms (next.js: 30ms, application-code: 481ms)
+[ADMIN]  GET /login? 200 in 214ms (next.js: 11ms, application-code: 203ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1970ms (next.js: 33ms, application-code: 1938ms)
+[ADMIN]  POST /api/auth/sign-in/email 401 in 1956ms (next.js: 38ms, application-code: 1918ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 529ms (next.js: 275ms, application-code: 254ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 491ms (next.js: 37ms, application-code: 454ms)
+[CLIENT]  GET /api/auth/get-session 200 in 426ms (next.js: 36ms, application-code: 390ms)
+[API] [0mPOST /api/auth/login [32m200[0m 4548.723 ms - 663[0m
+[ADMIN]  GET /admin 200 in 80ms (next.js: 8ms, application-code: 72ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/users/me [36m304[0m 2949.827 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /api/auth/get-session 200 in 4.2s (next.js: 49ms, application-code: 4.2s)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/agent-runs [32m200[0m 4939.034 ms - 59[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/users [32m200[0m 5026.971 ms - 538[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/stats [32m200[0m 5418.097 ms - 247[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/chart-data [32m200[0m 5322.136 ms - 2068[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/projects [32m200[0m 5839.621 ms - 730[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-runs [36m304[0m 1501.511 ms - -[0m
+[API] [0mGET /api/admin/users [36m304[0m 1522.841 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/chart-data [36m304[0m 2743.469 ms - -[0m
+[API] [0mGET /api/admin/stats [36m304[0m 3334.221 ms - -[0m
+[API] [0mGET /api/admin/projects [36m304[0m 2923.363 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1768ms (next.js: 30ms, application-code: 1739ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkipzm8001hv8xkwpknygyk 200 in 173ms (next.js: 10ms, application-code: 164ms)
+[CLIENT]  GET /api/auth/get-session 200 in 423ms (next.js: 7ms, application-code: 416ms)
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[ADMIN] [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[ADMIN]  GET /api/auth/get-session 200 in 3.5s (next.js: 37ms, application-code: 3.5s)
+[ADMIN]  GET /admin/settings 200 in 175ms (next.js: 81ms, application-code: 93ms)
+[ADMIN]  GET /api/auth/get-session 200 in 503ms (next.js: 51ms, application-code: 452ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [36m304[0m 6810.715 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [36m304[0m 2204.131 ms - -[0m
+[API] [0mGET /api/admin/settings/effective [36m304[0m 9349.835 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings/effective [36m304[0m 1825.638 ms - -[0m
+[ADMIN]  GET /api/auth/get-session 200 in 2.1s (next.js: 43ms, application-code: 2.0s)
+[ADMIN]  GET /api/auth/get-session 200 in 449ms (next.js: 31ms, application-code: 418ms)
+[ADMIN]  GET /api/auth/get-session 200 in 2.1s (next.js: 53ms, application-code: 2.0s)
+[ADMIN]  GET /api/auth/get-session 200 in 435ms (next.js: 29ms, application-code: 406ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mPUT /api/admin/settings [32m200[0m 13674.138 ms - 1767[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [32m200[0m 4862.120 ms - 9317[0m
+[API] [0mGET /api/admin/settings/effective [32m200[0m 4878.313 ms - 11394[0m
+[API] [0mPUT /api/admin/settings [32m200[0m 9074.921 ms - 1767[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [32m200[0m 1821.246 ms - 9317[0m
+[API] [0mGET /api/admin/settings/effective [36m304[0m 2149.788 ms - -[0m
+[ADMIN]  GET /admin/settings 200 in 170ms (next.js: 14ms, application-code: 157ms)
+[API] [0mPUT /api/admin/settings [0m-[0m - ms - -[0m
+[ADMIN]  GET /api/auth/get-session 200 in 1784ms (next.js: 40ms, application-code: 1744ms)
+[ADMIN]  GET /api/auth/get-session 200 in 452ms (next.js: 32ms, application-code: 420ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/users/me [36m304[0m 1051.704 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/settings [32m200[0m 1424.160 ms - 9317[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/settings/effective [36m304[0m 2242.126 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/settings [36m304[0m 2519.395 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings/effective [36m304[0m 1792.839 ms - -[0m
+[ADMIN] ○ Compiling /admin/agents ...
+[ADMIN]  GET /admin/agents 200 in 8.4s (next.js: 7.8s, application-code: 534ms)
+[ADMIN]  GET /admin/agents 200 in 207ms (next.js: 7ms, application-code: 200ms)
+[ADMIN]  GET /login 200 in 399ms (next.js: 45ms, application-code: 354ms)
+[ADMIN]  GET /login 200 in 196ms (next.js: 7ms, application-code: 188ms)
+[ADMIN]  GET /login 200 in 233ms (next.js: 9ms, application-code: 223ms)
+[ADMIN]  GET /admin/agents 200 in 421ms (next.js: 23ms, application-code: 398ms)
+[ADMIN]  GET /login 200 in 126ms (next.js: 8ms, application-code: 118ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN] [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [36m304[0m 1777.791 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-definitions [32m200[0m 2518.582 ms - 21345[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [36m304[0m 1778.442 ms - -[0m
+[API] [0mGET /api/admin/agent-definitions [36m304[0m 1440.559 ms - -[0m
+[ADMIN]  GET /admin/settings 200 in 75ms (next.js: 42ms, application-code: 32ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings/effective [36m304[0m 1781.307 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/settings [36m304[0m 2133.511 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [36m304[0m 1420.983 ms - -[0m
+[API] [0mGET /api/admin/settings/effective [36m304[0m 1778.269 ms - -[0m
+[ADMIN]  GET /login 200 in 1212ms (next.js: 737ms, application-code: 475ms)
+[ADMIN]  GET /login 200 in 215ms (next.js: 9ms, application-code: 206ms)
+[ADMIN]  GET /admin/settings 200 in 372ms (next.js: 43ms, application-code: 330ms)
+[ADMIN]  GET /login 200 in 761ms (next.js: 376ms, application-code: 385ms)
+[ADMIN]  GET /login 200 in 125ms (next.js: 8ms, application-code: 118ms)
+[ADMIN]  GET /admin/settings 200 in 256ms (next.js: 34ms, application-code: 222ms)
+[ADMIN]  GET /login 200 in 635ms (next.js: 292ms, application-code: 343ms)
+[ADMIN]  GET /login 200 in 144ms (next.js: 7ms, application-code: 137ms)
+[ADMIN]  GET /admin/settings 200 in 264ms (next.js: 32ms, application-code: 231ms)
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/login" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[CLIENT]  GET /api/auth/get-session 200 in 2.3s (next.js: 52ms, application-code: 2.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 443ms (next.js: 6ms, application-code: 436ms)
+[ADMIN] ○ Compiling /api/auth/[...path] ...
+[ADMIN]  GET /api/auth/get-session 200 in 6.5s (next.js: 4.8s, application-code: 1725ms)
+[ADMIN]  GET /api/auth/get-session 200 in 428ms (next.js: 31ms, application-code: 397ms)
+[ADMIN]  GET /admin/agents 200 in 1598ms (next.js: 269ms, application-code: 1329ms)
+[ADMIN]  GET /login 200 in 1114ms (next.js: 627ms, application-code: 486ms)
+[ADMIN]  GET /login 200 in 138ms (next.js: 9ms, application-code: 129ms)
+[ADMIN]  GET /admin/settings 200 in 318ms (next.js: 64ms, application-code: 254ms)
+[ADMIN]  GET /admin/agents 200 in 1391ms (next.js: 76ms, application-code: 1315ms)
+[ADMIN] ○ Compiling /api/auth/[...path] ...
+[ADMIN]  GET /login 200 in 407ms (next.js: 67ms, application-code: 340ms)
+[ADMIN]  GET /admin/settings 200 in 1112ms (next.js: 408ms, application-code: 704ms)
+[ADMIN]  GET /login 200 in 235ms (next.js: 9ms, application-code: 225ms)
+[ADMIN]  GET /api/auth/get-session 200 in 9.1s (next.js: 6.4s, application-code: 2.7s)
+[ADMIN]  GET /api/auth/get-session 200 in 454ms (next.js: 9ms, application-code: 445ms)
+[ADMIN]  GET /login 200 in 1317ms (next.js: 684ms, application-code: 634ms)
+[ADMIN]  GET /admin/settings 200 in 571ms (next.js: 68ms, application-code: 503ms)
+[ADMIN]  GET /login 200 in 375ms (next.js: 55ms, application-code: 320ms)
+[ADMIN]  GET /login 200 in 799ms (next.js: 399ms, application-code: 400ms)
+[ADMIN]  GET /login 200 in 121ms (next.js: 6ms, application-code: 115ms)
+[ADMIN]  GET /admin/settings 200 in 262ms (next.js: 54ms, application-code: 208ms)
+[ADMIN]  GET /admin/agents 200 in 1224ms (next.js: 72ms, application-code: 1152ms)
+[ADMIN]  GET /login 200 in 898ms (next.js: 496ms, application-code: 402ms)
+[ADMIN]  GET /login 200 in 116ms (next.js: 7ms, application-code: 109ms)
+[ADMIN]  GET /admin/settings 200 in 267ms (next.js: 54ms, application-code: 213ms)
+[ADMIN]  GET /admin/agents 200 in 1375ms (next.js: 67ms, application-code: 1308ms)
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] [0mGET /health [33m404[0m 4.553 ms - 70[0m
+[API] [0mGET /api/health [32m200[0m 0.634 ms - 94[0m
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Db, cause: Some(DbError { severity: "FATAL", parsed_severity: Some(Fatal), code: SqlState(E57P01), message: "terminating connection due to administrator command", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("postgres.c"), line: Some(3319), routine: Some("ProcessInterrupts") }) }
+[ADMIN] ○ Compiling /api/auth/[...path] ...
+[ADMIN]  GET /admin/agents 200 in 2.5s (next.js: 2.3s, application-code: 206ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /api/auth/get-session 200 in 8.2s (next.js: 5.4s, application-code: 2.8s)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  POST /api/auth/sign-in/email 401 in 9.1s (next.js: 6.1s, application-code: 3.0s)
+[ADMIN]  GET /api/auth/get-session 200 in 426ms (next.js: 30ms, application-code: 396ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 447ms (next.js: 5ms, application-code: 442ms)
+[ADMIN]  GET /api/auth/get-session 200 in 405ms (next.js: 5ms, application-code: 401ms)
+[ADMIN]  GET /api/auth/get-session 200 in 395ms (next.js: 7ms, application-code: 388ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mPOST /api/auth/login [32m200[0m 3888.349 ms - 663[0m
+[ADMIN]  GET /admin 200 in 149ms (next.js: 64ms, application-code: 85ms)
+[API] [0mGET /api/admin/settings [36m304[0m 6896.900 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-definitions [36m304[0m 7257.639 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /login 200 in 220ms (next.js: 50ms, application-code: 169ms)
+[ADMIN]  GET /login 200 in 88ms (next.js: 9ms, application-code: 79ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/agent-definitions [36m304[0m 1809.066 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/settings [36m304[0m 2186.283 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/llm-providers [32m200[0m 9460.555 ms - 2549[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/llm-providers [32m200[0m 9502.726 ms - 2549[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/users [36m304[0m 1790.900 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/projects [36m304[0m 2545.702 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-runs [36m304[0m 2190.245 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/chart-data [36m304[0m 5418.205 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/users [36m304[0m 2729.810 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-runs [36m304[0m 2409.428 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/projects [36m304[0m 3058.132 ms - -[0m
+[API] [0mGET /api/admin/chart-data [36m304[0m 1817.494 ms - -[0m
+[API] [0mGET /api/admin/stats [36m304[0m 8037.846 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/stats [36m304[0m 2954.839 ms - -[0m
+[ADMIN]  GET /api/auth/get-session 200 in 2.2s (next.js: 136ms, application-code: 2.0s)
+[ADMIN]  GET /api/auth/get-session 200 in 445ms (next.js: 28ms, application-code: 417ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mPUT /api/admin/settings [32m200[0m 7366.092 ms - 7457[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [32m200[0m 2206.730 ms - 15164[0m
+[API] [0mGET /api/admin/llm-providers [32m200[0m 2536.758 ms - 2641[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1757ms (next.js: 52ms, application-code: 1705ms)
+[CLIENT]  GET /api/auth/get-session 200 in 409ms (next.js: 6ms, application-code: 403ms)
+[CLIENT]  POST /api/auth/sign-in/email 200 in 1847ms (next.js: 36ms, application-code: 1811ms)
+[CLIENT]  GET /api/auth/token 200 in 457ms (next.js: 30ms, application-code: 427ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1757ms (next.js: 22ms, application-code: 1735ms)
+[CLIENT]  GET /api/auth/token 200 in 622ms (next.js: 27ms, application-code: 595ms)
+[API] [0mGET /api/users/me [32m200[0m 1980.974 ms - 428[0m
+[API] [0mGET /api/users/me [36m304[0m 732.815 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 932ms (next.js: 8ms, application-code: 924ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 924ms (next.js: 124ms, application-code: 800ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 554ms (next.js: 31ms, application-code: 523ms)
+[API] [0mGET /api/users/me [36m304[0m 722.953 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 549ms (next.js: 91ms, application-code: 458ms)
+[CLIENT]  GET /api/auth/token 200 in 664ms (next.js: 25ms, application-code: 639ms)
+[CLIENT]  GET /api/auth/token 200 in 1704ms (next.js: 10ms, application-code: 1694ms)
+[CLIENT]  GET /api/auth/token 200 in 1684ms (next.js: 7ms, application-code: 1677ms)
+[CLIENT]  GET /api/auth/token 200 in 1672ms (next.js: 5ms, application-code: 1667ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1820.387 ms - 363[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 4755.930 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 3612.393 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1705ms (next.js: 34ms, application-code: 1671ms)
+[CLIENT]  GET /api/auth/token 200 in 1665ms (next.js: 6ms, application-code: 1659ms)
+[CLIENT]  POST /api/chat/opening 400 in 23ms (next.js: 7ms, application-code: 16ms)
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 2205.872 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 2537.445 ms - -[0m
+[API] [0mGET /api/projects/cmpkipr9w001bv8xk38rqari0/files [32m200[0m 5818.584 ms - 619[0m
+[CLIENT]  GET /api/auth/token 200 in 2.1s (next.js: 38ms, application-code: 2.0s)
+[CLIENT] ○ Compiling /api/chat ...
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 762ms (next.js: 274ms, application-code: 487ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 689ms (next.js: 81ms, application-code: 608ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmpkf73xj000tv8mkw2ya66gk 200 in 363ms (next.js: 10ms, application-code: 352ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 261ms (next.js: 10ms, application-code: 251ms)
+[CLIENT]  GET /api/auth/token 200 in 2.0s (next.js: 42ms, application-code: 2.0s)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: true,
+[API]   historyLength: 0,
+[API]   messageLength: 8
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] request failed Failed to parse URL from /v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=AIzaSyBA-lxTfX_f8-trmGEkWpwy6VjUrcP0u4Y
+[API] [0mPOST /api/chat [31m500[0m 6511.567 ms - 73[0m
+[CLIENT]  POST /api/chat 500 in 13.4s (next.js: 4.2s, application-code: 9.3s)
+[CLIENT]  GET /api/auth/get-session 200 in 1745ms (next.js: 28ms, application-code: 1716ms)
+[CLIENT]  GET /api/auth/get-session 200 in 463ms (next.js: 33ms, application-code: 430ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 84ms, application-code: 2.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 478ms (next.js: 13ms, application-code: 465ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1806ms (next.js: 46ms, application-code: 1760ms)
+[CLIENT]  GET /api/auth/get-session 200 in 455ms (next.js: 7ms, application-code: 448ms)
+[ADMIN]  GET /api/auth/get-session 200 in 1707ms (next.js: 32ms, application-code: 1674ms)
+[ADMIN]  GET /api/auth/get-session 200 in 451ms (next.js: 37ms, application-code: 414ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 62ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 440ms (next.js: 6ms, application-code: 434ms)
+[ADMIN]  GET /api/auth/get-session 200 in 2.2s (next.js: 61ms, application-code: 2.1s)
+[ADMIN]  GET /api/auth/get-session 200 in 466ms (next.js: 40ms, application-code: 427ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1746ms (next.js: 62ms, application-code: 1683ms)
+[CLIENT]  GET /api/auth/get-session 200 in 450ms (next.js: 7ms, application-code: 443ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 38ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 465ms (next.js: 36ms, application-code: 428ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 34ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 450ms (next.js: 37ms, application-code: 413ms)
+[API] [INFO] 03:41:50 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\ai\ai.providers.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[API] [INFO] 03:42:08 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\ai\ai.providers.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[API] [INFO] 03:42:22 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\chat\chat.controller.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 52ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 449ms (next.js: 12ms, application-code: 436ms)
+[API] [scheduled-cleanup] enabled — every 10 min
+[API] [0mGET /api/health [32m200[0m 10.720 ms - 92[0m
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 57ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 459ms (next.js: 10ms, application-code: 449ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 31ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 579ms (next.js: 52ms, application-code: 527ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 36ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 456ms (next.js: 5ms, application-code: 451ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 33ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 494ms (next.js: 38ms, application-code: 456ms)
+[API] [INFO] 03:46:52 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\chat\chat.controller.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[API] [scheduled-cleanup] enabled — every 10 min
+[CLIENT]  GET /api/auth/get-session 200 in 1999ms (next.js: 36ms, application-code: 1963ms)
+[CLIENT]  GET /api/auth/get-session 200 in 435ms (next.js: 5ms, application-code: 430ms)
+[API] [0mGET /api/health [32m200[0m 5.169 ms - 92[0m
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 36ms, application-code: 1982ms)
+[CLIENT]  GET /api/auth/get-session 200 in 444ms (next.js: 29ms, application-code: 415ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1976ms (next.js: 32ms, application-code: 1943ms)
+[CLIENT]  GET /api/auth/get-session 200 in 463ms (next.js: 34ms, application-code: 429ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1764ms (next.js: 48ms, application-code: 1716ms)
+[CLIENT]  GET /api/auth/get-session 200 in 428ms (next.js: 5ms, application-code: 422ms)
+[CLIENT]  GET /api/auth/get-session 200 in 457ms (next.js: 40ms, application-code: 417ms)
+[CLIENT]  GET /api/auth/get-session 200 in 393ms (next.js: 7ms, application-code: 386ms)
+[CLIENT]  GET /api/auth/token 200 in 1680ms (next.js: 6ms, application-code: 1675ms)
+[CLIENT]  GET /api/auth/token 200 in 1667ms (next.js: 6ms, application-code: 1662ms)
+[API] [0mGET /api/users/me [36m304[0m 3625.916 ms - -[0m
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 151ms (next.js: 33ms, application-code: 117ms)
+[API] [0mGET /api/users/me [36m304[0m 719.600 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 394ms (next.js: 5ms, application-code: 389ms)
+[CLIENT]  GET /api/auth/token 200 in 411ms (next.js: 14ms, application-code: 397ms)
+[CLIENT]  GET /api/auth/token 200 in 1728ms (next.js: 33ms, application-code: 1695ms)
+[CLIENT]  GET /api/auth/token 200 in 1675ms (next.js: 5ms, application-code: 1671ms)
+[CLIENT]  GET /api/auth/token 200 in 1647ms (next.js: 5ms, application-code: 1642ms)
+[CLIENT]  GET /api/auth/token 200 in 1655ms (next.js: 7ms, application-code: 1647ms)
+[CLIENT]  GET /api/auth/token 200 in 391ms (next.js: 6ms, application-code: 385ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1636ms (next.js: 5ms, application-code: 1631ms)
+[CLIENT]  GET /api/auth/get-session 200 in 408ms (next.js: 25ms, application-code: 383ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 3599.893 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 385ms (next.js: 5ms, application-code: 380ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2570.718 ms - 363[0m
+[CLIENT]  GET /api/auth/get-session 200 in 389ms (next.js: 5ms, application-code: 384ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2517.450 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 4622.370 ms - -[0m
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: true,
+[API]   historyLength: 1,
+[API]   messageLength: 8
+[API] }
+[CLIENT]  GET /api/auth/token 200 in 417ms (next.js: 26ms, application-code: 391ms)
+[CLIENT]  GET /api/auth/token 200 in 1622ms (next.js: 4ms, application-code: 1618ms)
+[CLIENT]  POST /api/chat/opening 400 in 32ms (next.js: 19ms, application-code: 13ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2142.859 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 2494.842 ms - -[0m
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 388 }
+[CLIENT]  POST /api/chat 200 in 26.5s (next.js: 4ms, application-code: 26.5s)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 962ms (next.js: 37ms, application-code: 925ms)
+[API] [0mPOST /api/chat [32m200[0m 28479.167 ms - 969[0m
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 364ms (next.js: 44ms, application-code: 319ms)
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/dashboard..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 52ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/token 200 in 450ms (next.js: 8ms, application-code: 442ms)
+[CLIENT]  GET /api/auth/get-session 200 in 465ms (next.js: 42ms, application-code: 423ms)
+[CLIENT]  GET /api/auth/token 200 in 397ms (next.js: 4ms, application-code: 393ms)
+[API] [0mGET /api/users/me [36m304[0m 1068.080 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 404ms (next.js: 8ms, application-code: 395ms)
+[API] [0mGET /api/users/me [36m304[0m 723.532 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 405ms (next.js: 7ms, application-code: 398ms)
+[CLIENT]  GET /api/auth/token 200 in 426ms (next.js: 36ms, application-code: 391ms)
+[CLIENT]  GET /api/auth/token 200 in 1651ms (next.js: 6ms, application-code: 1645ms)
+[CLIENT]  GET /api/auth/token 200 in 1675ms (next.js: 5ms, application-code: 1670ms)
+[CLIENT]  GET /api/auth/token 200 in 1660ms (next.js: 6ms, application-code: 1653ms)
+[CLIENT]  GET /api/auth/token 200 in 1638ms (next.js: 9ms, application-code: 1629ms)
+[CLIENT]  GET /api/auth/token 200 in 398ms (next.js: 7ms, application-code: 392ms)
+[CLIENT]  GET /api/auth/token 200 in 389ms (next.js: 6ms, application-code: 383ms)
+[CLIENT]  GET /api/auth/token 200 in 1669ms (next.js: 7ms, application-code: 1662ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2164.998 ms - 363[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 1788.311 ms - 363[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 3611.063 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [32m200[0m 4452.748 ms - 1249[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2535.872 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1678ms (next.js: 40ms, application-code: 1638ms)
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 2229.470 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 6836.324 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 7112.359 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 413ms (next.js: 25ms, application-code: 389ms)
+[API] [0mGET /api/projects/cmpkipr9w001bv8xk38rqari0/files [36m304[0m 2518.223 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1621ms (next.js: 5ms, application-code: 1616ms)
+[CLIENT]  POST /api/chat/opening 400 in 16ms (next.js: 5ms, application-code: 11ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2143.827 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 2507.865 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 2551.915 ms - -[0m
+[ADMIN]  GET /api/auth/get-session 200 in 1740ms (next.js: 32ms, application-code: 1707ms)
+[ADMIN]  GET /api/auth/get-session 200 in 451ms (next.js: 29ms, application-code: 422ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1988ms (next.js: 29ms, application-code: 1960ms)
+[CLIENT]  GET /api/auth/get-session 200 in 419ms (next.js: 27ms, application-code: 392ms)
+[CLIENT]  GET /api/auth/get-session 200 in 422ms (next.js: 27ms, application-code: 395ms)
+[CLIENT]  GET /api/auth/get-session 200 in 388ms (next.js: 4ms, application-code: 384ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.4s (next.js: 33ms, application-code: 2.3s)
+[CLIENT]  GET /api/auth/get-session 200 in 496ms (next.js: 27ms, application-code: 469ms)
+[CLIENT]  GET /api/auth/get-session 200 in 420ms (next.js: 4ms, application-code: 416ms)
+[CLIENT]  GET /api/auth/get-session 200 in 418ms (next.js: 25ms, application-code: 392ms)
+[ADMIN]  GET /api/auth/get-session 200 in 1771ms (next.js: 78ms, application-code: 1694ms)
+[ADMIN]  GET /api/auth/get-session 200 in 431ms (next.js: 7ms, application-code: 423ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1678ms (next.js: 44ms, application-code: 1634ms)
+[CLIENT]  GET /api/auth/get-session 200 in 389ms (next.js: 5ms, application-code: 384ms)
+[CLIENT]  GET /api/auth/token 200 in 1740ms (next.js: 32ms, application-code: 1708ms)
+[CLIENT]  GET /api/auth/token 200 in 460ms (next.js: 28ms, application-code: 432ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 2,
+[API]   messageLength: 10
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[CLIENT]  GET /api/auth/get-session 200 in 1678ms (next.js: 35ms, application-code: 1642ms)
+[CLIENT]  GET /api/auth/get-session 200 in 452ms (next.js: 34ms, application-code: 417ms)
+[CLIENT]  GET /api/auth/token 200 in 468ms (next.js: 40ms, application-code: 428ms)
+[CLIENT]  GET /api/auth/token 200 in 565ms (next.js: 6ms, application-code: 559ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 5ms, application-code: 2.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 427ms (next.js: 40ms, application-code: 388ms)
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 416 }
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 2305.920 ms - 607[0m
+[API] [0mPATCH /api/files/cmpkipxlf001fv8xkipff6plk [32m200[0m 2738.231 ms - 606[0m
+[API] [0mPOST /api/chat [32m200[0m 20262.152 ms - 1017[0m
+[CLIENT]  POST /api/chat 200 in 20.8s (next.js: 4ms, application-code: 20.8s)
+[CLIENT]  GET /api/auth/get-session 200 in 1710ms (next.js: 38ms, application-code: 1672ms)
+[CLIENT]  GET /api/auth/get-session 200 in 460ms (next.js: 16ms, application-code: 444ms)
+[CLIENT]  GET /api/auth/get-session 200 in 438ms (next.js: 31ms, application-code: 407ms)
+[CLIENT]  GET /api/auth/get-session 200 in 396ms (next.js: 6ms, application-code: 389ms)
+[API] [INFO] 03:55:31 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\chat\chat.service.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 30ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 487ms (next.js: 67ms, application-code: 420ms)
+[CLIENT]  GET /api/auth/get-session 200 in 441ms (next.js: 6ms, application-code: 435ms)
+[CLIENT]  GET /api/auth/get-session 200 in 396ms (next.js: 4ms, application-code: 392ms)
+[API] [scheduled-cleanup] enabled — every 10 min
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 1448ms (next.js: 873ms, application-code: 575ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 214ms (next.js: 14ms, application-code: 200ms)
+[API] [INFO] 03:56:39 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\chat\chat.service.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 88ms, application-code: 1985ms)
+[CLIENT]  GET /api/auth/get-session 200 in 468ms (next.js: 27ms, application-code: 440ms)
+[CLIENT]  GET /api/auth/get-session 200 in 470ms (next.js: 41ms, application-code: 428ms)
+[CLIENT]  GET /api/auth/get-session 200 in 395ms (next.js: 5ms, application-code: 390ms)
+[API] [scheduled-cleanup] enabled — every 10 min
+[API] [0mGET /api/health [32m200[0m 7.353 ms - 92[0m
+[CLIENT] ○ Compiling /api/chat/opening ...
+[CLIENT]  POST /api/chat/opening 401 in 3.7s (next.js: 3.6s, application-code: 68ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 965ms (next.js: 566ms, application-code: 399ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 170ms (next.js: 15ms, application-code: 155ms)
+[CLIENT]  GET /api/auth/get-session 200 in 4.7s (next.js: 2.6s, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 503ms (next.js: 61ms, application-code: 442ms)
+[CLIENT]  GET /api/auth/get-session 200 in 482ms (next.js: 7ms, application-code: 475ms)
+[CLIENT]  GET /api/auth/get-session 200 in 494ms (next.js: 6ms, application-code: 488ms)
+[CLIENT]  POST /api/chat/opening 401 in 34ms (next.js: 17ms, application-code: 17ms)
+[CLIENT]  POST /api/chat/opening 400 in 17ms (next.js: 6ms, application-code: 12ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 1153ms (next.js: 204ms, application-code: 949ms)
+[CLIENT]  GET /api/auth/get-session 200 in 6.0s (next.js: 36ms, application-code: 5.9s)
+[CLIENT]  GET /api/auth/get-session 200 in 1641ms (next.js: 37ms, application-code: 1604ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1674ms (next.js: 6ms, application-code: 1668ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1435ms (next.js: 37ms, application-code: 1399ms)
+[CLIENT]  GET /api/auth/get-session 200 in 4.4s (next.js: 32ms, application-code: 4.4s)
+[CLIENT]  GET /api/auth/get-session 200 in 1334ms (next.js: 41ms, application-code: 1293ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 33ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 454ms (next.js: 27ms, application-code: 427ms)
+[CLIENT]  GET /api/auth/get-session 200 in 442ms (next.js: 5ms, application-code: 436ms)
+[CLIENT]  GET /api/auth/get-session 200 in 406ms (next.js: 5ms, application-code: 401ms)
+[CLIENT]  GET /api/auth/get-session 200 in 3.3s (next.js: 36ms, application-code: 3.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 470ms (next.js: 36ms, application-code: 434ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1844ms (next.js: 47ms, application-code: 1797ms)
+[CLIENT]  GET /api/auth/get-session 200 in 441ms (next.js: 11ms, application-code: 430ms)
+[CLIENT]  GET /api/auth/get-session 200 in 441ms (next.js: 29ms, application-code: 412ms)
+[CLIENT]  GET /api/auth/get-session 200 in 396ms (next.js: 9ms, application-code: 387ms)
+[ADMIN]  GET /api/auth/get-session 200 in 2.1s (next.js: 43ms, application-code: 2.1s)
+[ADMIN]  GET /api/auth/get-session 200 in 464ms (next.js: 30ms, application-code: 434ms)
+[ADMIN]  GET /api/auth/get-session 200 in 1947ms (next.js: 189ms, application-code: 1758ms)
+[ADMIN]  GET /api/auth/get-session 200 in 502ms (next.js: 30ms, application-code: 472ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1707ms (next.js: 34ms, application-code: 1673ms)
+[CLIENT]  GET /api/auth/get-session 200 in 474ms (next.js: 36ms, application-code: 439ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mPUT /api/admin/settings [32m200[0m 12651.820 ms - 22605[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [32m200[0m 2160.436 ms - 30312[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/llm-providers [32m200[0m 4998.293 ms - 2641[0m
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 29ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 439ms (next.js: 26ms, application-code: 413ms)
+[CLIENT]  GET /api/auth/get-session 200 in 434ms (next.js: 8ms, application-code: 426ms)
+[CLIENT]  GET /api/auth/get-session 200 in 395ms (next.js: 4ms, application-code: 391ms)
+[CLIENT]  GET /api/auth/token 200 in 1749ms (next.js: 53ms, application-code: 1696ms)
+[CLIENT] ○ Compiling /api/chat ...
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 626ms (next.js: 272ms, application-code: 354ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 208ms (next.js: 10ms, application-code: 198ms)
+[CLIENT]  GET /api/auth/get-session 200 in 6.7s (next.js: 4.8s, application-code: 1952ms)
+[CLIENT]  GET /api/auth/get-session 200 in 405ms (next.js: 6ms, application-code: 400ms)
+[CLIENT]  GET /api/auth/token 200 in 1697ms (next.js: 6ms, application-code: 1691ms)
+[CLIENT]  GET /api/auth/get-session 200 in 432ms (next.js: 34ms, application-code: 398ms)
+[CLIENT]  GET /api/auth/get-session 200 in 382ms (next.js: 5ms, application-code: 377ms)
+[CLIENT]  GET /api/auth/get-session 200 in 397ms (next.js: 5ms, application-code: 392ms)
+[CLIENT]  GET /api/auth/get-session 200 in 390ms (next.js: 4ms, application-code: 386ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 4,
+[API]   messageLength: 19
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 126 }
+[API] [0mPOST /api/chat [32m200[0m 14402.770 ms - 409[0m
+[CLIENT]  POST /api/chat 200 in 22.5s (next.js: 5.6s, application-code: 16.9s)
+[CLIENT]  GET /api/auth/token 200 in 2.0s (next.js: 32ms, application-code: 2000ms)
+[CLIENT]  GET /api/auth/token 200 in 441ms (next.js: 30ms, application-code: 411ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 6,
+[API]   messageLength: 17
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[CLIENT]  GET /api/auth/get-session 200 in 1716ms (next.js: 27ms, application-code: 1689ms)
+[CLIENT]  GET /api/auth/get-session 200 in 443ms (next.js: 28ms, application-code: 415ms)
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 138 }
+[API] [0mPOST /api/chat [32m200[0m 29862.604 ms - 451[0m
+[CLIENT]  POST /api/chat 200 in 30.4s (next.js: 4ms, application-code: 30.3s)
+[CLIENT]  GET /api/auth/token 200 in 1746ms (next.js: 33ms, application-code: 1713ms)
+[CLIENT]  GET /api/auth/token 200 in 463ms (next.js: 31ms, application-code: 432ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 8,
+[API]   messageLength: 14
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 256 }
+[API] [0mPOST /api/chat [32m200[0m 17639.936 ms - 701[0m
+[CLIENT]  POST /api/chat 200 in 18.2s (next.js: 4ms, application-code: 18.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 49ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/token 200 in 1729ms (next.js: 6ms, application-code: 1723ms)
+[CLIENT]  GET /api/auth/get-session 200 in 470ms (next.js: 24ms, application-code: 446ms)
+[CLIENT]  GET /api/auth/token 200 in 393ms (next.js: 5ms, application-code: 388ms)
+[CLIENT]  GET /api/auth/get-session 200 in 398ms (next.js: 4ms, application-code: 394ms)
+[CLIENT]  GET /api/auth/get-session 200 in 389ms (next.js: 4ms, application-code: 386ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 10,
+[API]   messageLength: 5
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 84 }
+[API] [0mPOST /api/chat [32m200[0m 11589.257 ms - 329[0m
+[CLIENT]  POST /api/chat 200 in 12.0s (next.js: 4ms, application-code: 12.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 1991ms (next.js: 28ms, application-code: 1963ms)
+[CLIENT]  GET /api/auth/get-session 200 in 450ms (next.js: 14ms, application-code: 436ms)
+[CLIENT]  GET /api/auth/get-session 200 in 441ms (next.js: 3ms, application-code: 438ms)
+[CLIENT]  GET /api/auth/get-session 200 in 390ms (next.js: 13ms, application-code: 377ms)
+[CLIENT]  GET /api/auth/token 200 in 1712ms (next.js: 13ms, application-code: 1699ms)
+[CLIENT]  GET /api/auth/token 200 in 431ms (next.js: 13ms, application-code: 417ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 12,
+[API]   messageLength: 20
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 25ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 403ms (next.js: 14ms, application-code: 389ms)
+[CLIENT]  GET /api/auth/get-session 200 in 426ms (next.js: 2ms, application-code: 424ms)
+[CLIENT]  GET /api/auth/get-session 200 in 405ms (next.js: 18ms, application-code: 387ms)
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 211 }
+[API] [chat] request failed Transaction API error: Unable to start a transaction in the given time.
+[API] [0mPOST /api/chat [31m502[0m 35589.346 ms - 95[0m
+[CLIENT]  POST /api/chat 502 in 36.0s (next.js: 2ms, application-code: 36.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 1987ms (next.js: 40ms, application-code: 1947ms)
+[CLIENT]  GET /api/auth/get-session 200 in 431ms (next.js: 16ms, application-code: 414ms)
+[CLIENT]  GET /api/auth/get-session 200 in 412ms (next.js: 3ms, application-code: 409ms)
+[CLIENT]  GET /api/auth/get-session 200 in 394ms (next.js: 15ms, application-code: 379ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1700ms (next.js: 29ms, application-code: 1671ms)
+[CLIENT]  GET /api/auth/get-session 200 in 427ms (next.js: 14ms, application-code: 414ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 31ms, application-code: 2.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 448ms (next.js: 19ms, application-code: 430ms)
+[CLIENT]  GET /api/auth/get-session 200 in 415ms (next.js: 3ms, application-code: 412ms)
+[CLIENT]  GET /api/auth/get-session 200 in 401ms (next.js: 17ms, application-code: 384ms)
+[CLIENT]  GET /api/auth/token 200 in 1715ms (next.js: 17ms, application-code: 1698ms)
+[CLIENT]  GET /api/auth/token 200 in 424ms (next.js: 14ms, application-code: 411ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 13,
+[API]   messageLength: 20
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 290 }
+[API] [0mPOST /api/chat [32m200[0m 26254.325 ms - 759[0m
+[CLIENT]  POST /api/chat 200 in 26.7s (next.js: 3ms, application-code: 26.7s)
+[CLIENT]  GET /api/auth/get-session 200 in 1926ms (next.js: 27ms, application-code: 1899ms)
+[CLIENT]  GET /api/auth/get-session 200 in 424ms (next.js: 14ms, application-code: 409ms)
+[CLIENT]  GET /api/auth/get-session 200 in 404ms (next.js: 2ms, application-code: 402ms)
+[CLIENT]  GET /api/auth/get-session 200 in 391ms (next.js: 17ms, application-code: 374ms)
+[CLIENT]  GET /api/auth/token 200 in 1638ms (next.js: 15ms, application-code: 1623ms)
+[CLIENT]  GET /api/auth/token 200 in 391ms (next.js: 14ms, application-code: 377ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 15,
+[API]   messageLength: 30
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 196 }
+[API] [0mPOST /api/chat [32m200[0m 12348.748 ms - 565[0m
+[CLIENT]  POST /api/chat 200 in 12.8s (next.js: 4ms, application-code: 12.8s)
+[CLIENT]  GET /api/auth/token 200 in 1697ms (next.js: 15ms, application-code: 1682ms)
+[CLIENT]  GET /api/auth/token 200 in 450ms (next.js: 14ms, application-code: 436ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 17,
+[API]   messageLength: 17
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 122 }
+[API] [0mPOST /api/chat [32m200[0m 12495.114 ms - 409[0m
+[CLIENT]  POST /api/chat 200 in 13.0s (next.js: 2ms, application-code: 13.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 26ms, application-code: 1988ms)
+[CLIENT]  GET /api/auth/get-session 200 in 433ms (next.js: 19ms, application-code: 414ms)
+[CLIENT]  GET /api/auth/get-session 200 in 373ms (next.js: 2ms, application-code: 371ms)
+[CLIENT]  GET /api/auth/get-session 200 in 398ms (next.js: 22ms, application-code: 377ms)
+[CLIENT]  GET /api/auth/token 200 in 1693ms (next.js: 19ms, application-code: 1675ms)
+[CLIENT]  GET /api/auth/token 200 in 445ms (next.js: 13ms, application-code: 432ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 19,
+[API]   messageLength: 36
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[CLIENT]  GET /api/auth/get-session 200 in 1931ms (next.js: 27ms, application-code: 1904ms)
+[CLIENT]  GET /api/auth/get-session 200 in 435ms (next.js: 19ms, application-code: 416ms)
+[CLIENT]  GET /api/auth/get-session 200 in 390ms (next.js: 3ms, application-code: 388ms)
+[CLIENT]  GET /api/auth/get-session 200 in 399ms (next.js: 18ms, application-code: 381ms)
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 307 }
+[API] [0mPOST /api/chat [32m200[0m 23106.826 ms - 803[0m
+[CLIENT]  POST /api/chat 200 in 23.6s (next.js: 1931µs, application-code: 23.6s)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 22ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 516ms (next.js: 87ms, application-code: 429ms)
+[CLIENT]  GET /api/auth/get-session 200 in 418ms (next.js: 4ms, application-code: 414ms)
+[CLIENT]  GET /api/auth/get-session 200 in 390ms (next.js: 16ms, application-code: 374ms)
+[ADMIN]  GET /api/auth/get-session 200 in 1764ms (next.js: 24ms, application-code: 1741ms)
+[ADMIN]  GET /api/auth/get-session 200 in 421ms (next.js: 16ms, application-code: 405ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1637ms (next.js: 23ms, application-code: 1613ms)
+[CLIENT]  GET /api/auth/get-session 200 in 393ms (next.js: 15ms, application-code: 378ms)
+[CLIENT]  GET /api/auth/token 200 in 1672ms (next.js: 14ms, application-code: 1658ms)
+[CLIENT]  GET /api/auth/token 200 in 428ms (next.js: 13ms, application-code: 415ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 21,
+[API]   messageLength: 18
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 225 }
+[API] [0mPOST /api/chat [32m200[0m 14074.863 ms - 635[0m
+[CLIENT]  POST /api/chat 200 in 14.5s (next.js: 2ms, application-code: 14.5s)
+[CLIENT]  GET /api/auth/get-session 200 in 1967ms (next.js: 14ms, application-code: 1953ms)
+[CLIENT]  GET /api/auth/get-session 200 in 453ms (next.js: 18ms, application-code: 434ms)
+[CLIENT]  GET /api/auth/get-session 200 in 421ms (next.js: 3ms, application-code: 418ms)
+[CLIENT]  GET /api/auth/get-session 200 in 394ms (next.js: 13ms, application-code: 381ms)
+[CLIENT]  GET /api/auth/token 200 in 1689ms (next.js: 19ms, application-code: 1669ms)
+[CLIENT]  GET /api/auth/token 200 in 458ms (next.js: 13ms, application-code: 445ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 23,
+[API]   messageLength: 27
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 273 }
+[API] [0mPOST /api/chat [32m200[0m 16052.460 ms - 725[0m
+[CLIENT]  POST /api/chat 200 in 16.5s (next.js: 3ms, application-code: 16.5s)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 26ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 442ms (next.js: 18ms, application-code: 424ms)
+[CLIENT]  GET /api/auth/get-session 200 in 418ms (next.js: 2ms, application-code: 415ms)
+[CLIENT]  GET /api/auth/get-session 200 in 405ms (next.js: 15ms, application-code: 389ms)
+[CLIENT]  GET /api/auth/token 200 in 388ms (next.js: 2ms, application-code: 386ms)
+[CLIENT]  GET /api/auth/token 200 in 404ms (next.js: 14ms, application-code: 390ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 25,
+[API]   messageLength: 10
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [chat] reply generated { travailId: 'cmpkipzm8001hv8xkwpknygyk', replyLength: 210 }
+[API] [0mPOST /api/chat [32m200[0m 32263.488 ms - 593[0m
+[CLIENT]  POST /api/chat 200 in 32.7s (next.js: 3ms, application-code: 32.7s)
+[CLIENT]  GET /api/auth/get-session 200 in 1947ms (next.js: 22ms, application-code: 1926ms)
+[CLIENT]  GET /api/auth/get-session 200 in 450ms (next.js: 19ms, application-code: 432ms)
+[CLIENT]  GET /api/auth/get-session 200 in 405ms (next.js: 3ms, application-code: 402ms)
+[CLIENT]  GET /api/auth/get-session 200 in 389ms (next.js: 14ms, application-code: 375ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 26ms, application-code: 1993ms)
+[CLIENT]  GET /api/auth/get-session 200 in 434ms (next.js: 19ms, application-code: 415ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 27ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 450ms (next.js: 14ms, application-code: 436ms)
+[CLIENT]  GET /api/auth/get-session 200 in 455ms (next.js: 2ms, application-code: 453ms)
+[CLIENT]  GET /api/auth/get-session 200 in 467ms (next.js: 18ms, application-code: 449ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1738ms (next.js: 52ms, application-code: 1687ms)
+[CLIENT]  GET /api/auth/get-session 200 in 452ms (next.js: 33ms, application-code: 419ms)
+[ADMIN]  GET /api/auth/get-session 200 in 1724ms (next.js: 43ms, application-code: 1681ms)
+[ADMIN]  GET /api/auth/get-session 200 in 506ms (next.js: 8ms, application-code: 497ms)
+[CLIENT]  GET /api/auth/get-session 200 in 425ms (next.js: 33ms, application-code: 391ms)
+[CLIENT]  GET /api/auth/get-session 200 in 424ms (next.js: 6ms, application-code: 419ms)
+[CLIENT]  GET /api/auth/get-session 200 in 404ms (next.js: 8ms, application-code: 397ms)
+[CLIENT]  GET /api/auth/get-session 200 in 414ms (next.js: 10ms, application-code: 404ms)
+[ADMIN] ○ Compiling /admin/creation-options ...
+[ADMIN]  GET /admin/creation-options 200 in 15.2s (next.js: 14.5s, application-code: 716ms)
+[ADMIN]  GET /admin/creation-options 200 in 248ms (next.js: 10ms, application-code: 238ms)
+[ADMIN]  GET /login 200 in 517ms (next.js: 88ms, application-code: 429ms)
+[ADMIN]  GET /login 200 in 205ms (next.js: 9ms, application-code: 197ms)
+[ADMIN]  GET /login 200 in 371ms (next.js: 10ms, application-code: 361ms)
+[ADMIN]  GET /admin/creation-options 200 in 296ms (next.js: 13ms, application-code: 283ms)
+[ADMIN]  GET /login 200 in 169ms (next.js: 14ms, application-code: 154ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/creation-options?includeInactive=true [32m200[0m 5728.849 ms - 2[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/creation-options?includeInactive=true [36m304[0m 1480.800 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 41ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 424ms (next.js: 4ms, application-code: 420ms)
+[ADMIN]  GET /api/auth/get-session 200 in 3.3s (next.js: 179ms, application-code: 3.1s)
+[ADMIN]  GET /api/auth/get-session 200 in 563ms (next.js: 41ms, application-code: 522ms)
+[ADMIN]  GET /api/auth/get-session 200 in 1750ms (next.js: 85ms, application-code: 1666ms)
+[ADMIN]  GET /api/auth/get-session 200 in 470ms (next.js: 45ms, application-code: 424ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1955ms (next.js: 43ms, application-code: 1913ms)
+[CLIENT]  GET /api/auth/get-session 200 in 431ms (next.js: 34ms, application-code: 396ms)
+[CLIENT]  GET /api/auth/get-session 200 in 434ms (next.js: 5ms, application-code: 429ms)
+[CLIENT]  GET /api/auth/get-session 200 in 393ms (next.js: 4ms, application-code: 388ms)
+[CLIENT]  GET /api/auth/token 200 in 1757ms (next.js: 38ms, application-code: 1719ms)
+[CLIENT]  GET /api/auth/token 200 in 478ms (next.js: 33ms, application-code: 446ms)
+[API] [chat] message received {
+[API]   travailId: 'cmpkipzm8001hv8xkwpknygyk',
+[API]   isFirstMessage: false,
+[API]   historyLength: 27,
+[API]   messageLength: 12
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'text',
+[API]   attachmentCount: 0
+[API] }
+[API] [INFO] 04:24:32 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\chat\chat.validation.ts has been modified
+[CLIENT]  POST /api/chat 503 in 9.7s (next.js: 3ms, application-code: 9.7s)
+[API] STUDIO FLYER AI backend listening on port 5000
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 34ms, application-code: 1998ms)
+[CLIENT]  GET /api/auth/get-session 200 in 457ms (next.js: 32ms, application-code: 425ms)
+[CLIENT]  GET /api/auth/get-session 200 in 458ms (next.js: 6ms, application-code: 453ms)
+[CLIENT]  GET /api/auth/get-session 200 in 403ms (next.js: 6ms, application-code: 397ms)
+[API] [scheduled-cleanup] enabled — every 10 min
+[API] [INFO] 04:25:08 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\chat\chat.service.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[API] [INFO] 04:25:26 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\chat\chat.service.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 979ms (next.js: 575ms, application-code: 404ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 220ms (next.js: 9ms, application-code: 211ms)
+[CLIENT] ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[CLIENT] ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 1450ms (next.js: 11ms, application-code: 1438ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 327ms (next.js: 14ms, application-code: 313ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 555ms (next.js: 59ms, application-code: 496ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 255ms (next.js: 17ms, application-code: 239ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.6s (next.js: 103ms, application-code: 2.5s)
+[CLIENT]  GET /api/auth/get-session 200 in 443ms (next.js: 12ms, application-code: 431ms)
+[CLIENT]  GET /api/auth/token 200 in 445ms (next.js: 6ms, application-code: 438ms)
+[API] [scheduled-cleanup] enabled — every 10 min
+[CLIENT]  GET /api/auth/token 200 in 1643ms (next.js: 7ms, application-code: 1636ms)
+[API] [0mGET /api/users/me [36m304[0m 3240.066 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 432ms (next.js: 36ms, application-code: 396ms)
+[CLIENT]  GET /api/auth/token 200 in 406ms (next.js: 11ms, application-code: 395ms)
+[API] [0mGET /api/users/me [36m304[0m 720.332 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 390ms (next.js: 3ms, application-code: 386ms)
+[CLIENT]  GET /api/auth/token 200 in 387ms (next.js: 5ms, application-code: 383ms)
+[CLIENT]  GET /api/auth/token 200 in 387ms (next.js: 4ms, application-code: 382ms)
+[CLIENT]  GET /api/auth/token 200 in 387ms (next.js: 4ms, application-code: 383ms)
+[CLIENT]  GET /api/auth/token 200 in 1639ms (next.js: 8ms, application-code: 1631ms)
+[CLIENT]  GET /api/auth/token 200 in 1670ms (next.js: 7ms, application-code: 1663ms)
+[CLIENT]  GET /api/auth/token 200 in 1712ms (next.js: 6ms, application-code: 1707ms)
+[CLIENT]  GET /api/auth/token 200 in 1632ms (next.js: 6ms, application-code: 1626ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 3941.494 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 442ms (next.js: 41ms, application-code: 401ms)
+[CLIENT]  GET /api/auth/token 200 in 392ms (next.js: 12ms, application-code: 380ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 4743.257 ms - 363[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 3650.395 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [32m200[0m 4317.364 ms - 7709[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 5043.029 ms - 363[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [36m304[0m 2195.611 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 2564.262 ms - -[0m
+[CLIENT] ○ Compiling /api/chat/opening ...
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 2517.556 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 6540.496 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 3668.554 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 4.2s (next.js: 3.4s, application-code: 861ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 849ms (next.js: 360ms, application-code: 489ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 270ms (next.js: 9ms, application-code: 261ms)
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 2546.059 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1661ms (next.js: 9ms, application-code: 1652ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1673ms (next.js: 7ms, application-code: 1665ms)
+[API] [0mGET /api/projects/cmpkipr9w001bv8xk38rqari0/files [32m200[0m 2182.668 ms - 611[0m
+[API] [0mPOST /api/chat/opening [32m200[0m 21088.541 ms - 937[0m
+[CLIENT]  POST /api/chat/opening 200 in 28.0s (next.js: 4.3s, application-code: 23.7s)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 37ms, application-code: 1988ms)
+[CLIENT]  GET /api/auth/get-session 200 in 639ms (next.js: 47ms, application-code: 592ms)
+[CLIENT]  GET /api/auth/get-session 200 in 989ms (next.js: 4ms, application-code: 986ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1205ms (next.js: 9ms, application-code: 1196ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.4s (next.js: 65ms, application-code: 2.4s)
+[CLIENT]  GET /api/auth/get-session 200 in 453ms (next.js: 12ms, application-code: 441ms)
+[CLIENT]  GET /api/auth/get-session 200 in 472ms (next.js: 8ms, application-code: 464ms)
+[CLIENT]  GET /api/auth/get-session 200 in 391ms (next.js: 6ms, application-code: 385ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 39ms, application-code: 1963ms)
+[CLIENT]  GET /api/auth/get-session 200 in 428ms (next.js: 6ms, application-code: 422ms)
+[CLIENT]  GET /api/auth/get-session 200 in 478ms (next.js: 39ms, application-code: 439ms)
+[CLIENT]  GET /api/auth/get-session 200 in 401ms (next.js: 7ms, application-code: 394ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 38ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 438ms (next.js: 7ms, application-code: 431ms)
+[CLIENT]  GET /api/auth/get-session 200 in 458ms (next.js: 32ms, application-code: 427ms)
+[CLIENT]  GET /api/auth/get-session 200 in 391ms (next.js: 7ms, application-code: 384ms)
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/dashboard..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[CLIENT]  GET /api/auth/get-session 200 in 5.2s (next.js: 75ms, application-code: 5.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 1706ms (next.js: 59ms, application-code: 1647ms)
+[CLIENT]  GET /api/auth/get-session 200 in 6.2s (next.js: 35ms, application-code: 6.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 1580ms (next.js: 65ms, application-code: 1515ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1562ms (next.js: 7ms, application-code: 1555ms)
+[CLIENT]  GET /api/auth/get-session 200 in 443ms (next.js: 50ms, application-code: 392ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 1800ms (next.js: 756ms, application-code: 1044ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 449ms (next.js: 17ms, application-code: 432ms)
+[CLIENT]  GET /api/auth/get-session 200 in 13.4s (next.js: 8.7s, application-code: 4.7s)
+[CLIENT]  GET /api/auth/token 200 in 586ms (next.js: 143ms, application-code: 444ms)
+[CLIENT]  GET /api/auth/token 200 in 2.7s (next.js: 48ms, application-code: 2.7s)
+[CLIENT]  GET /api/auth/token 200 in 2.4s (next.js: 15ms, application-code: 2.3s)
+[CLIENT]  GET /api/auth/token 200 in 2.5s (next.js: 12ms, application-code: 2.5s)
+[CLIENT]  GET /api/auth/token 200 in 2.4s (next.js: 10ms, application-code: 2.4s)
+[CLIENT]  GET /api/auth/token 200 in 2.5s (next.js: 19ms, application-code: 2.5s)
+[CLIENT]  GET /api/auth/token 200 in 433ms (next.js: 19ms, application-code: 414ms)
+[CLIENT]  GET /api/auth/token 200 in 421ms (next.js: 10ms, application-code: 412ms)
+[CLIENT]  GET /api/auth/token 200 in 418ms (next.js: 7ms, application-code: 411ms)
+[CLIENT]  GET /api/auth/token 200 in 419ms (next.js: 8ms, application-code: 411ms)
+[CLIENT]  GET /api/auth/token 200 in 447ms (next.js: 17ms, application-code: 430ms)
+[CLIENT]  GET /api/auth/token 200 in 415ms (next.js: 12ms, application-code: 403ms)
+[CLIENT]  GET /api/auth/get-session 200 in 437ms (next.js: 9ms, application-code: 428ms)
+[CLIENT]  GET /api/auth/get-session 200 in 404ms (next.js: 12ms, application-code: 392ms)
+[CLIENT]  GET /api/auth/get-session 200 in 430ms (next.js: 17ms, application-code: 413ms)
+[API] [0mGET /api/projects/cmpkipr9w001bv8xk38rqari0/files [36m304[0m 6668.311 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 7037.184 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 7604.131 ms - -[0m
+[API] [0mGET /api/projects/cmpkf70o0000rv8mkwybbg863/files [36m304[0m 5963.249 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk/generated-posters [36m304[0m 6847.818 ms - -[0m
+[API] [0mGET /api/projects/cmpkipr9w001bv8xk38rqari0/files [36m304[0m 2270.712 ms - -[0m
+[API] [0mGET /api/travaux/cmpkf73xj000tv8mkw2ya66gk [32m200[0m 7231.118 ms - 1011[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 2594.364 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 3364.632 ms - -[0m
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 1259ms (next.js: 699ms, application-code: 560ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 226ms (next.js: 12ms, application-code: 214ms)
+[API] [0mGET /api/projects/cmpkipr9w001bv8xk38rqari0/files [36m304[0m 2158.507 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 2236.651 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 2634.956 ms - -[0m
+[CLIENT]  GET /api/auth/token 200 in 1769ms (next.js: 10ms, application-code: 1759ms)
+[CLIENT]  GET /api/auth/token 200 in 1984ms (next.js: 132ms, application-code: 1852ms)
+[CLIENT]  GET /api/auth/token 200 in 1775ms (next.js: 28ms, application-code: 1747ms)
+[CLIENT]  GET /api/auth/token 200 in 1798ms (next.js: 11ms, application-code: 1787ms)
+[CLIENT]  GET /api/auth/token 200 in 1854ms (next.js: 33ms, application-code: 1821ms)
+[CLIENT]  GET /api/auth/token 200 in 1764ms (next.js: 19ms, application-code: 1745ms)
+[API] [0mGET /api/projects/cmpkipr9w001bv8xk38rqari0/files [36m304[0m 2621.581 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 3601.148 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 3687.347 ms - -[0m
+[API] [0mGET /api/projects/cmpkipr9w001bv8xk38rqari0/files [36m304[0m 2395.926 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk [36m304[0m 2564.121 ms - -[0m
+[API] [0mGET /api/travaux/cmpkipzm8001hv8xkwpknygyk/generated-posters [36m304[0m 2891.236 ms - -[0m
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 1504ms (next.js: 792ms, application-code: 712ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 264ms (next.js: 21ms, application-code: 242ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1786ms (next.js: 68ms, application-code: 1718ms)
+[CLIENT]  GET /api/auth/get-session 200 in 453ms (next.js: 10ms, application-code: 444ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 1717ms (next.js: 728ms, application-code: 989ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 733ms (next.js: 14ms, application-code: 719ms)
+[API] [INFO] 04:33:08 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\chat\chat.service.ts has been modified
+[CLIENT]  GET /api/auth/get-session 200 in 2.3s (next.js: 116ms, application-code: 2.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 472ms (next.js: 22ms, application-code: 450ms)
+[API] STUDIO FLYER AI backend listening on port 5000
+[CLIENT]  GET /api/auth/get-session 200 in 1796ms (next.js: 84ms, application-code: 1712ms)
+[API] [scheduled-cleanup] enabled — every 10 min
+[CLIENT]  GET /api/auth/get-session 200 in 475ms (next.js: 15ms, application-code: 460ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 94ms, application-code: 2.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 462ms (next.js: 25ms, application-code: 437ms)
+[CLIENT]  GET /api/auth/get-session 200 in 575ms (next.js: 80ms, application-code: 495ms)
+[CLIENT]  GET /api/auth/get-session 200 in 465ms (next.js: 42ms, application-code: 423ms)
+[CLIENT]  GET /dashboard/t/cmpkf73xj000tv8mkw2ya66gk 200 in 1086ms (next.js: 452ms, application-code: 634ms)
+[CLIENT]  GET /dashboard/t/cmpkipzm8001hv8xkwpknygyk 200 in 288ms (next.js: 20ms, application-code: 268ms)
+[CLIENT]  GET /api/auth/get-session 200 in 7.6s (next.js: 4.7s, application-code: 2.9s)
+[CLIENT]  GET /api/auth/get-session 200 in 472ms (next.js: 19ms, application-code: 453ms)
+[CLIENT]  GET /api/auth/get-session 200 in 484ms (next.js: 18ms, application-code: 467ms)
+[CLIENT]  GET /api/auth/get-session 200 in 507ms (next.js: 74ms, application-code: 433ms)
+[CLIENT]  GET /api/auth/get-session 200 in 586ms (next.js: 21ms, application-code: 566ms)
+[CLIENT]  GET /api/auth/get-session 200 in 455ms (next.js: 11ms, application-code: 444ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 99ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 480ms (next.js: 12ms, application-code: 469ms)
+[CLIENT]  GET /api/auth/get-session 200 in 447ms (next.js: 12ms, application-code: 435ms)
+[CLIENT]  GET /api/auth/get-session 200 in 463ms (next.js: 43ms, application-code: 420ms)

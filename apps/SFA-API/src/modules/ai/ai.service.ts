@@ -1,7 +1,10 @@
 /**
  * Service IA générique.
- * Expose callTextAI() et callVisionAI() avec auto-sélection du provider
- * selon les variables d'environnement ou le paramètre explicite.
+ *
+ * Strict mode : aucun défaut codé en dur, aucun fallback environnement.
+ * Le provider vient soit du paramètre explicite, soit de l'AppSetting
+ * `text_ai_provider` (configuré dans /admin/settings). Si ni l'un ni
+ * l'autre, on lève une erreur claire.
  */
 
 import { CallTextAIOptions, CallVisionAIOptions, AIProvider, AIResponse } from './ai.types';
@@ -9,17 +12,34 @@ import { createProvider } from './ai.providers';
 import { safeJsonParseAIResponse } from './ai.validation';
 import { settingsService } from '../settings/settings.service';
 
-function resolveProvider(explicit?: AIProvider, envKey = 'AI_DEFAULT_TEXT_PROVIDER'): AIProvider {
+const BUILT_IN_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'anthropic', 'gemini', 'mock']);
+
+async function isActiveCustomProvider(slug: string): Promise<boolean> {
+  const [name, isActive] = await Promise.all([
+    settingsService.getRaw(`custom_${slug}_name`),
+    settingsService.getRaw(`custom_${slug}_is_active`),
+  ]);
+  if (!name || !name.trim()) return false;
+  return isActive === 'true';
+}
+
+async function resolveProvider(explicit?: AIProvider): Promise<AIProvider> {
   if (explicit) return explicit;
-  const fromEnv = process.env[envKey];
-  if (fromEnv && ['openai', 'anthropic', 'gemini', 'mock'].includes(fromEnv)) {
-    return fromEnv as AIProvider;
+  const fromSettings = (await settingsService.getRaw('text_ai_provider'))?.trim().toLowerCase();
+  if (!fromSettings) {
+    throw new Error(
+      "Aucun provider IA configuré. Renseignez 'text_ai_provider' dans /admin/settings (built-in : openai | anthropic | gemini | mock, ou slug d'un provider custom)."
+    );
   }
-  return 'mock';
+  if (BUILT_IN_PROVIDERS.has(fromSettings)) return fromSettings as AIProvider;
+  if (await isActiveCustomProvider(fromSettings)) return fromSettings as AIProvider;
+  throw new Error(
+    `Provider "${fromSettings}" introuvable ou inactif. Ajoutez-le dans /admin/settings → onglet Providers, ou choisissez un built-in.`
+  );
 }
 
 export async function callTextAI(options: CallTextAIOptions): Promise<AIResponse> {
-  const provider = resolveProvider(options.provider, 'AI_DEFAULT_TEXT_PROVIDER');
+  const provider = await resolveProvider(options.provider);
   const model = options.model || undefined;
 
   const adapter = await createProvider(provider);
@@ -39,63 +59,13 @@ export async function callTextAI(options: CallTextAIOptions): Promise<AIResponse
 }
 
 export async function callVisionAI(options: CallVisionAIOptions): Promise<AIResponse> {
-  let provider = resolveProvider(options.provider, 'AI_DEFAULT_VISION_PROVIDER');
-  let adapter = await createProvider(provider);
+  const provider = await resolveProvider(options.provider);
+  const adapter = await createProvider(provider);
 
-  // 1. Detect if the provider does not support vision or is DeepSeek
-  if (!adapter.capabilities.supportsVision || provider.toLowerCase().includes('deepseek')) {
-    // Resolve the default vision provider from settings database or environment
-    const defaultVisionProvider = await settingsService.resolve('image_gen_provider', 'AI_DEFAULT_VISION_PROVIDER') || 'gemini';
-    
-    if (defaultVisionProvider !== provider) {
-      try {
-        const fallbackAdapter = await createProvider(defaultVisionProvider);
-        if (fallbackAdapter.capabilities.supportsVision && !defaultVisionProvider.toLowerCase().includes('deepseek')) {
-          provider = defaultVisionProvider;
-          adapter = fallbackAdapter;
-        } else {
-          // Iterate over standard vision-capable built-ins
-          const builtIns = ['gemini', 'openai', 'anthropic', 'mock'];
-          let found = false;
-          for (const p of builtIns) {
-            const tempAdapter = await createProvider(p);
-            if (tempAdapter.capabilities.supportsVision) {
-              provider = p;
-              adapter = tempAdapter;
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            throw new Error("Aucun fournisseur d'IA supportant la vision n'est configuré.");
-          }
-        }
-      } catch {
-        provider = 'gemini';
-        adapter = await createProvider('gemini');
-      }
-    } else {
-      // Find any active standard provider that supports vision
-      const builtIns = ['gemini', 'openai', 'anthropic', 'mock'];
-      let found = false;
-      for (const p of builtIns) {
-        const tempAdapter = await createProvider(p);
-        if (tempAdapter.capabilities.supportsVision) {
-          provider = p;
-          adapter = tempAdapter;
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        throw new Error("Aucun fournisseur d'IA supportant la vision n'est configuré.");
-      }
-    }
-  }
-
-  // 2. Strict backend validation
   if (!adapter.capabilities.supportsVision) {
-    throw new Error(`Le fournisseur "${provider}" ne supporte pas l'analyse d'images/multimodale.`);
+    throw new Error(
+      `Le provider "${provider}" ne supporte pas l'analyse d'images. Choisissez un provider compatible vision (gemini, openai, anthropic) dans /admin/settings.`
+    );
   }
 
   const model = options.model || undefined;

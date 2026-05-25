@@ -1,10 +1,13 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/Badge"
 import { Poster, type PosterKind } from "@/components/poster/Poster"
 import { Icon } from "@/components/ui/Icon"
 import { relativeTime } from "@/lib/utils"
+import { getProjectWorkspacePath } from "@/lib/project-navigation"
 import type { Project } from "@/types/project"
 
 // Pick a deterministic poster mock kind from project metadata
@@ -19,6 +22,8 @@ function pickKind(p: Project): PosterKind {
 }
 
 export function ProjectCard({ project }: { project: Project }) {
+  const router = useRouter()
+  const [opening, setOpening] = useState(false)
   const kind = pickKind(project)
   const travauxCount = project._count?.travaux ?? project.travaux?.length ?? 0
   const brief = {
@@ -26,8 +31,28 @@ export function ProjectCard({ project }: { project: Project }) {
     brand: project.title.toUpperCase().slice(0, 12) || "STUDIO",
   }
 
+  async function openProject() {
+    if (opening) return
+    setOpening(true)
+    try {
+      router.push(await getProjectWorkspacePath(project))
+    } catch (err) {
+      console.error("[project card] open failed", err)
+      router.push("/dashboard")
+    } finally {
+      setOpening(false)
+    }
+  }
+
   return (
-    <Link href={`/dashboard/projects/${project.id}`}>
+    <Link
+      href={`/dashboard/projects/${project.id}`}
+      onClick={(e) => {
+        e.preventDefault()
+        void openProject()
+      }}
+      aria-busy={opening}
+    >
       <div
         className="project-card"
         style={{
@@ -77,9 +102,9 @@ export function ProjectCard({ project }: { project: Project }) {
             </Badge>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "var(--font-mono)" }}>
-                {relativeTime(project.updatedAt)}
+                {opening ? "Ouverture..." : relativeTime(project.updatedAt)}
               </span>
-              <Icon name="chevronR" size={14} style={{ color: "rgba(255,255,255,0.3)" }} />
+              <Icon name={opening ? "spinner" : "chevronR"} size={14} className={opening ? "animate-spin" : undefined} style={{ color: "rgba(255,255,255,0.3)" }} />
             </div>
           </div>
         </div>

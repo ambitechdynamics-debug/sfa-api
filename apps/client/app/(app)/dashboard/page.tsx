@@ -1,7 +1,7 @@
 "use client"
 
-import { DashboardHome } from "@/components/app/DashboardHome"
+import { UserNewDashboard } from "@/components/app/user-new/Dashboard"
 
 export default function DashboardPage() {
-  return <DashboardHome />
+  return <UserNewDashboard />
 }

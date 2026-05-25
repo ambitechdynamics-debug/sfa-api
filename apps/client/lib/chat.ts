@@ -146,7 +146,10 @@ type ChatOpeningResponse = {
   error?: string
 }
 
-export async function fetchChatOpening(travailId: string): Promise<FetchChatOpeningResult> {
+export async function fetchChatOpening(
+  travailId: string,
+  visualConfig?: Record<string, unknown>,
+): Promise<FetchChatOpeningResult> {
   const token = await getSessionToken()
 
   const request = (authToken: string) => fetch("/api/chat/opening", {
@@ -156,7 +159,7 @@ export async function fetchChatOpening(travailId: string): Promise<FetchChatOpen
       "Content-Type": "application/json",
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     },
-    body: JSON.stringify({ travailId }),
+    body: JSON.stringify({ travailId, visualConfig }),
   })
 
   let response: Response

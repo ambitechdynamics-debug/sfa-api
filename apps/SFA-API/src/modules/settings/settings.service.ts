@@ -10,22 +10,23 @@ export const DEFAULT_SETTINGS = [
   { key: 'credits_per_prompt',            value: '2',     category: 'ia',          isSecret: false, description: 'Crédits déduits par génération de prompt' },
   { key: 'free_generations',              value: '3',     category: 'ia',          isSecret: false, description: 'Générations gratuites à l\'inscription' },
   { key: 'free_prompts',                  value: '5',     category: 'ia',          isSecret: false, description: 'Prompts gratuits à l\'inscription' },
-  { key: 'default_model',                 value: 'gpt-4o',category: 'ia',          isSecret: false, description: 'Modèle IA par défaut' },
+  { key: 'default_model',                 value: '',      category: 'ia',          isSecret: false, description: 'Modèle IA par défaut (à configurer manuellement)' },
   { key: 'timeout_ms',                    value: '30000', category: 'ia',          isSecret: false, description: 'Timeout requête IA (ms)' },
   { key: 'max_retries',                   value: '3',     category: 'ia',          isSecret: false, description: 'Tentatives max en cas d\'erreur' },
 
   // Providers
   { key: 'openai_api_key',                value: '',      category: 'providers',   isSecret: true,  description: 'Clé API OpenAI' },
-  { key: 'openai_model',                  value: 'gpt-4o',category: 'providers',   isSecret: false, description: 'Modèle OpenAI par défaut' },
+  { key: 'openai_model',                  value: '',      category: 'providers',   isSecret: false, description: 'Modèle OpenAI (ex: gpt-4o) — à saisir manuellement' },
   { key: 'anthropic_api_key',             value: '',      category: 'providers',   isSecret: true,  description: 'Clé API Anthropic' },
-  { key: 'anthropic_model',               value: 'claude-3-5-sonnet-20241022', category: 'providers', isSecret: false, description: 'Modèle Anthropic par défaut' },
+  { key: 'anthropic_model',               value: '',      category: 'providers',   isSecret: false, description: 'Modèle Anthropic (ex: claude-3-5-sonnet-20241022) — à saisir manuellement' },
   { key: 'gemini_api_key',                value: '',      category: 'providers',   isSecret: true,  description: 'Clé API Google Gemini' },
-  { key: 'gemini_model',                  value: 'gemini-2.0-flash', category: 'providers', isSecret: false, description: 'Modèle Gemini par défaut' },
-  { key: 'text_ai_provider',              value: 'auto',  category: 'providers',   isSecret: false, description: 'Provider IA conversationnel (auto | openai | anthropic | gemini | mock)' },
+  { key: 'gemini_model',                  value: '',      category: 'providers',   isSecret: false, description: 'Modèle Gemini (ex: gemini-2.0-flash) — à saisir manuellement' },
+  { key: 'text_ai_provider',              value: '',      category: 'providers',   isSecret: false, description: 'Provider IA conversationnel (openai | anthropic | gemini | mock) — à choisir manuellement' },
   { key: 'chat_agent_name',               value: 'Studio Flyer AI', category: 'providers', isSecret: false, description: 'Nom affiché de l’agent conversationnel du dashboard client' },
   { key: 'chat_agent_system_prompt',      value: "Tu es l'assistant de chat interactif et intelligent de Studio Flyer AI. Ton but unique est d'aider l'utilisateur à concevoir son flyer étape par étape à travers une conversation fluide. Pose une seule question simple à la fois et propose des choix si approprié.", category: 'providers', isSecret: false, description: 'Prompt système de l’agent conversationnel du dashboard client' },
-  { key: 'image_gen_provider',            value: 'mock',  category: 'providers',   isSecret: false, description: 'Provider de génération d\'image (mock | gemini | openai-image)' },
-  { key: 'image_gen_model',               value: 'gemini-2.5-flash-image-preview', category: 'providers', isSecret: false, description: 'Modèle de génération d\'image (Nano Banana / Gemini Image)' },
+  { key: 'chat_workspace_context_prompts', value: '[]', category: 'providers', isSecret: false, description: 'Prompts workspace CRUD de l’agent conversationnel (JSON : id, title, trigger, priority, enabled, content)' },
+  { key: 'image_gen_provider',            value: '',      category: 'providers',   isSecret: false, description: 'Provider de génération d\'image (mock | gemini | openai-image) — à choisir manuellement' },
+  { key: 'image_gen_model',               value: '',      category: 'providers',   isSecret: false, description: 'Modèle de génération d\'image (ex: gemini-2.5-flash-image-preview) — à saisir manuellement' },
   // Storage
   { key: 'storage_provider',              value: 'cloudinary', category: 'storage', isSecret: false, description: 'Provider de stockage fichiers' },
   { key: 'max_file_size_mb',              value: '10',    category: 'storage',     isSecret: false, description: 'Taille max par fichier (MB)' },
@@ -80,20 +81,103 @@ function sanitizeSetting(s: { key: string; value: string; isSecret: boolean; cat
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
+// ─── One-shot migration ───────────────────────────────────────────────────────
+// Lignes d'AppSetting créées par d'anciens seeds avec des valeurs hardcodées
+// (gpt-4o, claude-3-5-sonnet-20241022, gemini-2.0-flash, …). On les remet à ''
+// pour forcer l'admin à saisir explicitement provider + modèle dans
+// /admin/settings. Si l'admin a déjà personnalisé la valeur, on ne touche à
+// rien (clé absente du mapping ou valeur ≠ ancien défaut).
+const OBSOLETE_DEFAULT_VALUES: Record<string, string[]> = {
+  default_model:      ['gpt-4o'],
+  openai_model:       ['gpt-4o'],
+  anthropic_model:    ['claude-3-5-sonnet-20241022'],
+  gemini_model:       ['gemini-2.0-flash', 'gemini-1.5-pro'],
+  image_gen_model:    ['gemini-2.5-flash-image-preview'],
+  text_ai_provider:   ['auto'],
+  image_gen_provider: ['mock'],
+};
+
+const LEGACY_CHAT_WORKSPACE_PROMPT_KEYS = [
+  'chat_workspace_brief_prompt',
+  'chat_workspace_assets_prompt',
+  'chat_workspace_no_assets_prompt',
+  'chat_workspace_vision_prompt',
+  'chat_workspace_opening_assets_prompt',
+  'chat_workspace_opening_no_assets_prompt',
+  'chat_workspace_opening_vision_prompt',
+];
+
+const GENERATED_CHAT_WORKSPACE_PROMPT_IDS = new Set([
+  'workspace_brief_default',
+  'assets_present_default',
+  'assets_missing_default',
+  'vision_chat_default',
+  'opening_assets_default',
+  'opening_no_assets_default',
+  'opening_vision_default',
+]);
+
+function removeGeneratedWorkspacePrompts(value: string) {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return null;
+
+    const filtered = parsed.filter((item) => {
+      if (!item || typeof item !== 'object') return true;
+      const id = (item as Record<string, unknown>).id;
+      return typeof id !== 'string' || !GENERATED_CHAT_WORKSPACE_PROMPT_IDS.has(id);
+    });
+
+    if (filtered.length === parsed.length) return null;
+    return JSON.stringify(filtered, null, 2);
+  } catch {
+    return null;
+  }
+}
+
 export const settingsService = {
   /**
    * Ensure all default keys exist in the DB (run once on startup or on demand).
+   * Also clears any legacy hardcoded provider/model values (one-shot migration).
    */
   seed: async () => {
     let created = 0;
+    let migrated = 0;
+
     for (const def of DEFAULT_SETTINGS) {
       const existing = await prisma.appSetting.findUnique({ where: { key: def.key } });
       if (!existing) {
         await prisma.appSetting.create({ data: def });
         created++;
+        continue;
+      }
+      const obsoleteValues = OBSOLETE_DEFAULT_VALUES[def.key];
+      if (obsoleteValues && obsoleteValues.includes(existing.value)) {
+        await prisma.appSetting.update({ where: { key: def.key }, data: { value: '' } });
+        migrated++;
       }
     }
-    return { created };
+
+    await prisma.appSetting.deleteMany({
+      where: { key: { in: LEGACY_CHAT_WORKSPACE_PROMPT_KEYS } },
+    });
+
+    const workspacePrompts = await prisma.appSetting.findUnique({
+      where: { key: 'chat_workspace_context_prompts' },
+      select: { value: true },
+    });
+    if (workspacePrompts) {
+      const cleanedPrompts = removeGeneratedWorkspacePrompts(workspacePrompts.value);
+      if (cleanedPrompts !== null) {
+        await prisma.appSetting.update({
+          where: { key: 'chat_workspace_context_prompts' },
+          data: { value: cleanedPrompts },
+        });
+        migrated++;
+      }
+    }
+
+    return { created, migrated };
   },
 
   /** Return all settings, grouped by category. Secrets are masked. */
@@ -166,22 +250,17 @@ export const settingsService = {
   },
 
   /**
-   * Resolve a setting value with env-var fallback.
+   * Resolve a setting value strictly from the DB.
    *
-   * Priority: AppSetting (DB) → process.env[envFallback] → null.
-   * Empty strings in DB are treated as "not set" so they don't shadow env vars.
-   *
-   * Used by AI/image-gen providers so admins can manage keys from /admin/settings
-   * without redeploying.
+   * Empty strings are treated as "not set" → return null. Aucun fallback env :
+   * la source unique est AppSetting (configurée via /admin/settings). Le
+   * paramètre `envFallback` est conservé pour la compatibilité de signature
+   * mais ignoré — il sera retiré quand tous les call-sites seront nettoyés.
    */
-  resolve: async (dbKey: string, envFallback?: string): Promise<string | null> => {
+  resolve: async (dbKey: string, _envFallbackIgnored?: string): Promise<string | null> => {
     const fromDb = await settingsService.getRaw(dbKey);
     if (fromDb && fromDb.trim().length > 0) {
       return fromDb;
-    }
-    if (envFallback) {
-      const fromEnv = process.env[envFallback];
-      if (fromEnv && fromEnv.trim().length > 0) return fromEnv;
     }
     return null;
   },
@@ -199,46 +278,25 @@ export const settingsService = {
    * Liste les valeurs effectives résolues par le backend, en indiquant
    * d'où chaque valeur provient :
    *   - "db"      : la valeur AppSetting est non vide et est utilisée
-   *   - "env"     : AppSetting vide, fallback sur process.env[envFallback]
-   *   - "default" : aucune source → le code interne utilise un défaut codé
-   *   - "missing" : aucune source ET pas de défaut connu (à configurer)
+   *   - "default" : aucune valeur DB → un défaut codé reste utilisable
+   *   - "missing" : aucune valeur DB ET pas de défaut → à configurer
    *
-   * Utile pour comprendre pourquoi un provider/clé semble "ne pas marcher"
-   * malgré la config admin — souvent l'env override silencieusement.
+   * Plus aucun fallback env runtime : la source unique est AppSetting.
    */
   listEffective: async () => {
-    // Mapping AppSetting key → env var qui peut shadower
-    const ENV_FALLBACKS: Record<string, string> = {
-      openai_api_key: 'OPENAI_API_KEY',
-      anthropic_api_key: 'ANTHROPIC_API_KEY',
-      gemini_api_key: 'GEMINI_API_KEY',
-      openai_model: 'AI_MODEL',
-      anthropic_model: 'AI_MODEL',
-      gemini_model: 'AI_MODEL',
-      default_model: 'AI_DEFAULT_TEXT_MODEL',
-      text_ai_provider: 'AI_DEFAULT_TEXT_PROVIDER',
-      image_gen_provider: 'IMAGE_GEN_PROVIDER',
-      image_gen_model: 'IMAGE_GEN_MODEL',
-    };
-
     const rows = await prisma.appSetting.findMany({
       orderBy: [{ category: 'asc' }, { key: 'asc' }],
     });
 
     const result = rows.map((row) => {
       const dbValue = row.value?.trim() ?? '';
-      const envName = ENV_FALLBACKS[row.key];
-      const envValue = envName ? (process.env[envName]?.trim() ?? '') : '';
 
-      let source: 'db' | 'env' | 'default' | 'missing';
+      let source: 'db' | 'default' | 'missing';
       let effective: string;
 
       if (dbValue.length > 0) {
         source = 'db';
         effective = dbValue;
-      } else if (envValue.length > 0) {
-        source = 'env';
-        effective = envValue;
       } else {
         const defaults = DEFAULT_SETTINGS.find((d) => d.key === row.key);
         if (defaults?.value && defaults.value.trim().length > 0) {
@@ -256,9 +314,9 @@ export const settingsService = {
         isSecret: row.isSecret,
         description: row.description,
         source,
-        envFallback: envName ?? null,
+        envFallback: null,
         dbValue: row.isSecret ? (dbValue ? maskSecret(dbValue) : '') : dbValue,
-        envValue: row.isSecret ? (envValue ? maskSecret(envValue) : '') : envValue,
+        envValue: '',
         effective: row.isSecret ? (effective ? maskSecret(effective) : '') : effective,
       };
     });

@@ -1,0 +1,442 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Consilium Design — landing
+   Palette stricte extraite de Windows 11 Settings (dark mode)
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Surfaces (du plus sombre au plus clair) */
+  --bg-base: #1a1a1a;          /* fond global / wallpaper sombre */
+  --bg-app: #202020;           /* fenêtre / panneau principal */
+  --bg-elev-1: #272727;        /* card élevée niveau 1 (stat tiles) */
+  --bg-elev-2: #2d2d2d;        /* card élevée niveau 2 (info row) */
+  --bg-elev-3: #323232;        /* hover */
+  --bg-sidebar: #1f1f1f;       /* sidebar navigation */
+  --bg-sidebar-sel: #2b2b2b;   /* item sélectionné dans sidebar */
+  --bg-taskbar: rgba(32,32,32,.85);
+  --bg-input: #2b2b2b;
+  --bg-input-hover: #323232;
+
+  /* Borders / hairlines (Win11 utilise des bordures très subtiles) */
+  --bd-soft: rgba(255,255,255,.06);
+  --bd-soft-2: rgba(255,255,255,.09);
+  --bd-medium: rgba(255,255,255,.12);
+  --bd-strong: rgba(255,255,255,.18);
+  --bd-divider: rgba(255,255,255,.05);
+
+  /* Texte */
+  --tx-primary: #ffffff;
+  --tx-secondary: #c8c8c8;
+  --tx-tertiary: #8f8f8f;
+  --tx-quaternary: #6a6a6a;
+  --tx-disabled: #4a4a4a;
+
+  /* Accent (Windows 11 default — bleu/cyan) */
+  --accent: #4cc2ff;
+  --accent-hover: #76cbff;
+  --accent-press: #3aa7e0;
+  --accent-soft: rgba(76,194,255,.14);
+  --accent-glow: rgba(76,194,255,.35);
+  --accent-text-on: #000000;
+
+  /* Sélection sidebar (barre verticale d'accent) */
+  --pill-accent: var(--accent);
+
+  /* Élévations / shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.04) inset;
+  --shadow-lg: 0 24px 60px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.06) inset;
+  --shadow-xl: 0 40px 100px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.07) inset;
+
+  /* Radii (Win11 Fluent: 4, 8 small / cards, 4 controls) */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-xl: 14px;
+
+  /* Typographie */
+  --font-ui: "Segoe UI Variable", "Segoe UI Variable Display",
+             "Segoe UI", system-ui, -apple-system, "SF Pro Display",
+             "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", "Consolas",
+               ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+html {
+  background: var(--bg-base);
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-ui);
+  background:
+    radial-gradient(1200px 600px at 50% -200px, rgba(76,194,255,.07), transparent 60%),
+    radial-gradient(900px 500px at 80% 30%, rgba(76,194,255,.04), transparent 60%),
+    var(--bg-base);
+  color: var(--tx-primary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Win11 utilise des poids semi-bold pour les titres, jamais black */
+h1, h2, h3, h4, h5 { font-weight: 600; letter-spacing: -.01em; margin: 0; }
+h1 { font-weight: 600; letter-spacing: -.025em; }
+
+p { margin: 0; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+::selection { background: var(--accent-glow); color: #fff; }
+
+/* Scrollbar Win11-style */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.12);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.22); background-clip: content-box; border: 3px solid transparent; }
+
+/* ─── Window chrome (générique) ────────────────────────────────────────── */
+.win {
+  background: var(--bg-app);
+  border: 1px solid var(--bd-soft);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  position: relative;
+}
+.win::before {
+  /* mica-style top sheen */
+  content: "";
+  position: absolute; inset: 0 0 auto 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+  pointer-events: none;
+}
+.win-titlebar {
+  display: flex; align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  background: transparent;
+  border-bottom: 1px solid var(--bd-divider);
+  user-select: none;
+}
+.win-titlebar.glass {
+  background: linear-gradient(180deg, rgba(40,40,40,.6), rgba(32,32,32,.4));
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+.win-title {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--tx-secondary);
+  flex: 1;
+  display: flex; align-items: center; gap: 8px;
+}
+.win-title svg { width: 14px; height: 14px; }
+.win-controls {
+  display: flex; gap: 0; align-items: center;
+}
+/* Win11 traffic lights : 3 rectangles à droite (min/max/close) */
+.win-ctl {
+  width: 46px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--tx-secondary);
+  background: transparent; border: 0; cursor: default;
+  transition: background .12s ease;
+}
+.win-ctl:hover { background: rgba(255,255,255,.06); color: var(--tx-primary); }
+.win-ctl.close:hover { background: #c42b1c; color: #fff; }
+.win-ctl svg { width: 10px; height: 10px; }
+
+/* Window body */
+.win-body { position: relative; }
+
+/* ─── Fluent controls ─────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 32px; padding: 0 14px;
+  border-radius: var(--r-xs);
+  font-size: 14px; font-weight: 400; font-family: var(--font-ui);
+  background: var(--bg-input);
+  color: var(--tx-primary);
+  border: 1px solid var(--bd-soft-2);
+  border-bottom-color: var(--bd-medium);
+  cursor: pointer;
+  transition: background .12s ease, transform .08s ease;
+}
+.btn:hover { background: var(--bg-input-hover); }
+.btn:active { background: #2a2a2a; transform: translateY(.5px); }
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--accent-text-on);
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,.08);
+  border-bottom-color: rgba(0,0,0,.2);
+  box-shadow: 0 1px 0 rgba(255,255,255,.25) inset;
+}
+.btn-accent:hover { background: var(--accent-hover); }
+.btn-accent:active { background: var(--accent-press); transform: translateY(.5px); }
+
+.btn-lg { height: 40px; padding: 0 20px; font-size: 14px; border-radius: var(--r-sm); }
+.btn-xl { height: 48px; padding: 0 24px; font-size: 15px; border-radius: var(--r-sm); }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--tx-secondary);
+}
+.btn-ghost:hover { background: rgba(255,255,255,.04); color: var(--tx-primary); }
+
+/* Pill / chip */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 24px; padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 500;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--bd-soft-2);
+  color: var(--tx-secondary);
+}
+.chip-accent {
+  background: var(--accent-soft);
+  border-color: rgba(76,194,255,.25);
+  color: var(--accent-hover);
+}
+.chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+
+/* ─── Input Win11-style ───────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--bd-soft-2);
+  border-bottom-color: var(--bd-medium);
+  border-radius: var(--r-xs);
+  color: var(--tx-primary);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color .15s ease;
+}
+.input:hover { background: var(--bg-input-hover); }
+.input:focus {
+  background: var(--bg-base);
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0;
+}
+.input::placeholder { color: var(--tx-quaternary); }
+textarea.input { height: auto; padding: 10px 12px; resize: vertical; }
+
+/* Sidebar item Win11 */
+.sb-item {
+  display: flex; align-items: center; gap: 12px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-xs);
+  font-size: 14px;
+  color: var(--tx-secondary);
+  cursor: pointer;
+  position: relative;
+  transition: background .12s ease;
+}
+.sb-item:hover { background: rgba(255,255,255,.04); color: var(--tx-primary); }
+.sb-item.active { background: var(--bg-sidebar-sel); color: var(--tx-primary); }
+.sb-item.active::before {
+  content: "";
+  position: absolute; left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 16px;
+  border-radius: 999px;
+  background: var(--pill-accent);
+}
+.sb-item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+.sb-item.active svg { opacity: 1; }
+
+/* Stat tile (cf. cards Processeur/RAM/GPU dans la capture) */
+.stat-tile {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--bd-soft);
+  border-radius: var(--r-md);
+  padding: 16px 18px 18px;
+  position: relative;
+}
+
+/* Info row (cf. lignes "Nom de l'appareil") */
+.info-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--bd-divider);
+  font-size: 14px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-row .lbl { color: var(--tx-tertiary); }
+.info-row .val { color: var(--tx-primary); }
+
+/* Container */
+.container { width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+@media (max-width: 640px) { .container { padding: 0 18px; } }
+
+/* Section spacing */
+.section { padding: 96px 0; }
+.section-sm { padding: 56px 0; }
+@media (max-width: 768px) { .section { padding: 64px 0; } }
+
+/* Eyebrow */
+.eyebrow {
+  font-size: 12px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.eyebrow::before {
+  content: ""; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* Hero specific */
+.hero-grid-bg {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-position: -1px -1px;
+  mask-image: radial-gradient(ellipse at center, #000 0%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, transparent 75%);
+  pointer-events: none;
+}
+
+/* Template card */
+.tpl-card {
+  border-radius: var(--r-md);
+  border: 1px solid var(--bd-soft);
+  background: var(--bg-elev-1);
+  overflow: hidden;
+  position: relative;
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+  cursor: pointer;
+}
+.tpl-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--bd-medium);
+  box-shadow: 0 14px 28px rgba(0,0,0,.45);
+}
+.tpl-card .meta {
+  padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; color: var(--tx-tertiary);
+  border-top: 1px solid var(--bd-divider);
+}
+
+/* Taskbar */
+.taskbar {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 48px; padding: 0 8px;
+  background: var(--bg-taskbar);
+  border: 1px solid var(--bd-soft-2);
+  border-radius: 10px;
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  box-shadow: var(--shadow-md);
+}
+.tb-btn {
+  width: 36px; height: 36px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--tx-secondary);
+  position: relative;
+  transition: background .12s ease;
+  cursor: pointer; border: 0; background: transparent;
+}
+.tb-btn:hover { background: rgba(255,255,255,.06); color: var(--tx-primary); }
+.tb-btn.active::after {
+  content: ""; position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+  width: 14px; height: 3px; border-radius: 2px; background: var(--accent);
+}
+.tb-btn svg { width: 18px; height: 18px; }
+
+/* Glow / gradient text */
+.glow-text {
+  background: linear-gradient(180deg, #ffffff 30%, #b4b4b4 100%);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+.accent-text { color: var(--accent); }
+
+/* Anim entrée */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: rise .8s cubic-bezier(.16,1,.3,1) both; }
+.rise-1 { animation-delay: .05s; }
+.rise-2 { animation-delay: .15s; }
+.rise-3 { animation-delay: .25s; }
+.rise-4 { animation-delay: .35s; }
+
+/* Subtle floating loop */
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float-slow { animation: float 6s ease-in-out infinite; }
+
+/* Cursor accent */
+.accent-cursor::after {
+  content: ""; display: inline-block;
+  width: 3px; height: 1.05em; margin-left: 2px;
+  background: var(--accent); vertical-align: -.12em;
+  animation: blink 1.05s steps(2) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Section header */
+.section-head {
+  max-width: 720px; margin: 0 auto 56px; text-align: center;
+}
+.section-head h2 {
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.08;
+  margin: 0 0 16px;
+}
+.section-head p {
+  font-size: 16px;
+  color: var(--tx-secondary);
+  line-height: 1.55;
+  max-width: 580px;
+  margin: 0 auto;
+}
+
+/* utility */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; }
+.mt-2 { margin-top: 8px; } .mt-4 { margin-top: 16px; } .mt-6 { margin-top: 24px; }
+.mt-8 { margin-top: 32px; } .mt-12 { margin-top: 48px; }
+.text-secondary { color: var(--tx-secondary); }
+.text-tertiary { color: var(--tx-tertiary); }
+.text-accent { color: var(--accent); }
+.muted { color: var(--tx-tertiary); }
+
+/* Mobile */
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+  .win-titlebar { height: 38px; }
+  .win-ctl { width: 38px; height: 38px; }
+  .info-row { grid-template-columns: 1fr; gap: 4px; padding: 12px 14px; }
+}

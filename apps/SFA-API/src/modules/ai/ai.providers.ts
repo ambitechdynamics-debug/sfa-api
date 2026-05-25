@@ -7,6 +7,63 @@
 import { AIProviderAdapter, CallTextAIOptions, CallVisionAIOptions, AIProviderCapabilities } from './ai.types';
 import { settingsService } from '../settings/settings.service';
 
+const DEFAULT_COMPATIBLE_BASE_URLS = {
+  'openai-compatible': 'https://api.openai.com/v1',
+  'anthropic-compatible': 'https://api.anthropic.com',
+  'gemini-compatible': 'https://generativelanguage.googleapis.com',
+} as const;
+
+type CompatibleProviderType = keyof typeof DEFAULT_COMPATIBLE_BASE_URLS;
+
+// ─────────────────────────────────────────────────────────
+//  MODEL helper — strict, plus aucun fallback hardcodé
+// ─────────────────────────────────────────────────────────
+function requireModel(providerLabel: string, model: string | undefined): string {
+  if (!model || !model.trim()) {
+    throw new Error(
+      `Aucun modèle configuré pour le provider "${providerLabel}". Renseignez "${providerLabel.toLowerCase()}_model" dans /admin/settings.`
+    );
+  }
+  return model.trim();
+}
+
+function requireApiKey(providerLabel: string, apiKey: string | null | undefined): string {
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error(
+      `Clé API manquante pour le provider "${providerLabel}". Renseignez "custom_${providerLabel}_api_key" dans /admin/settings.`
+    );
+  }
+  return apiKey.trim();
+}
+
+function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.trim().replace(/\/+$/, '');
+}
+
+function resolveCompatibleBaseUrl(
+  providerLabel: string,
+  type: CompatibleProviderType,
+  configuredBaseUrl: string | null | undefined
+): string {
+  const rawBaseUrl = configuredBaseUrl?.trim() || DEFAULT_COMPATIBLE_BASE_URLS[type];
+  const normalized = normalizeBaseUrl(rawBaseUrl);
+
+  try {
+    const parsed = new URL(normalized);
+    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Invalid protocol');
+  } catch {
+    throw new Error(
+      `URL de base invalide pour le provider "${providerLabel}". Renseignez "custom_${providerLabel}_base_url" avec une URL complète.`
+    );
+  }
+
+  if (type === 'gemini-compatible') {
+    return normalized.replace(/\/v1beta$/i, '');
+  }
+
+  return normalized;
+}
+
 // ─────────────────────────────────────────────────────────
 //  TIMEOUT helper (cf. AUDIT.md §6 — câblage timeout_ms)
 // ─────────────────────────────────────────────────────────
@@ -307,7 +364,7 @@ class OpenAIProvider implements AIProviderAdapter {
 
   async callText(options: CallTextAIOptions): Promise<string> {
     return this.fetchOpenAI({
-      model: options.model ?? 'gpt-4o',
+      model: requireModel('openai', options.model),
       temperature: options.temperature ?? 0.7,
       response_format: options.responseFormat === 'json' ? { type: 'json_object' } : undefined,
       messages: [
@@ -324,7 +381,7 @@ class OpenAIProvider implements AIProviderAdapter {
     }));
 
     return this.fetchOpenAI({
-      model: options.model ?? 'gpt-4o',
+      model: requireModel('openai', options.model),
       temperature: options.temperature ?? 0.3,
       response_format: options.responseFormat === 'json' ? { type: 'json_object' } : undefined,
       messages: [
@@ -379,7 +436,7 @@ class AnthropicProvider implements AIProviderAdapter {
 
   async callText(options: CallTextAIOptions): Promise<string> {
     return this.fetchClaude({
-      model: options.model ?? 'claude-3-5-sonnet-20241022',
+      model: requireModel('anthropic', options.model),
       max_tokens: 4096,
       temperature: options.temperature ?? 0.7,
       system: options.systemPrompt,
@@ -394,7 +451,7 @@ class AnthropicProvider implements AIProviderAdapter {
     }));
 
     return this.fetchClaude({
-      model: options.model ?? 'claude-3-5-sonnet-20241022',
+      model: requireModel('anthropic', options.model),
       max_tokens: 4096,
       system: options.systemPrompt,
       messages: [
@@ -444,7 +501,7 @@ class GeminiProvider implements AIProviderAdapter {
   }
 
   async callText(options: CallTextAIOptions): Promise<string> {
-    const model = options.model ?? 'gemini-2.0-flash';
+    const model = requireModel('gemini', options.model);
     return this.fetchGemini(model, {
       systemInstruction: { parts: [{ text: options.systemPrompt }] },
       contents: [{ parts: [{ text: options.userPrompt }], role: 'user' }],
@@ -456,7 +513,7 @@ class GeminiProvider implements AIProviderAdapter {
   }
 
   async callVision(options: CallVisionAIOptions): Promise<string> {
-    const model = options.model ?? 'gemini-2.0-flash';
+    const model = requireModel('gemini', options.model);
     const imageParts = await Promise.all(
       options.imageUrls.map(async (url) => {
         const { mimeType, data } = await fetchImageAsInline(url);
@@ -487,12 +544,14 @@ class GeminiProvider implements AIProviderAdapter {
 class OpenAICompatibleProvider implements AIProviderAdapter {
   private apiKey: string;
   private baseUrl: string;
+  private label: string;
   capabilities: AIProviderCapabilities;
 
-  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities) {
+  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities, label = 'openai-compatible') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.capabilities = capabilities;
+    this.label = label;
   }
 
   private async fetchOpenAI(body: object): Promise<string> {
@@ -518,7 +577,7 @@ class OpenAICompatibleProvider implements AIProviderAdapter {
 
   async callText(options: CallTextAIOptions): Promise<string> {
     return this.fetchOpenAI({
-      model: options.model ?? 'gpt-4o',
+      model: requireModel(this.label, options.model),
       temperature: options.temperature ?? 0.7,
       response_format: options.responseFormat === 'json' ? { type: 'json_object' } : undefined,
       messages: [
@@ -535,7 +594,7 @@ class OpenAICompatibleProvider implements AIProviderAdapter {
     }));
 
     return this.fetchOpenAI({
-      model: options.model ?? 'gpt-4o',
+      model: requireModel(this.label, options.model),
       temperature: options.temperature ?? 0.3,
       response_format: options.responseFormat === 'json' ? { type: 'json_object' } : undefined,
       messages: [
@@ -552,12 +611,14 @@ class OpenAICompatibleProvider implements AIProviderAdapter {
 class AnthropicCompatibleProvider implements AIProviderAdapter {
   private apiKey: string;
   private baseUrl: string;
+  private label: string;
   capabilities: AIProviderCapabilities;
 
-  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities) {
+  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities, label = 'anthropic-compatible') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.capabilities = capabilities;
+    this.label = label;
   }
 
   private async fetchClaude(body: object): Promise<string> {
@@ -584,7 +645,7 @@ class AnthropicCompatibleProvider implements AIProviderAdapter {
 
   async callText(options: CallTextAIOptions): Promise<string> {
     return this.fetchClaude({
-      model: options.model ?? 'claude-3-5-sonnet-20241022',
+      model: requireModel(this.label, options.model),
       max_tokens: 4096,
       temperature: options.temperature ?? 0.7,
       system: options.systemPrompt,
@@ -599,7 +660,7 @@ class AnthropicCompatibleProvider implements AIProviderAdapter {
     }));
 
     return this.fetchClaude({
-      model: options.model ?? 'claude-3-5-sonnet-20241022',
+      model: requireModel(this.label, options.model),
       max_tokens: 4096,
       system: options.systemPrompt,
       messages: [
@@ -615,12 +676,14 @@ class AnthropicCompatibleProvider implements AIProviderAdapter {
 class GeminiCompatibleProvider implements AIProviderAdapter {
   private apiKey: string;
   private baseUrl: string;
+  private label: string;
   capabilities: AIProviderCapabilities;
 
-  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities) {
+  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities, label = 'gemini-compatible') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.capabilities = capabilities;
+    this.label = label;
   }
 
   private async fetchGemini(model: string, body: object): Promise<string> {
@@ -643,7 +706,7 @@ class GeminiCompatibleProvider implements AIProviderAdapter {
   }
 
   async callText(options: CallTextAIOptions): Promise<string> {
-    const model = options.model ?? 'gemini-2.0-flash';
+    const model = requireModel(this.label, options.model);
     return this.fetchGemini(model, {
       systemInstruction: { parts: [{ text: options.systemPrompt }] },
       contents: [{ parts: [{ text: options.userPrompt }], role: 'user' }],
@@ -655,7 +718,7 @@ class GeminiCompatibleProvider implements AIProviderAdapter {
   }
 
   async callVision(options: CallVisionAIOptions): Promise<string> {
-    const model = options.model ?? 'gemini-2.0-flash';
+    const model = requireModel(this.label, options.model);
     const imageParts = await Promise.all(
       options.imageUrls.map(async (url) => {
         const { mimeType, data } = await fetchImageAsInline(url);
@@ -686,25 +749,24 @@ class GeminiCompatibleProvider implements AIProviderAdapter {
 /**
  * Resolve API key + instantiate the right adapter.
  *
- * Keys are pulled from the AppSetting table first (admin-editable in
- * /admin/settings) and fall back to environment variables. This allows ops to
- * rotate keys without redeploying.
+ * Source unique : AppSetting (admin-editable via /admin/settings). Aucun
+ * fallback environnement runtime — l'admin doit configurer les clés ici.
  */
 export async function createProvider(provider: string): Promise<AIProviderAdapter> {
   switch (provider) {
     case 'openai': {
-      const key = await settingsService.resolve('openai_api_key', 'OPENAI_API_KEY');
-      if (!key) throw new Error('Clé OpenAI manquante (configurez "openai_api_key" dans /admin/settings ou OPENAI_API_KEY)');
+      const key = await settingsService.getRaw('openai_api_key');
+      if (!key) throw new Error('Clé OpenAI manquante. Renseignez "openai_api_key" dans /admin/settings.');
       return new OpenAIProvider(key);
     }
     case 'anthropic': {
-      const key = await settingsService.resolve('anthropic_api_key', 'ANTHROPIC_API_KEY');
-      if (!key) throw new Error('Clé Anthropic manquante (configurez "anthropic_api_key" dans /admin/settings ou ANTHROPIC_API_KEY)');
+      const key = await settingsService.getRaw('anthropic_api_key');
+      if (!key) throw new Error('Clé Anthropic manquante. Renseignez "anthropic_api_key" dans /admin/settings.');
       return new AnthropicProvider(key);
     }
     case 'gemini': {
-      const key = await settingsService.resolve('gemini_api_key', 'GEMINI_API_KEY');
-      if (!key) throw new Error('Clé Gemini manquante (configurez "gemini_api_key" dans /admin/settings ou GEMINI_API_KEY)');
+      const key = await settingsService.getRaw('gemini_api_key');
+      if (!key) throw new Error('Clé Gemini manquante. Renseignez "gemini_api_key" dans /admin/settings.');
       return new GeminiProvider(key);
     }
     case 'mock':
@@ -758,11 +820,26 @@ export async function createProvider(provider: string): Promise<AIProviderAdapte
 
       switch (type) {
         case 'openai-compatible':
-          return new OpenAICompatibleProvider(apiKey!, baseUrl!, capabilities);
+          return new OpenAICompatibleProvider(
+            requireApiKey(slug, apiKey),
+            resolveCompatibleBaseUrl(slug, type, baseUrl),
+            capabilities,
+            slug
+          );
         case 'anthropic-compatible':
-          return new AnthropicCompatibleProvider(apiKey!, baseUrl!, capabilities);
+          return new AnthropicCompatibleProvider(
+            requireApiKey(slug, apiKey),
+            resolveCompatibleBaseUrl(slug, type, baseUrl),
+            capabilities,
+            slug
+          );
         case 'gemini-compatible':
-          return new GeminiCompatibleProvider(apiKey!, baseUrl!, capabilities);
+          return new GeminiCompatibleProvider(
+            requireApiKey(slug, apiKey),
+            resolveCompatibleBaseUrl(slug, type, baseUrl),
+            capabilities,
+            slug
+          );
         default:
           throw new Error(`Type de provider "${type}" non supporté.`);
       }

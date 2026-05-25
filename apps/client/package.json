@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev --webpack -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint",
@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "@stripe/stripe-js": "^9.6.0",
-    "better-auth": "^1.6.10",
+    "better-auth": "^1.6.11",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.38.0",
+    "framer-motion": "^12.40.0",
     "lucide-react": "^1.14.0",
     "next": "16.2.6",
     "react": "19.2.4",

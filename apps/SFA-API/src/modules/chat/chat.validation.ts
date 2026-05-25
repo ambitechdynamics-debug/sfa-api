@@ -23,6 +23,7 @@ export type ChatRequestSchema = z.infer<typeof chatRequestSchema>;
 export const chatOpeningRequestSchema = z
   .object({
     travailId: z.string().trim().min(1).max(160),
+    visualConfig: z.record(z.unknown()).optional()
   })
   .strict();
 

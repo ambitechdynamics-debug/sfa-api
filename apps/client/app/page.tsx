@@ -1,5 +1,5 @@
-import { Landing } from "@/components/marketing/Landing"
+import { CslLanding } from "@/components/marketing/csl/Landing"
 
 export default function HomePage() {
-  return <Landing />
+  return <CslLanding />
 }

@@ -20,7 +20,26 @@ function chatErrorResponse(error: unknown) {
     };
   }
 
-  if (message.startsWith('AI provider error') || message.includes('AI provider returned')) {
+  if (
+    message.includes('Aucun modèle configuré') ||
+    message.includes('URL de base invalide') ||
+    message.includes('Type de provider') ||
+    message.includes('introuvable') ||
+    message.includes('désactivé')
+  ) {
+    return {
+      status: 503,
+      error: 'Configuration IA manquante côté serveur.'
+    };
+  }
+
+  if (
+    message.startsWith('AI provider error') ||
+    message.includes('API error') ||
+    message.includes('AI provider returned') ||
+    message.includes('AI provider timed out') ||
+    message.includes('Failed to parse URL')
+  ) {
     return {
       status: 502,
       error: 'Le service IA est temporairement indisponible. Veuillez réessayer.'
@@ -38,6 +57,10 @@ function chatErrorResponse(error: unknown) {
     status: 500,
     error: 'Une erreur est survenue. Veuillez réessayer.'
   };
+}
+
+function sanitizeProviderError(message: string) {
+  return message.replace(/([?&]key=)[^&\s)]+/g, '$1***');
 }
 
 export const chatController = {
@@ -68,7 +91,7 @@ export const chatController = {
       const result = await chatService.sendMessage(parsed.data, userId);
       return res.json(result);
     } catch (error) {
-      logger.error('[chat] request failed', error instanceof Error ? error.message : error);
+      logger.error('[chat] request failed', error instanceof Error ? sanitizeProviderError(error.message) : error);
       const response = chatErrorResponse(error);
       return res.status(response.status).json({
         success: false,
@@ -96,7 +119,7 @@ export const chatController = {
       const result = await chatService.generateOpening(parsed.data, userId);
       return res.json(result);
     } catch (error) {
-      logger.error('[chat/opening] request failed', error instanceof Error ? error.message : error);
+      logger.error('[chat/opening] request failed', error instanceof Error ? sanitizeProviderError(error.message) : error);
       const response = chatErrorResponse(error);
       return res.status(response.status).json({
         success: false,

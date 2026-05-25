@@ -43,6 +43,11 @@ export const filesController = {
     return sendSuccess(res, 'File assets retrieved successfully', files);
   },
 
+  update: async (req: Request, res: Response) => {
+    const file = await filesService.update(req.user!.id, req.params.fileId, req.body);
+    return sendSuccess(res, 'File asset updated successfully', file);
+  },
+
   delete: async (req: Request, res: Response) => {
     const result = await filesService.delete(req.user!.id, req.params.fileId);
     return sendSuccess(res, 'File asset deleted successfully', result);

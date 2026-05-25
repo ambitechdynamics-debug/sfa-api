@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import { AuthProvider } from "@/context/AuthProvider";
 import "./globals.css";
+import "./landing.css";
+import "./auth.css";
+import "./app-shell.css";
 
 const inter = Inter({
   subsets: ["latin"],

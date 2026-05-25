@@ -84,13 +84,6 @@ const ASSET_TYPE_LABELS: Record<UploadedAsset["type"], string> = {
   other: "Autre",
 }
 
-const REQUIRED_CONFIG_KEYS = ["format", "colors", "quality"]
-const CONFIG_KEY_LABELS: Record<string, string> = {
-  format: "Format & Style",
-  colors: "Palette de couleurs",
-  quality: "Qualité & Objectif",
-}
-
 function isLocalConversationId(value?: string) {
   return Boolean(value?.startsWith("local-"))
 }
@@ -434,7 +427,6 @@ export function ChatConversation({
 
   // Responsive state
   const [activeTab, setActiveTab] = useState<"settings" | "chat" | "preview">("chat")
-  const [leftOpen, setLeftOpen] = useState(false)
   const [rightOpen, setRightOpen] = useState(false)
 
   // Creation State - Frame 1
@@ -465,8 +457,6 @@ export function ChatConversation({
   const [awaitingOther, setAwaitingOther] = useState(false)
   const [sweepActive, setSweepActive] = useState(false)
   const sweepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [touchedSections, setTouchedSections] = useState<Set<string>>(new Set())
-  const [libreFields, setLibreFields] = useState<Set<string>>(new Set())
   const [configAttached, setConfigAttached] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
   const isSectionOpen = (key: string) => !collapsedSections.has(key)
@@ -477,29 +467,6 @@ export function ChatConversation({
       else next.add(key)
       return next
     })
-  const markTouched = (key: string) =>
-    setTouchedSections((prev) => { const s = new Set(prev); s.add(key); return s })
-  const toggleLibre = (key: string) =>
-    setLibreFields((prev) => { const s = new Set(prev); if (s.has(key)) s.delete(key); else s.add(key); return s })
-  const isSectionFilled = (key: string) => {
-    // Une section est "remplie" si :
-    //  - l'utilisateur l'a explicitement touchée dans le panneau,
-    //  - ou marquée en mode libre,
-    //  - OU si `config` contient déjà une valeur (défaut ou chargé depuis
-    //    M-CREATIVE-BRIEF). Sans ce 3e cas, un clic "Générer le visuel" après
-    //    une planification 100 % via le chat se bloquait silencieusement.
-    if (touchedSections.has(key) || libreFields.has(key)) return true
-    if (key === "format") return Boolean(config.format && config.format.trim().length > 0)
-    if (key === "colors") return Boolean(config.colors?.primary)
-    if (key === "quality") return Boolean(config.quality && config.quality.trim().length > 0)
-    return false
-  }
-
-  const validateCreativeConfig = () => {
-    const missing = REQUIRED_CONFIG_KEYS.filter((k) => !isSectionFilled(k))
-    return { valid: missing.length === 0, missing }
-  }
-
   const {
     activeTravail,
     clearActive,
@@ -539,7 +506,6 @@ export function ChatConversation({
     const handleResize = () => {
       const w = window.innerWidth
       if (!conversationStarted) {
-        setLeftOpen(false)
         setRightOpen(false)
         return
       }
@@ -547,11 +513,9 @@ export function ChatConversation({
         // Mobile — tabs will control display
       } else if (w < 1200) {
         // Tablet
-        setLeftOpen(false)
         setRightOpen(false)
       } else {
         // Desktop
-        setLeftOpen(true)
         setRightOpen(true)
       }
     }
@@ -563,7 +527,6 @@ export function ChatConversation({
   // Open panels when conversation starts on desktop
   useEffect(() => {
     if (conversationStarted && window.innerWidth >= 1200) {
-      setLeftOpen(true)
       setRightOpen(true)
     }
   }, [conversationStarted])
@@ -604,14 +567,22 @@ export function ChatConversation({
     }
 
     setLoadingConversation(true)
-    loadTravail(conversationId, user?.id ?? "").finally(() => {
-      if (!cancelled) setLoadingConversation(false)
-    })
+    loadTravail(conversationId, user?.id ?? "")
+      .then((status) => {
+        if (cancelled) return
+        if (status === "not-found") {
+          clearActive()
+          router.replace("/dashboard")
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingConversation(false)
+      })
 
     return () => {
       cancelled = true
     }
-  }, [clearActive, conversationId, loadTravail, user?.id])
+  }, [clearActive, conversationId, loadTravail, router, user?.id])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
@@ -770,22 +741,6 @@ export function ChatConversation({
     if (!clean || !user?.id || isSending || loadingConversation) return
 
     const isVisualTrigger = /g[eé]r[eé]r.*visuel|g[eé]n[eé]r[eé]r.*visuel/i.test(clean)
-
-    if (isVisualTrigger) {
-      const { valid, missing } = validateCreativeConfig()
-      if (!valid) {
-        console.warn("[chat] générer le visuel bloqué — sections manquantes :", missing)
-        setLeftOpen(true)
-        // Marque visuellement les sections manquantes (touchedSections active
-        // les badges/borders rouges déjà câblés dans le panneau gauche).
-        setTouchedSections((prev) => {
-          const s = new Set(prev)
-          missing.forEach((k) => s.add(k))
-          return s
-        })
-        return
-      }
-    }
 
     setPrompt("")
     setConfigAttached(false)
@@ -971,7 +926,6 @@ export function ChatConversation({
     try {
       const colors = await extractColorsFromLogo(currentTravailId, sourceAsset.url)
       setConfig((prev) => ({ ...prev, colors }))
-      markTouched("colors")
     } catch {
       // silent — isExtractingColors returns to false via finally
     } finally {

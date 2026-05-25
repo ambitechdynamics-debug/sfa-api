@@ -25,6 +25,7 @@ export interface ChatResponsePayload {
 
 export interface ChatOpeningInput {
   travailId: string;
+  visualConfig?: Record<string, unknown>;
 }
 
 export interface ChatOpeningPayload {

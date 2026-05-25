@@ -2,7 +2,7 @@ import { FileUsageType } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { AppError } from '../../utils/appError';
 import { getStorageProvider } from '../storage/storage.provider';
-import { CreateFileInput } from './files.validation';
+import { CreateFileInput, UpdateFileInput } from './files.validation';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -81,6 +81,22 @@ export const filesService = {
     return prisma.fileAsset.findMany({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
+    });
+  },
+
+  update: async (userId: string, fileId: string, input: UpdateFileInput) => {
+    const file = await prisma.fileAsset.findFirst({
+      where: { id: fileId, userId },
+      select: { id: true },
+    });
+
+    if (!file) {
+      throw new AppError('File asset not found', 404);
+    }
+
+    return prisma.fileAsset.update({
+      where: { id: fileId },
+      data: { usageType: input.usageType },
     });
   },
 

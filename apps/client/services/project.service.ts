@@ -1,6 +1,7 @@
 export {
   createProject,
   deleteProject,
+  deleteProjectFile,
   fetchAgentRuns,
   fetchGeneratedPosters,
   fetchProject,
@@ -10,6 +11,7 @@ export {
   generateImages,
   runAgent,
   updateProject,
+  updateProjectFile,
   uploadProjectFile,
   // Travail-scoped helpers (canonical names + back-compat aliases)
   createTravail,

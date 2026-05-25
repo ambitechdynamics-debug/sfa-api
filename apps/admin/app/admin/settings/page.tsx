@@ -196,7 +196,7 @@ export default function SettingsPage() {
   async function handleSave() {
     const tabKeys: Record<Tab, string[]> = {
       ia: ['credits_per_generation', 'credits_per_prompt', 'free_generations', 'free_prompts', 'default_model', 'timeout_ms', 'max_retries'],
-      providers: ['openai_api_key', 'openai_model', 'anthropic_api_key', 'anthropic_model', 'gemini_api_key', 'gemini_model'],
+      providers: [],
       storage: ['storage_provider', 'max_file_size_mb', 'allowed_types', 'auto_compress', 'compression_quality'],
       payment: ['currency', 'mtn_enabled', 'mtn_number', 'airtel_enabled', 'airtel_number', 'stripe_enabled', 'stripe_secret_key', 'stripe_public_key'],
       security: ['jwt_expiry_hours', 'max_login_attempts', 'lockout_minutes', 'require_email_verification', 'allowed_origins'],
@@ -232,12 +232,6 @@ export default function SettingsPage() {
 
   const INPUT_CLS = 'w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm bg-[var(--bg)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]'
   const MONO_INPUT_CLS = `${INPUT_CLS} font-mono`
-
-  const PROVIDERS = [
-    { name: 'OpenAI', key: 'openai', color: 'bg-emerald-500', keyField: 'openai_api_key', modelField: 'openai_model' },
-    { name: 'Anthropic', key: 'anthropic', color: 'bg-orange-500', keyField: 'anthropic_api_key', modelField: 'anthropic_model' },
-    { name: 'Google Gemini', key: 'gemini', color: 'bg-blue-500', keyField: 'gemini_api_key', modelField: 'gemini_model' },
-  ]
 
   // ── Custom providers state ──────────────────────────────────────────────────
   const [showCustomForm, setShowCustomForm] = useState(false)
@@ -437,73 +431,12 @@ export default function SettingsPage() {
         {/* ── PROVIDERS ─────────────────────────────────────────────────────── */}
         {tab === 'providers' && (
           <div className="space-y-5">
-            <h3 className="text-sm font-semibold text-[var(--text)]">Clés API Providers</h3>
-            {isLoading
-              ? Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="p-4 border border-[var(--border)] rounded-xl space-y-3">
-                  <div className="h-4 w-24 rounded bg-[var(--bg-subtle)] animate-skeleton" />
-                  <div className="h-9 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
-                  <div className="h-9 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
-                </div>
-              ))
-              : PROVIDERS.map((p) => {
-                const hasKey = val(p.keyField) && !val(p.keyField).includes('••')
-                const isMasked = val(p.keyField).includes('••')
-                return (
-                  <div key={p.key} className="p-4 border border-[var(--border)] rounded-xl space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className={cn('w-2.5 h-2.5 rounded-full', p.color)} />
-                      <span className="text-sm font-semibold text-[var(--text)]">{p.name}</span>
-                      {(hasKey || isMasked) && (
-                        <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
-                          Configuré
-                        </span>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs text-[var(--text-muted)]">Clé API</label>
-                      <div className="relative">
-                        <input
-                          type={showKeys[p.keyField] ? 'text' : 'password'}
-                          value={val(p.keyField)}
-                          onChange={(e) => set(p.keyField, e.target.value)}
-                          placeholder={p.key === 'openai' ? 'sk-...' : p.key === 'anthropic' ? 'sk-ant-...' : 'AIza...'}
-                          className={cn(MONO_INPUT_CLS, 'pr-10')}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowKeys((s) => ({ ...s, [p.keyField]: !s[p.keyField] }))}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                        >
-                          {showKeys[p.keyField] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      {isMasked && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400">
-                          La clé est masquée. Saisissez une nouvelle valeur pour la remplacer.
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs text-[var(--text-muted)]">Modèle par défaut</label>
-                      <input
-                        type="text"
-                        value={val(p.modelField)}
-                        onChange={(e) => set(p.modelField, e.target.value)}
-                        className={MONO_INPUT_CLS}
-                      />
-                    </div>
-                  </div>
-                )
-              })
-            }
-
             {/* ── Custom providers ──────────────────────────────────────────── */}
-            <div className="pt-6 border-t border-[var(--border)] mt-6">
+            <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-[var(--text)]">Fournisseurs personnalisés</h3>
-                  <p className="text-xs text-[var(--text-muted)] mt-0.5">Providers IA compatibles OpenAI / Anthropic / Gemini</p>
+                  <h3 className="text-sm font-semibold text-[var(--text)]">Fournisseurs IA</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">Tous les providers sont ajoutés manuellement. Types compatibles : OpenAI / Anthropic / Gemini.</p>
                 </div>
                 <button
                   type="button"
@@ -654,7 +587,6 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between pt-2">
               <SavedBadge show={saved} />
-              <div className="ml-auto"><SaveButton onSave={handleSave} saving={saving} /></div>
             </div>
           </div>
         )}

@@ -25,7 +25,7 @@ const RESPONSE_HEADERS_TO_DROP = new Set([
 ])
 
 type RouteContext = {
-  params: Promise<{ path?: string[] }> | { path?: string[] }
+  params: Promise<{ path?: string[] }>
 }
 
 function splitSetCookieHeader(value: string): string[] {
