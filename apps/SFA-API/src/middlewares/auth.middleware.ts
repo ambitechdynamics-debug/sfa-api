@@ -68,6 +68,7 @@ async function authenticateWithNeonAuth(token: string): Promise<AuthedUser> {
 
   const stackUserId = claims.sub;
   const claimEmail = claims.email ?? '';
+  const emailVerified = claims.email_verified === true;
   const displayName = claims.name ?? claimEmail ?? 'User';
 
   // Find or create the local profile linked to this Neon Auth account.
@@ -79,18 +80,48 @@ async function authenticateWithNeonAuth(token: string): Promise<AuthedUser> {
   if (!user) {
     // Recover by email if a legacy account exists (e.g. after the migration
     // script linked existing users to their fresh Neon Auth subject).
-    if (claimEmail) {
+    //
+    // SECURITY: only auto-link when the IdP confirms the email is verified.
+    // Without this check, anyone could create a Neon Auth account using a
+    // victim's email and have the first authenticated API call rewrite the
+    // victim's `stackUserId` — full account takeover.
+    if (claimEmail && emailVerified) {
       const byEmail = await prisma.user.findUnique({
         where: { email: claimEmail },
-        select: { id: true, email: true, role: true },
+        select: { id: true, email: true, role: true, stackUserId: true },
       });
       if (byEmail) {
-        await prisma.user.update({
-          where: { id: byEmail.id },
-          data: { stackUserId },
-        });
-        return byEmail;
+        // Refuse to silently overwrite a Neon Auth link that is already in
+        // place. If the existing account is bound to a different Neon Auth
+        // subject, that's a collision we want a human to resolve.
+        if (byEmail.stackUserId && byEmail.stackUserId !== stackUserId) {
+          logger.warn('[auth] refusing to relink user already bound to a different stackUserId', {
+            userId: byEmail.id,
+            existingStackUserId: byEmail.stackUserId,
+            incomingStackUserId: stackUserId,
+          });
+          throw new AppError('Account conflict. Please contact support.', 409);
+        }
+        if (!byEmail.stackUserId) {
+          await prisma.user.update({
+            where: { id: byEmail.id },
+            data: { stackUserId },
+          });
+        }
+        return { id: byEmail.id, email: byEmail.email, role: byEmail.role };
       }
+    }
+
+    // No existing local profile for this Neon Auth subject. We refuse to
+    // create one unless the IdP has verified the email — otherwise an
+    // attacker could plant a row with a victim's email and later collide
+    // with the legitimate sign-up.
+    if (!emailVerified || !claimEmail) {
+      logger.warn('[auth] refusing to provision profile for unverified email', {
+        incomingStackUserId: stackUserId,
+        hasEmail: Boolean(claimEmail),
+      });
+      throw new AppError('Email is not verified. Please verify your email before signing in.', 403);
     }
 
     user = await prisma.user.create({

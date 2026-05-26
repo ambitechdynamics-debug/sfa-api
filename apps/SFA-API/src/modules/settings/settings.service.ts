@@ -97,6 +97,19 @@ const OBSOLETE_DEFAULT_VALUES: Record<string, string[]> = {
   image_gen_provider: ['mock'],
 };
 
+const OBSOLETE_MODEL_REPLACEMENTS: Record<string, string> = {
+  'gemini-3.1-flash-lite-preview': 'gemini-2.5-flash-lite',
+  'gemini-2.0-flash-lite': 'gemini-2.5-flash-lite',
+  'gemini-2.0-flash-lite-001': 'gemini-2.5-flash-lite',
+  'gemini-2.0-flash': 'gemini-2.5-flash',
+  'gemini-2.0-flash-001': 'gemini-2.5-flash',
+};
+
+export function replaceObsoleteModel(model: string): string {
+  const trimmed = model.trim();
+  return OBSOLETE_MODEL_REPLACEMENTS[trimmed] ?? trimmed;
+}
+
 const LEGACY_CHAT_WORKSPACE_PROMPT_KEYS = [
   'chat_workspace_brief_prompt',
   'chat_workspace_assets_prompt',
@@ -133,6 +146,37 @@ function removeGeneratedWorkspacePrompts(value: string) {
   } catch {
     return null;
   }
+}
+
+async function migrateObsoleteProviderModels(): Promise<number> {
+  const providerSettings = await prisma.appSetting.findMany({
+    where: { category: 'providers' },
+  });
+  const byKey = new Map(providerSettings.map((setting) => [setting.key, setting]));
+  const updates: Array<ReturnType<typeof prisma.appSetting.update>> = [];
+
+  for (const setting of providerSettings) {
+    const customMatch = setting.key.match(/^custom_(.+)_default_model$/);
+    const isGeminiModel = setting.key === 'gemini_model';
+    const isGeminiCustomModel = Boolean(
+      customMatch && byKey.get(`custom_${customMatch[1]}_type`)?.value === 'gemini-compatible'
+    );
+
+    if (!isGeminiModel && !isGeminiCustomModel) continue;
+
+    const replacement = replaceObsoleteModel(setting.value);
+    if (replacement === setting.value.trim()) continue;
+
+    updates.push(
+      prisma.appSetting.update({
+        where: { key: setting.key },
+        data: { value: replacement },
+      })
+    );
+  }
+
+  if (updates.length) await prisma.$transaction(updates);
+  return updates.length;
 }
 
 export const settingsService = {
@@ -176,6 +220,8 @@ export const settingsService = {
         migrated++;
       }
     }
+
+    migrated += await migrateObsoleteProviderModels();
 
     return { created, migrated };
   },

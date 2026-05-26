@@ -2,7 +2,7 @@ import { logger } from '../../utils/logger';
 import { prisma } from '../../config/database';
 import { createProvider } from '../ai/ai.providers';
 import type { AIProvider } from '../ai/ai.types';
-import { settingsService } from '../settings/settings.service';
+import { replaceObsoleteModel, settingsService } from '../settings/settings.service';
 import type {
   ChatHistoryMessage,
   ChatOpeningInput,
@@ -99,10 +99,22 @@ async function resolveChatProvider(): Promise<AIProvider> {
 async function resolveChatModel(provider: AIProvider): Promise<string> {
   if (provider === 'mock') return 'mock-text';
 
+  const resolveModelValue = (model: string) => {
+    const replacement = replaceObsoleteModel(model);
+    if (replacement !== model.trim()) {
+      logger.warn('[chat] replacing obsolete AI model', {
+        provider,
+        configuredModel: model.trim(),
+        replacementModel: replacement,
+      });
+    }
+    return replacement;
+  };
+
   // Custom provider : modèle stocké sous la clé `custom_${slug}_default_model`.
   if (!BUILT_IN_TEXT_PROVIDERS.has(provider)) {
     const customModel = await settingsService.getRaw(`custom_${provider}_default_model`);
-    if (customModel && customModel.trim().length > 0) return customModel.trim();
+    if (customModel && customModel.trim().length > 0) return resolveModelValue(customModel);
     throw new Error(
       `Aucun modèle configuré pour le provider custom "${provider}". Renseignez "Modèle par défaut" dans /admin/settings → Providers → ${provider}.`
     );
@@ -110,10 +122,10 @@ async function resolveChatModel(provider: AIProvider): Promise<string> {
 
   const providerModelKey = `${provider}_model`;
   const fromProvider = await settingsService.getRaw(providerModelKey);
-  if (fromProvider && fromProvider.trim().length > 0) return fromProvider.trim();
+  if (fromProvider && fromProvider.trim().length > 0) return resolveModelValue(fromProvider);
 
   const fromDefault = await settingsService.getRaw('default_model');
-  if (fromDefault && fromDefault.trim().length > 0) return fromDefault.trim();
+  if (fromDefault && fromDefault.trim().length > 0) return resolveModelValue(fromDefault);
 
   throw new Error(
     `Aucun modèle configuré pour le provider "${provider}". Renseignez "${providerModelKey}" (ou "default_model") dans /admin/settings.`

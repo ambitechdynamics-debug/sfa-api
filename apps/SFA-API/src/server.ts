@@ -30,8 +30,9 @@ const server = app.listen(env.PORT, '0.0.0.0', async () => {
   logger.info(`STUDIO FLYER AI backend listening on port ${env.PORT}`);
   // Seed default app settings (no-op if already seeded)
   try {
-    const { created } = await settingsService.seed();
+    const { created, migrated } = await settingsService.seed();
     if (created > 0) logger.info(`AppSettings: ${created} default keys seeded`);
+    if (migrated > 0) logger.info(`AppSettings: ${migrated} settings migrated`);
   } catch (err) {
     logger.error('AppSettings seed failed (non-blocking):', err);
   }

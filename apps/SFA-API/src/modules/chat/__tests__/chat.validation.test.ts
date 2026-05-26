@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildChatMessages } from '../chat.service';
 import { chatRequestSchema } from '../chat.validation';
+import { replaceObsoleteModel } from '../../settings/settings.service';
 
 describe('chat module', () => {
   it('rejects an empty message', () => {
@@ -50,5 +51,9 @@ describe('chat module', () => {
     expect(messages[0]?.role).toBe('system');
     expect(messages[0]?.content).toContain('Prompt système lu depuis AppSetting.');
     expect(messages.at(-1)).toEqual({ role: 'user', content: 'Un style luxe' });
+  });
+
+  it('maps the retired Gemini dashboard preview model to a stable model', () => {
+    expect(replaceObsoleteModel('gemini-3.1-flash-lite-preview')).toBe('gemini-2.5-flash-lite');
   });
 });

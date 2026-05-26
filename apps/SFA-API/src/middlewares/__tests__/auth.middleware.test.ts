@@ -103,6 +103,7 @@ describe('authMiddleware — Neon Auth path', () => {
     vi.mocked(verifyNeonAuthSessionToken).mockResolvedValue({
       sub: 'neon-session-123',
       email: 'session@example.com',
+      email_verified: true,
       name: 'Session User',
     });
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
@@ -153,18 +154,20 @@ describe('authMiddleware — Neon Auth path', () => {
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
-  it('rebinds an existing local user matched by email when stackUserId is missing', async () => {
+  it('rebinds an existing local user matched by verified email when stackUserId is missing', async () => {
     vi.mocked(verifyNeonAuthToken).mockResolvedValue({
       sub: 'neon-user-456',
       email: 'admin@example.com',
+      email_verified: true,
     });
-    // First lookup by stackUserId → null, second by email → existing admin
+    // First lookup by stackUserId → null, second by email → existing admin with no Neon link yet
     vi.mocked(prisma.user.findUnique)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         id: 'admin-id',
         email: 'admin@example.com',
         role: Role.ADMIN,
+        stackUserId: null,
       } as never);
     vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
@@ -185,10 +188,73 @@ describe('authMiddleware — Neon Auth path', () => {
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
-  it('creates a fresh local user when no local profile exists', async () => {
+  it('refuses to overwrite an existing stackUserId binding (account takeover guard)', async () => {
+    vi.mocked(verifyNeonAuthToken).mockResolvedValue({
+      sub: 'attacker-neon-id',
+      email: 'victim@example.com',
+      email_verified: true,
+    });
+    vi.mocked(prisma.user.findUnique)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 'victim-id',
+        email: 'victim@example.com',
+        role: Role.USER,
+        stackUserId: 'legit-neon-id',
+      } as never);
+
+    const next = makeNext();
+    await authMiddleware(makeReq('valid-token'), makeRes(), next);
+
+    const err = (next as unknown as { mock: { calls: AppError[][] } }).mock.calls[0][0];
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.statusCode).toBe(409);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses to link by email when the IdP has not verified it (account takeover guard)', async () => {
+    vi.mocked(verifyNeonAuthToken).mockResolvedValue({
+      sub: 'unverified-neon-id',
+      email: 'victim@example.com',
+      email_verified: false,
+    });
+    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null); // by stackUserId
+
+    const next = makeNext();
+    await authMiddleware(makeReq('valid-token'), makeRes(), next);
+
+    const err = (next as unknown as { mock: { calls: AppError[][] } }).mock.calls[0][0];
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.statusCode).toBe(403);
+    // Must never even look up by email when email is unverified.
+    expect(prisma.user.findUnique).toHaveBeenCalledTimes(1);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses to provision a fresh user with an unverified email', async () => {
+    vi.mocked(verifyNeonAuthToken).mockResolvedValue({
+      sub: 'unverified-neon-id',
+      email: 'someone@example.com',
+      // email_verified omitted → treated as false
+    });
+    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null);
+
+    const next = makeNext();
+    await authMiddleware(makeReq('valid-token'), makeRes(), next);
+
+    const err = (next as unknown as { mock: { calls: AppError[][] } }).mock.calls[0][0];
+    expect(err).toBeInstanceOf(AppError);
+    expect(err.statusCode).toBe(403);
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a fresh local user when no local profile exists and email is verified', async () => {
     vi.mocked(verifyNeonAuthToken).mockResolvedValue({
       sub: 'neon-user-789',
       email: 'newbie@example.com',
+      email_verified: true,
       name: 'Newbie',
     });
     vi.mocked(prisma.user.findUnique)
