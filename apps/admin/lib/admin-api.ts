@@ -247,6 +247,64 @@ export async function uploadArtisticResourceImage(
   })
 }
 
+export type BulkArtisticResourceFailure = {
+  index: number
+  fileName: string
+  stage: 'upload' | 'analyze' | 'create'
+  message: string
+}
+
+export type BulkArtisticResourcesResult = {
+  created: ArtisticResource[]
+  failed: BulkArtisticResourceFailure[]
+}
+
+export async function bulkUploadAnalyzeCreateArtisticResources(
+  files: File[],
+  providerId: string,
+  model: string,
+  onProgress?: (pct: number) => void,
+): Promise<BulkArtisticResourcesResult> {
+  if (!API_URL) {
+    throw new AdminApiError('URL API manquante. Configurez NEXT_PUBLIC_API_URL.', 0)
+  }
+
+  const formData = new FormData()
+  files.forEach((file) => formData.append('files', file))
+  formData.append('providerId', providerId)
+  if (model.trim()) formData.append('model', model.trim())
+
+  const token = await getToken()
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${API_URL}/api/admin/artistic-resources/bulk-upload-analyze-create`)
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+
+    xhr.upload.onprogress = (evt) => {
+      if (evt.lengthComputable && onProgress) {
+        onProgress(Math.round((evt.loaded / evt.total) * 100))
+      }
+    }
+
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText) as ApiResponse<BulkArtisticResourcesResult>
+        if (xhr.status >= 400 || !data.success) {
+          if (xhr.status === 401) notifyInvalidAuth()
+          return reject(new AdminApiError(data.message || 'Erreur import multi-images', xhr.status))
+        }
+        resolve(data.data ?? { created: [], failed: [] })
+      } catch {
+        reject(new AdminApiError('Réponse invalide du serveur', xhr.status))
+      }
+    }
+
+    xhr.onerror = () => reject(new AdminApiError('API indisponible.', 0))
+    xhr.send(formData)
+  })
+}
+
 export async function updateArtisticResource(id: string, data: Partial<ArtisticResource>): Promise<ArtisticResource> {
   return apiFetch(`/api/admin/artistic-resources/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
@@ -624,4 +682,3 @@ export async function fetchLlmProviders(): Promise<LlmProvider[]> {
     return []
   }
 }
-

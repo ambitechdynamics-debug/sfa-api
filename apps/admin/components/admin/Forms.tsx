@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Upload, ImagePlus, X, Link2, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
 import { JsonEditor } from './JsonEditor'
 import { AgentDefinition, AgentMemoryLink } from '@/types/agent'
@@ -12,7 +12,13 @@ import {
   FORBIDDEN_RULE_SCOPES,
   FORBIDDEN_RULE_SEVERITIES,
 } from '@/types/forbidden-rule'
-import { uploadArtisticResourceImage, analyzeArtisticResourceImage, fetchLlmProviders, LlmProvider } from '@/lib/admin-api'
+import {
+  uploadArtisticResourceImage,
+  analyzeArtisticResourceImage,
+  bulkUploadAnalyzeCreateArtisticResources,
+  fetchLlmProviders,
+} from '@/lib/admin-api'
+import type { BulkArtisticResourcesResult, LlmProvider } from '@/lib/admin-api'
 import { cn } from '@/lib/utils'
 
 // ─── SHARED FORM COMPONENTS ───────────────────────────────────────────────────
@@ -224,15 +230,65 @@ const DEFAULT_CATEGORIES = [
   'Corporate','Immobilier','Mode','Église','Institutionnel',
 ]
 
+type BatchUploadStatus = 'queued' | 'uploading' | 'analyzing' | 'created' | 'error'
+
+interface BatchUploadItem {
+  id: string
+  file: File
+  previewUrl: string
+  status: BatchUploadStatus
+  message?: string
+}
+
+const BATCH_STATUS_LABEL: Record<BatchUploadStatus, string> = {
+  queued: 'En attente',
+  uploading: 'Upload',
+  analyzing: 'Analyse et création',
+  created: 'Créée',
+  error: 'Erreur',
+}
+
+const BATCH_STAGE_LABEL: Record<string, string> = {
+  upload: 'Upload',
+  analyze: 'Analyse',
+  create: 'Création',
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} Ko`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+}
+
+function buildBatchItems(files: File[]): BatchUploadItem[] {
+  return files.map((file, index) => ({
+    id: `${file.name}-${file.size}-${file.lastModified}-${index}`,
+    file,
+    previewUrl: URL.createObjectURL(file),
+    status: 'queued',
+  }))
+}
+
+function revokeBatchPreviews(items: BatchUploadItem[]) {
+  items.forEach((item) => URL.revokeObjectURL(item.previewUrl))
+}
+
+function batchStatusClass(status: BatchUploadStatus) {
+  if (status === 'created') return 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/40'
+  if (status === 'error') return 'bg-red-50 text-red-700 border-red-100 dark:bg-red-950/30 dark:text-red-300 dark:border-red-900/40'
+  if (status === 'analyzing') return 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/40'
+  return 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/40'
+}
+
 interface ArtisticFormProps {
   initial?: Partial<ArtisticResource>
   existingCategories?: string[]
   onSubmit: (data: Partial<ArtisticResource>) => void
+  onBulkComplete?: (result: BulkArtisticResourcesResult) => void
   onCancel: () => void
   isLoading?: boolean
 }
 
-export function ArtisticResourceForm({ initial, existingCategories, onSubmit, onCancel, isLoading }: ArtisticFormProps) {
+export function ArtisticResourceForm({ initial, existingCategories, onSubmit, onBulkComplete, onCancel, isLoading }: ArtisticFormProps) {
   const [form, setForm] = useState<Partial<ArtisticResource>>({
     title: '', category: 'Promotion', resourceType: 'STYLE', url: '', description: '', tags: [], content: {}, ...initial
   })
@@ -247,6 +303,13 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
   const [isDragging, setIsDragging] = useState(false)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ── Batch import state ──
+  const [batchItems, setBatchItems] = useState<BatchUploadItem[]>([])
+  const batchItemsRef = useRef<BatchUploadItem[]>([])
+  const [batchProgress, setBatchProgress] = useState(0)
+  const [batchError, setBatchError] = useState<string | null>(null)
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false)
 
   // ── AI Analysis state ──
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -276,7 +339,18 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
     }).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    batchItemsRef.current = batchItems
+  }, [batchItems])
+
+  useEffect(() => {
+    return () => revokeBatchPreviews(batchItemsRef.current)
+  }, [])
+
   const set = (field: keyof ArtisticResource, val: unknown) => setForm((f) => ({ ...f, [field]: val }))
+  const isEditMode = Boolean(initial?.id)
+  const hasBatchSelection = batchItems.length > 0
+  const visionProviders = providers.filter(p => p.supportsVision)
 
   async function handleAnalyze() {
     if (!form.url) return
@@ -340,18 +414,119 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
     }
   }
 
+  function selectBatchFiles(files: File[]) {
+    revokeBatchPreviews(batchItemsRef.current)
+    setBatchItems(buildBatchItems(files))
+    setBatchProgress(0)
+    setBatchError(null)
+    setUploadError(null)
+    setAnalyzeError(null)
+    set('url', '')
+    setShowUrlInput(false)
+  }
+
+  function removeBatchItem(id: string) {
+    if (isBatchProcessing) return
+    setBatchItems((items) => {
+      const removed = items.find((item) => item.id === id)
+      if (removed) URL.revokeObjectURL(removed.previewUrl)
+      return items.filter((item) => item.id !== id)
+    })
+    setBatchError(null)
+  }
+
+  function clearBatchSelection() {
+    if (isBatchProcessing) return
+    revokeBatchPreviews(batchItemsRef.current)
+    setBatchItems([])
+    setBatchProgress(0)
+    setBatchError(null)
+  }
+
+  async function handleBatchCreate() {
+    if (batchItems.length === 0) return
+
+    setBatchError(null)
+    const selectedProvider = providers.find(p => p.id === analyzeProviderId)
+    if (!selectedProvider) {
+      setBatchError("Aucun fournisseur d'IA sélectionné.")
+      return
+    }
+    if (!selectedProvider.defaultModel || selectedProvider.defaultModel.trim() === '') {
+      setBatchError(`Le fournisseur "${selectedProvider.name}" n'a pas de modèle par défaut configuré dans les paramètres.`)
+      return
+    }
+
+    const itemsToProcess = batchItems
+    setIsBatchProcessing(true)
+    setBatchProgress(0)
+    setBatchItems((items) => items.map((item) => ({ ...item, status: 'uploading', message: 'Upload en cours' })))
+
+    try {
+      const result = await bulkUploadAnalyzeCreateArtisticResources(
+        itemsToProcess.map((item) => item.file),
+        analyzeProviderId,
+        analyzeModel || selectedProvider.defaultModel,
+        (pct) => {
+          setBatchProgress(pct)
+          if (pct >= 100) {
+            setBatchItems((items) => items.map((item) => (
+              item.status === 'uploading'
+                ? { ...item, status: 'analyzing', message: 'Analyse et création' }
+                : item
+            )))
+          }
+        },
+      )
+
+      const failedByIndex = new Map(result.failed.map((failure) => [failure.index, failure]))
+      const nextItems = itemsToProcess
+        .map((item, index) => {
+          const failure = failedByIndex.get(index)
+          if (!failure) {
+            return { ...item, status: 'created' as BatchUploadStatus, message: 'Ressource créée' }
+          }
+          const stage = BATCH_STAGE_LABEL[failure.stage] || failure.stage
+          return {
+            ...item,
+            status: 'error' as BatchUploadStatus,
+            message: `${stage}: ${failure.message}`,
+          }
+        })
+
+      revokeBatchPreviews(nextItems.filter((item) => item.status !== 'error'))
+      setBatchItems(result.failed.length > 0 ? nextItems.filter((item) => item.status === 'error') : [])
+      setBatchProgress(0)
+      onBulkComplete?.(result)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Échec de l\'import multi-images'
+      setBatchError(msg)
+      setBatchItems((items) => items.map((item) => ({ ...item, status: 'error', message: msg })))
+    } finally {
+      setIsBatchProcessing(false)
+    }
+  }
+
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) handleFileUpload(file)
+    const files = Array.from(e.target.files ?? [])
+    if (!isEditMode && files.length > 1) {
+      selectBatchFiles(files)
+    } else if (files[0]) {
+      handleFileUpload(files[0])
+    }
     e.target.value = ''
   }
 
-  const onDrop = useCallback((e: React.DragEvent) => {
+  const onDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file) handleFileUpload(file)
-  }, [])
+    const files = Array.from(e.dataTransfer.files ?? [])
+    if (!isEditMode && files.length > 1) {
+      selectBatchFiles(files)
+    } else if (files[0]) {
+      handleFileUpload(files[0])
+    }
+  }
 
   const onDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true) }
   const onDragLeave = () => setIsDragging(false)
@@ -382,10 +557,27 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
     set('category', allCategories[0])
   }
 
+  const hasOnlyBatchErrors = hasBatchSelection && batchItems.every((item) => item.status === 'error')
+  const submitLabel = hasBatchSelection
+    ? hasOnlyBatchErrors
+      ? `Réessayer ${batchItems.length} image(s)`
+      : `Uploader, analyser et créer (${batchItems.length})`
+    : isLoading
+      ? 'Enregistrement...'
+      : 'Enregistrer'
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(form) }} className="space-y-4">
+    <form onSubmit={(e) => { e.preventDefault(); hasBatchSelection ? handleBatchCreate() : onSubmit(form) }} className="space-y-4">
+      {hasBatchSelection && (
+        <div className="rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-3 py-2">
+          <p className="text-xs font-medium text-[var(--text)]">Import automatique actif</p>
+          <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+            Les champs ci-dessous seront générés par le provider IA pour chaque image.
+          </p>
+        </div>
+      )}
       <Field label="Titre *">
-        <input className={inputCls} value={form.title || ''} onChange={(e) => set('title', e.target.value)} required />
+        <input className={inputCls} value={form.title || ''} onChange={(e) => set('title', e.target.value)} required={!hasBatchSelection} disabled={hasBatchSelection} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Catégorie">
@@ -397,19 +589,21 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
                 onChange={(e) => { setNewCategoryInput(e.target.value); set('category', e.target.value) }}
                 placeholder="Nouvelle catégorie…"
                 autoFocus
-                required
+                required={!hasBatchSelection}
+                disabled={hasBatchSelection}
               />
               <button
                 type="button"
                 onClick={cancelNewCategory}
                 title="Revenir à la liste"
+                disabled={hasBatchSelection}
                 className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-red-500 hover:border-red-300 transition-colors text-base"
               >
                 ×
               </button>
             </div>
           ) : (
-            <select className={selectCls} value={form.category} onChange={handleCategorySelect}>
+            <select className={selectCls} value={form.category} onChange={handleCategorySelect} disabled={hasBatchSelection}>
               {allCategories.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -419,7 +613,7 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
           )}
         </Field>
         <Field label="Type">
-          <select className={selectCls} value={form.resourceType} onChange={(e) => set('resourceType', e.target.value)}>
+          <select className={selectCls} value={form.resourceType} onChange={(e) => set('resourceType', e.target.value)} disabled={hasBatchSelection}>
             {['MODEL','TEXTURE','FONT','PALETTE','STYLE','REFERENCE','FORBIDDEN_RULE'].map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
@@ -428,10 +622,128 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
       </div>
       {/* ── Image Upload Zone ── */}
       <Field label="Image / URL">
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onFileChange} />
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onFileChange} multiple={!isEditMode} />
 
         {/* Preview si URL définie */}
-        {form.url && !uploading ? (
+        {hasBatchSelection ? (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+            <div className="p-3 border-b border-[var(--border)] bg-[var(--bg-subtle)]/60">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold text-[var(--text)]">
+                    {batchItems.length} image(s) en lot
+                  </p>
+                  <p className="text-[10px] text-[var(--text-subtle)]">
+                    Upload Cloudinary, analyse IA, puis création automatique.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearBatchSelection}
+                  disabled={isBatchProcessing}
+                  className="px-2.5 py-1 rounded-md border border-[var(--border)] text-[10px] text-[var(--text-muted)] hover:text-red-500 hover:border-red-300 transition-colors disabled:opacity-50"
+                >
+                  Vider
+                </button>
+              </div>
+
+              {visionProviders.length === 0 ? (
+                <p className="text-xs text-amber-600 text-center font-medium mt-3">
+                  Aucun provider compatible vision n'est configuré ou activé.
+                </p>
+              ) : (
+                <div className="flex items-center justify-between gap-2 mt-3">
+                  <span className="text-xs font-medium text-[var(--text)] flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[var(--accent)]" />
+                    Provider d'analyse
+                  </span>
+                  <select
+                    className="border border-[var(--border)] rounded px-2 py-1 text-xs bg-[var(--surface)] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none max-w-[200px]"
+                    value={analyzeProviderId}
+                    onChange={(e) => {
+                      const id = e.target.value
+                      setAnalyzeProviderId(id)
+                      const matched = providers.find(p => p.id === id)
+                      if (matched) setAnalyzeModel(matched.defaultModel || '')
+                    }}
+                    disabled={isBatchProcessing}
+                  >
+                    {visionProviders.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.defaultModel ? `— ${p.defaultModel}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {isBatchProcessing && (
+                <div className="mt-3">
+                  <div className="h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
+                    <div
+                      className="h-full bg-[var(--accent)] transition-all duration-200 rounded-full"
+                      style={{ width: `${batchProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-[var(--text-subtle)] mt-1">
+                    {batchProgress < 100 ? `Upload en cours... ${batchProgress}%` : 'Analyse et création en cours...'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="max-h-56 overflow-y-auto divide-y divide-[var(--border-subtle)]">
+              {batchItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 p-3">
+                  <div className="w-11 h-9 rounded-md bg-[var(--bg-subtle)] border border-[var(--border)] overflow-hidden flex-shrink-0">
+                    <img
+                      src={item.previewUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-[var(--text)] truncate" title={item.file.name}>
+                      {item.file.name}
+                    </p>
+                    <p className="text-[10px] text-[var(--text-subtle)]">
+                      {formatFileSize(item.file.size)}
+                    </p>
+                    {item.message && (
+                      <p className={cn('text-[10px] mt-0.5 truncate', item.status === 'error' ? 'text-red-500' : 'text-[var(--text-subtle)]')} title={item.message}>
+                        {item.message}
+                      </p>
+                    )}
+                  </div>
+                  <span className={cn('px-2 py-0.5 rounded-full border text-[9px] font-semibold whitespace-nowrap', batchStatusClass(item.status))}>
+                    {item.status === 'uploading' || item.status === 'analyzing' ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                        {BATCH_STATUS_LABEL[item.status]}
+                      </span>
+                    ) : (
+                      BATCH_STATUS_LABEL[item.status]
+                    )}
+                  </span>
+                  {!isBatchProcessing && (
+                    <button
+                      type="button"
+                      onClick={() => removeBatchItem(item.id)}
+                      className="w-6 h-6 rounded-md flex items-center justify-center text-[var(--text-subtle)] hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title="Retirer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {batchError && (
+              <p className="text-xs text-red-500 p-3 border-t border-[var(--border)]">{batchError}</p>
+            )}
+          </div>
+        ) : form.url && !uploading ? (
           <div className="relative rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--bg-subtle)] group">
             <img
               src={form.url}
@@ -561,31 +873,35 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
           <p className="text-xs text-red-500 mt-1">{uploadError}</p>
         )}
 
-        {/* Toggle URL manuelle */}
-        <button
-          type="button"
-          onClick={() => setShowUrlInput((v) => !v)}
-          className="flex items-center gap-1 mt-1.5 text-[10px] text-[var(--text-subtle)] hover:text-[var(--accent)] transition-colors"
-        >
-          <Link2 className="w-3 h-3" />
-          {showUrlInput ? 'Masquer l\'URL' : 'Saisir une URL manuellement'}
-        </button>
+        {!hasBatchSelection && (
+          <>
+            {/* Toggle URL manuelle */}
+            <button
+              type="button"
+              onClick={() => setShowUrlInput((v) => !v)}
+              className="flex items-center gap-1 mt-1.5 text-[10px] text-[var(--text-subtle)] hover:text-[var(--accent)] transition-colors"
+            >
+              <Link2 className="w-3 h-3" />
+              {showUrlInput ? 'Masquer l\'URL' : 'Saisir une URL manuellement'}
+            </button>
 
-        {showUrlInput && (
-          <input
-            className={cn(inputCls, 'mt-1')}
-            type="url"
-            value={form.url || ''}
-            onChange={(e) => set('url', e.target.value)}
-            placeholder="https://..."
-          />
+            {showUrlInput && (
+              <input
+                className={cn(inputCls, 'mt-1')}
+                type="url"
+                value={form.url || ''}
+                onChange={(e) => set('url', e.target.value)}
+                placeholder="https://..."
+              />
+            )}
+          </>
         )}
       </Field>
       <Field label="Description">
-        <textarea className={cn(inputCls, 'resize-none')} rows={3} value={form.description || ''} onChange={(e) => set('description', e.target.value)} />
+        <textarea className={cn(inputCls, 'resize-none')} rows={3} value={form.description || ''} onChange={(e) => set('description', e.target.value)} disabled={hasBatchSelection} />
       </Field>
       <Field label="Tags (Entrée pour ajouter)">
-        <input className={inputCls} value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={addTag} placeholder="Ajouter un tag..." />
+        <input className={inputCls} value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={addTag} placeholder="Ajouter un tag..." disabled={hasBatchSelection} />
         {(form.tags || []).length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {(form.tags || []).map((tag, i) => (
@@ -600,8 +916,20 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
       <JsonEditor label="Contenu JSON" value={form.content as Record<string, unknown> || {}} onChange={(v) => set('content', v)} rows={5} />
       <div className="flex gap-3 pt-2">
         <button type="button" onClick={onCancel} className="flex-1 px-4 py-2.5 rounded-lg border border-[var(--border)] text-sm text-[var(--text)] hover:bg-[var(--bg-subtle)] transition-colors">Annuler</button>
-        <button type="submit" disabled={isLoading} className="flex-1 px-4 py-2.5 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-60">
-          {isLoading ? 'Enregistrement...' : 'Enregistrer'}
+        <button
+          type="submit"
+          formNoValidate={hasBatchSelection}
+          disabled={isLoading || isBatchProcessing || (hasBatchSelection && visionProviders.length === 0)}
+          className="flex-1 px-4 py-2.5 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-60"
+        >
+          {isBatchProcessing ? (
+            <span className="inline-flex items-center justify-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Traitement...
+            </span>
+          ) : (
+            submitLabel
+          )}
         </button>
       </div>
     </form>

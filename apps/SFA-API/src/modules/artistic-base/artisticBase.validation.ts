@@ -66,3 +66,18 @@ export const analyzeImageSchema = z.object({
 });
 
 export type AnalyzeImageInput = z.infer<typeof analyzeImageSchema>;
+
+const optionalNonEmptyString = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().trim().min(1).optional()
+);
+
+export const bulkUploadAnalyzeCreateSchema = z
+  .object({
+    provider: optionalNonEmptyString,
+    providerId: optionalNonEmptyString,
+    model: optionalNonEmptyString
+  })
+  .strict();
+
+export type BulkUploadAnalyzeCreateInput = z.infer<typeof bulkUploadAnalyzeCreateSchema>;

@@ -43,6 +43,21 @@ export const artisticBaseController = {
     return sendSuccess(res, 'Image uploadée avec succès.', result, 201);
   },
 
+  bulkUploadAnalyzeCreate: async (req: Request, res: Response) => {
+    const files = Array.isArray(req.files)
+      ? (req.files as Express.Multer.File[])
+      : [];
+
+    if (files.length === 0) throw new AppError('Aucun fichier fourni.', 400);
+
+    const result = await artisticBaseService.bulkUploadAnalyzeCreate({
+      ...req.body,
+      files,
+    });
+
+    return sendSuccess(res, 'Import multi-images terminé.', result, 201);
+  },
+
   analyzeImage: async (req: Request, res: Response) => {
     const input = req.body;
     const result = await artisticBaseService.analyzeImage(input);

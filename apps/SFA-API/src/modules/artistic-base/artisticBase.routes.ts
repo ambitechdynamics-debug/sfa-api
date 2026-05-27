@@ -2,10 +2,11 @@ import { Router } from 'express';
 import { authMiddleware, requireAdmin } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import { asyncHandler } from '../../utils/asyncHandler';
-import { uploadSingle } from '../../middlewares/upload.middleware';
+import { uploadMultiple, uploadSingle } from '../../middlewares/upload.middleware';
 import { artisticBaseController } from './artisticBase.controller';
 import {
   artisticResourceIdParamsSchema,
+  bulkUploadAnalyzeCreateSchema,
   createArtisticResourceSchema,
   listArtisticResourcesQuerySchema,
   searchArtisticResourcesQuerySchema,
@@ -22,6 +23,15 @@ router.post(
   requireAdmin,
   uploadSingle('file'),
   asyncHandler(artisticBaseController.uploadImage)
+);
+
+router.post(
+  '/admin/artistic-resources/bulk-upload-analyze-create',
+  authMiddleware,
+  requireAdmin,
+  uploadMultiple('files', 20),
+  validate({ body: bulkUploadAnalyzeCreateSchema }),
+  asyncHandler(artisticBaseController.bulkUploadAnalyzeCreate)
 );
 
 router.post(

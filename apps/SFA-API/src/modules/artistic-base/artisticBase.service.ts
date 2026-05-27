@@ -1,8 +1,9 @@
-import { Prisma } from '@prisma/client';
+import { ArtisticResourceType, Prisma, type ArtisticResource } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { AppError } from '../../utils/appError';
 import { getStorageProvider } from '../storage/storage.provider';
 import {
+  BulkUploadAnalyzeCreateInput,
   CreateArtisticResourceInput,
   ListArtisticResourcesQuery,
   SearchArtisticResourcesQuery,
@@ -10,7 +11,6 @@ import {
   AnalyzeImageInput
 } from './artisticBase.validation';
 import { callVisionAI } from '../ai/ai.service';
-import { AIProvider } from '../ai/ai.types';
 
 const buildPagination = (page?: number, limit?: number) => {
   if (page === undefined || limit === undefined) return {};
@@ -23,6 +23,69 @@ const buildPagination = (page?: number, limit?: number) => {
 const toJsonInput = (value: unknown) => value as Prisma.InputJsonValue;
 const toNullableJsonInput = (value: unknown) =>
   value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
+
+type BulkFailureStage = 'upload' | 'analyze' | 'create';
+
+type BulkUploadAnalyzeCreateParams = BulkUploadAnalyzeCreateInput & {
+  files: Express.Multer.File[];
+};
+
+const VALID_RESOURCE_TYPES = new Set<string>(Object.values(ArtisticResourceType));
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Erreur inconnue';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function stringOrFallback(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+}
+
+function titleFromFileName(fileName: string) {
+  const baseName = fileName
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+  return baseName || 'Ressource artistique';
+}
+
+function normalizeResourceType(value: unknown): ArtisticResourceType {
+  if (typeof value === 'string' && VALID_RESOURCE_TYPES.has(value)) {
+    return value as ArtisticResourceType;
+  }
+  return ArtisticResourceType.STYLE;
+}
+
+function normalizeTags(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((tag) => (typeof tag === 'string' ? tag.trim() : String(tag).trim()))
+    .filter(Boolean);
+}
+
+function buildCreateInputFromAnalysis(
+  analysis: unknown,
+  imageUrl: string,
+  fileName: string,
+): CreateArtisticResourceInput {
+  const data = isRecord(analysis) ? analysis : {};
+
+  return {
+    title: stringOrFallback(data.title, titleFromFileName(fileName)),
+    category: stringOrFallback(data.category, 'Promotion'),
+    resourceType: normalizeResourceType(data.resourceType),
+    url: imageUrl,
+    description: stringOrFallback(
+      data.description,
+      `Ressource artistique importee depuis ${fileName}.`,
+    ),
+    tags: normalizeTags(data.tags),
+    content: isRecord(data.content) ? data.content : {},
+  };
+}
 
 export const artisticBaseService = {
   create: async (input: CreateArtisticResourceInput) => {
@@ -233,5 +296,60 @@ Assure-toi de respecter scrupuleusement cette structure JSON, en particulier pou
     } else {
       throw new AppError("L'IA n'a pas pu analyser l'image correctement.", 500);
     }
+  },
+
+  bulkUploadAnalyzeCreate: async (input: BulkUploadAnalyzeCreateParams) => {
+    if (!input.files.length) {
+      throw new AppError('Aucun fichier fourni.', 400);
+    }
+
+    const created: ArtisticResource[] = [];
+    const failed: Array<{
+      index: number;
+      fileName: string;
+      stage: BulkFailureStage;
+      message: string;
+    }> = [];
+
+    const processFile = async (file: Express.Multer.File, index: number) => {
+      let stage: BulkFailureStage = 'upload';
+
+      try {
+        const uploaded = await artisticBaseService.uploadImage(file);
+
+        stage = 'analyze';
+        const analysis = await artisticBaseService.analyzeImage({
+          resourceImage: uploaded.url,
+          providerId: input.providerId,
+          provider: input.provider,
+          model: input.model,
+          context: {
+            module: 'artistic-base',
+            action: 'bulk-upload-analyze-create',
+          },
+        });
+
+        stage = 'create';
+        const resource = await artisticBaseService.create(
+          buildCreateInputFromAnalysis(analysis, uploaded.url, file.originalname),
+        );
+        created.push(resource);
+      } catch (error) {
+        failed.push({
+          index,
+          fileName: file.originalname,
+          stage,
+          message: getErrorMessage(error),
+        });
+      }
+    };
+
+    const concurrency = 2;
+    for (let i = 0; i < input.files.length; i += concurrency) {
+      const batch = input.files.slice(i, i + concurrency);
+      await Promise.all(batch.map((file, offset) => processFile(file, i + offset)));
+    }
+
+    return { created, failed };
   },
 };

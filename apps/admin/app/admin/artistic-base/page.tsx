@@ -5,7 +5,13 @@ import { Palette, Plus, Pencil, Trash2, ExternalLink, Tag, AlertCircle, LayoutGr
 import { Drawer } from '@/components/admin/Drawer'
 import { ArtisticResourceForm } from '@/components/admin/Forms'
 import { ConfirmDeleteModal } from '@/components/admin/Modals'
-import { fetchArtisticResources, createArtisticResource, updateArtisticResource, deleteArtisticResource } from '@/lib/admin-api'
+import {
+  fetchArtisticResources,
+  createArtisticResource,
+  updateArtisticResource,
+  deleteArtisticResource,
+} from '@/lib/admin-api'
+import type { BulkArtisticResourcesResult } from '@/lib/admin-api'
 import { ArtisticResource } from '@/types/payment'
 import { toastSuccess, toastError, toastLoadError } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -228,6 +234,19 @@ export default function ArtisticBasePage() {
       setDrawerOpen(false); setEditResource(null)
     } catch { toastError('Erreur lors de la sauvegarde') }
     finally { setSaving(false) }
+  }
+
+  function handleBulkComplete(result: BulkArtisticResourcesResult) {
+    if (result.created.length > 0) {
+      setResources((prev) => [...result.created, ...prev])
+      toastSuccess(`${result.created.length} ressource(s) créée(s)`)
+    }
+    if (result.failed.length > 0) {
+      toastError(`${result.failed.length} image(s) non créée(s). Détails dans le formulaire.`)
+      return
+    }
+    setDrawerOpen(false)
+    setEditResource(null)
   }
 
   return (
@@ -505,7 +524,14 @@ export default function ArtisticBasePage() {
       )}
 
       <Drawer open={drawerOpen} onClose={() => { setDrawerOpen(false); setEditResource(null) }} title={editResource ? 'Modifier ressource' : 'Nouvelle Ressource'}>
-        <ArtisticResourceForm existingCategories={existingCategories} initial={editResource || undefined} onSubmit={handleSave} onCancel={() => { setDrawerOpen(false); setEditResource(null) }} isLoading={saving} />
+        <ArtisticResourceForm
+          existingCategories={existingCategories}
+          initial={editResource || undefined}
+          onSubmit={handleSave}
+          onBulkComplete={handleBulkComplete}
+          onCancel={() => { setDrawerOpen(false); setEditResource(null) }}
+          isLoading={saving}
+        />
       </Drawer>
 
       <ConfirmDeleteModal
@@ -524,4 +550,3 @@ export default function ArtisticBasePage() {
     </div>
   )
 }
-
