@@ -42,5 +42,6 @@ export interface OrchestratorPipelinePayload {
   updatedAt: string | null
   config: OrchestratorPipelineConfig
   defaultConfig: OrchestratorPipelineConfig
+  stepTemplates: OrchestratorPipelineConfig
   diagnostics: OrchestratorPipelineDiagnostics
 }

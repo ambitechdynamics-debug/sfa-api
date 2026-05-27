@@ -48,6 +48,7 @@ export interface OrchestratorPipelinePayload {
   updatedAt: string | null;
   config: OrchestratorPipelineConfig;
   defaultConfig: OrchestratorPipelineConfig;
+  stepTemplates: OrchestratorPipelineConfig;
   diagnostics: OrchestratorPipelineDiagnostics;
 }
 
@@ -69,128 +70,137 @@ const STEP_IDS = new Set<OrchestratorStepId>([
   'quality',
 ]);
 
+export const ORCHESTRATOR_STEP_TEMPLATES: OrchestratorPipelineStep[] = [
+  {
+    id: 'image_analysis',
+    label: 'Analyse image',
+    agentKey: 'IMAGE_ANALYST_AGENT',
+    order: 10,
+    enabled: true,
+    required: false,
+    executionMode: 'sequential',
+    inputMemoryKeys: ['M_SMS', 'M-CREATIVE-BRIEF'],
+    outputMemoryKey: 'M_MD',
+    retries: 0,
+    timeoutMs: 30000,
+    condition: 'has_files',
+  },
+  {
+    id: 'planning',
+    label: 'Planification',
+    agentKey: 'PLANNER_AGENT',
+    order: 20,
+    enabled: true,
+    required: true,
+    executionMode: 'sequential',
+    inputMemoryKeys: ['M_SMS', 'M-CREATIVE-BRIEF', 'M_MD'],
+    outputMemoryKey: 'M_QT1',
+    retries: 1,
+    timeoutMs: 45000,
+    condition: 'always',
+  },
+  {
+    id: 'text_analysis',
+    label: 'Analyse texte',
+    agentKey: 'TEXT_ANALYST_AGENT',
+    order: 30,
+    enabled: true,
+    required: false,
+    executionMode: 'parallel',
+    inputMemoryKeys: ['M_SMS', 'M_QT1'],
+    outputMemoryKey: null,
+    retries: 0,
+    timeoutMs: 30000,
+    condition: 'planner_ready_or_force',
+  },
+  {
+    id: 'brand_analysis',
+    label: 'Identité marque',
+    agentKey: 'BRAND_AGENT',
+    order: 40,
+    enabled: true,
+    required: false,
+    executionMode: 'parallel',
+    inputMemoryKeys: ['M_SMS', 'M_QT1', 'M_MD'],
+    outputMemoryKey: 'M_ID',
+    retries: 0,
+    timeoutMs: 30000,
+    condition: 'planner_ready_or_force',
+  },
+  {
+    id: 'artistic_base',
+    label: 'Base artistique',
+    agentKey: 'ARTISTIC_BASE_AGENT',
+    order: 50,
+    enabled: true,
+    required: false,
+    executionMode: 'parallel',
+    inputMemoryKeys: ['M_QT1'],
+    outputMemoryKey: 'M_BA',
+    retries: 0,
+    timeoutMs: 30000,
+    condition: 'planner_ready_or_force',
+  },
+  {
+    id: 'prompt_architect',
+    label: 'Prompt final',
+    agentKey: 'PROMPT_ARCHITECT_AGENT',
+    order: 60,
+    enabled: true,
+    required: true,
+    executionMode: 'sequential',
+    inputMemoryKeys: ['M_SMS', 'M_QT1', 'M_ID', 'M_BA'],
+    outputMemoryKey: 'M_PROMPT1',
+    retries: 1,
+    timeoutMs: 45000,
+    condition: 'planner_ready_or_force',
+  },
+  {
+    id: 'safety',
+    label: 'Sécurité',
+    agentKey: 'SAFETY_AGENT',
+    order: 70,
+    enabled: true,
+    required: false,
+    executionMode: 'sequential',
+    inputMemoryKeys: ['M_PROMPT1'],
+    outputMemoryKey: 'M_PROMPT1',
+    retries: 0,
+    timeoutMs: 30000,
+    condition: 'has_prompt',
+  },
+  {
+    id: 'quality',
+    label: 'Qualité',
+    agentKey: 'QUALITY_AGENT',
+    order: 80,
+    enabled: true,
+    required: false,
+    executionMode: 'sequential',
+    inputMemoryKeys: ['M_PROMPT1'],
+    outputMemoryKey: 'M_PROMPT1',
+    retries: 0,
+    timeoutMs: 30000,
+    condition: 'has_prompt',
+  },
+];
+
 export const DEFAULT_ORCHESTRATOR_PIPELINE: OrchestratorPipelineConfig = {
   version: ORCHESTRATOR_PIPELINE_VERSION,
-  steps: [
-    {
-      id: 'image_analysis',
-      label: 'Analyse image',
-      agentKey: 'IMAGE_ANALYST_AGENT',
-      order: 10,
-      enabled: true,
-      required: false,
-      executionMode: 'sequential',
-      inputMemoryKeys: ['M_SMS', 'M-CREATIVE-BRIEF'],
-      outputMemoryKey: 'M_MD',
-      retries: 0,
-      timeoutMs: 30000,
-      condition: 'has_files',
-    },
-    {
-      id: 'planning',
-      label: 'Planification',
-      agentKey: 'PLANNER_AGENT',
-      order: 20,
-      enabled: true,
-      required: true,
-      executionMode: 'sequential',
-      inputMemoryKeys: ['M_SMS', 'M-CREATIVE-BRIEF', 'M_MD'],
-      outputMemoryKey: 'M_QT1',
-      retries: 1,
-      timeoutMs: 45000,
-      condition: 'always',
-    },
-    {
-      id: 'text_analysis',
-      label: 'Analyse texte',
-      agentKey: 'TEXT_ANALYST_AGENT',
-      order: 30,
-      enabled: true,
-      required: false,
-      executionMode: 'parallel',
-      inputMemoryKeys: ['M_SMS', 'M_QT1'],
-      outputMemoryKey: null,
-      retries: 0,
-      timeoutMs: 30000,
-      condition: 'planner_ready_or_force',
-    },
-    {
-      id: 'brand_analysis',
-      label: 'Identité marque',
-      agentKey: 'BRAND_AGENT',
-      order: 40,
-      enabled: true,
-      required: false,
-      executionMode: 'parallel',
-      inputMemoryKeys: ['M_SMS', 'M_QT1', 'M_MD'],
-      outputMemoryKey: 'M_ID',
-      retries: 0,
-      timeoutMs: 30000,
-      condition: 'planner_ready_or_force',
-    },
-    {
-      id: 'artistic_base',
-      label: 'Base artistique',
-      agentKey: 'ARTISTIC_BASE_AGENT',
-      order: 50,
-      enabled: true,
-      required: false,
-      executionMode: 'parallel',
-      inputMemoryKeys: ['M_QT1'],
-      outputMemoryKey: 'M_BA',
-      retries: 0,
-      timeoutMs: 30000,
-      condition: 'planner_ready_or_force',
-    },
-    {
-      id: 'prompt_architect',
-      label: 'Prompt final',
-      agentKey: 'PROMPT_ARCHITECT_AGENT',
-      order: 60,
-      enabled: true,
-      required: true,
-      executionMode: 'sequential',
-      inputMemoryKeys: ['M_SMS', 'M_QT1', 'M_ID', 'M_BA'],
-      outputMemoryKey: 'M_PROMPT1',
-      retries: 1,
-      timeoutMs: 45000,
-      condition: 'planner_ready_or_force',
-    },
-    {
-      id: 'safety',
-      label: 'Sécurité',
-      agentKey: 'SAFETY_AGENT',
-      order: 70,
-      enabled: true,
-      required: false,
-      executionMode: 'sequential',
-      inputMemoryKeys: ['M_PROMPT1'],
-      outputMemoryKey: 'M_PROMPT1',
-      retries: 0,
-      timeoutMs: 30000,
-      condition: 'has_prompt',
-    },
-    {
-      id: 'quality',
-      label: 'Qualité',
-      agentKey: 'QUALITY_AGENT',
-      order: 80,
-      enabled: true,
-      required: false,
-      executionMode: 'sequential',
-      inputMemoryKeys: ['M_PROMPT1'],
-      outputMemoryKey: 'M_PROMPT1',
-      retries: 0,
-      timeoutMs: 30000,
-      condition: 'has_prompt',
-    },
-  ],
+  steps: [],
 };
 
-const DEFAULT_STEPS_BY_ID = new Map(DEFAULT_ORCHESTRATOR_PIPELINE.steps.map((step) => [step.id, step]));
+const STEP_TEMPLATES_BY_ID = new Map(ORCHESTRATOR_STEP_TEMPLATES.map((step) => [step.id, step]));
 
 function cloneDefaultConfig(): OrchestratorPipelineConfig {
   return JSON.parse(JSON.stringify(DEFAULT_ORCHESTRATOR_PIPELINE)) as OrchestratorPipelineConfig;
+}
+
+function cloneStepTemplates(): OrchestratorPipelineConfig {
+  return {
+    version: ORCHESTRATOR_PIPELINE_VERSION,
+    steps: JSON.parse(JSON.stringify(ORCHESTRATOR_STEP_TEMPLATES)) as OrchestratorPipelineStep[],
+  };
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -232,7 +242,7 @@ function normalizeStep(input: unknown, index: number): OrchestratorPipelineStep 
   }
 
   const id = rawId as OrchestratorStepId;
-  const fallback = DEFAULT_STEPS_BY_ID.get(id)!;
+  const fallback = STEP_TEMPLATES_BY_ID.get(id)!;
   const outputMemoryKey = record.outputMemoryKey === null
     ? null
     : typeof record.outputMemoryKey === 'string'
@@ -268,10 +278,6 @@ export function normalizeOrchestratorPipelineConfig(input: unknown): Orchestrato
     return normalized;
   });
 
-  for (const defaultStep of DEFAULT_ORCHESTRATOR_PIPELINE.steps) {
-    if (!seen.has(defaultStep.id)) steps.push({ ...defaultStep });
-  }
-
   const sorted = steps.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label, 'fr'));
   return {
     version: ORCHESTRATOR_PIPELINE_VERSION,
@@ -297,7 +303,11 @@ export function getOrchestratorPipelineOrderIssues(config: OrchestratorPipelineC
   ];
 
   return dependencies
-    .filter(([before, after]) => stepOrder(config, before) >= stepOrder(config, after))
+    .filter(([before, after]) => (
+      config.steps.some((step) => step.id === before) &&
+      config.steps.some((step) => step.id === after) &&
+      stepOrder(config, before) >= stepOrder(config, after)
+    ))
     .map(([, , message]) => message);
 }
 
@@ -361,6 +371,7 @@ export const orchestratorPipelineService = {
     return {
       ...current,
       defaultConfig: cloneDefaultConfig(),
+      stepTemplates: cloneStepTemplates(),
       diagnostics,
     };
   },

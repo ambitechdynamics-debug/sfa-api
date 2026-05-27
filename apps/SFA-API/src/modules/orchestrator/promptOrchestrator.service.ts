@@ -22,6 +22,7 @@ import { AppError } from '../../utils/appError';
 import { AIProvider } from '../ai/ai.types';
 import { buildMemorySnapshot, type MemorySnapshot } from '../agents/dynamic-context.service';
 import {
+  ORCHESTRATOR_STEP_TEMPLATES,
   orchestratorPipelineService,
   type OrchestratorPipelineConfig,
   type OrchestratorPipelineStep,
@@ -82,10 +83,25 @@ export interface OrchestrationResult {
 }
 
 const CRITICAL_STEP_IDS = new Set<OrchestratorStepId>(['planning', 'prompt_architect']);
+const STEP_TEMPLATES_BY_ID = new Map(ORCHESTRATOR_STEP_TEMPLATES.map((step) => [step.id, step]));
 
-function getStep(config: OrchestratorPipelineConfig, id: OrchestratorStepId): OrchestratorPipelineStep {
+function getOptionalStep(config: OrchestratorPipelineConfig, id: OrchestratorStepId): OrchestratorPipelineStep {
   const step = config.steps.find((item) => item.id === id);
-  if (!step) throw new AppError(`Étape orchestrateur manquante: ${id}`, 500);
+  if (step) return step;
+
+  const template = STEP_TEMPLATES_BY_ID.get(id);
+  if (!template) throw new AppError(`Étape orchestrateur inconnue: ${id}`, 500);
+  return { ...template, enabled: false };
+}
+
+function getRequiredRuntimeStep(config: OrchestratorPipelineConfig, id: OrchestratorStepId): OrchestratorPipelineStep {
+  const step = config.steps.find((item) => item.id === id);
+  if (!step) {
+    throw new AppError(`Pipeline orchestrateur incomplet: ajoutez l'étape "${id}" dans /admin/orchestrator.`, 400);
+  }
+  if (!step.enabled) {
+    throw new AppError(`Pipeline orchestrateur incomplet: activez l'étape "${id}" dans /admin/orchestrator.`, 400);
+  }
   return step;
 }
 
@@ -224,6 +240,9 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   const agentsExecuted: string[] = [];
   const agentFailures: Array<{ agent: string; error: string }> = [];
   const pipelineConfig = await orchestratorPipelineService.getRuntimeConfig();
+  if (pipelineConfig.steps.length === 0) {
+    throw new AppError('Pipeline orchestrateur vide. Ajoutez les étapes nécessaires dans /admin/orchestrator.', 400);
+  }
 
   // ─── 0. Pre-flight dynamique : valider le pipeline avant tout coût IA ───
   // Refuse de démarrer si un agent `required` est manquant ou inactif en DB.
@@ -233,14 +252,14 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   const agentsSkipped: string[] = [...preflight.skipped];
   const skippedStepIds = preflight.skippedStepIds;
 
-  const imageStep = getStep(pipelineConfig, 'image_analysis');
-  const plannerStep = getStep(pipelineConfig, 'planning');
-  const textStep = getStep(pipelineConfig, 'text_analysis');
-  const brandStep = getStep(pipelineConfig, 'brand_analysis');
-  const artisticStep = getStep(pipelineConfig, 'artistic_base');
-  const promptStep = getStep(pipelineConfig, 'prompt_architect');
-  const safetyStep = getStep(pipelineConfig, 'safety');
-  const qualityStep = getStep(pipelineConfig, 'quality');
+  const imageStep = getOptionalStep(pipelineConfig, 'image_analysis');
+  const plannerStep = getRequiredRuntimeStep(pipelineConfig, 'planning');
+  const textStep = getOptionalStep(pipelineConfig, 'text_analysis');
+  const brandStep = getOptionalStep(pipelineConfig, 'brand_analysis');
+  const artisticStep = getOptionalStep(pipelineConfig, 'artistic_base');
+  const promptStep = getRequiredRuntimeStep(pipelineConfig, 'prompt_architect');
+  const safetyStep = getOptionalStep(pipelineConfig, 'safety');
+  const qualityStep = getOptionalStep(pipelineConfig, 'quality');
 
   // ─── 1. Vérification du travail et ownership ───────────
 

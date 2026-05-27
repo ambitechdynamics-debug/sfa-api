@@ -10,10 +10,12 @@ import {
   Database,
   GitBranch,
   Loader2,
+  Plus,
   RefreshCw,
   RotateCcw,
   Save,
   Timer,
+  Trash2,
 } from 'lucide-react'
 import {
   fetchAgents,
@@ -91,8 +93,17 @@ function Toggle({
   )
 }
 
-function DiagnosticList({ diagnostics }: { diagnostics: OrchestratorPipelineDiagnostics | null }) {
+function DiagnosticList({ diagnostics, stepCount }: { diagnostics: OrchestratorPipelineDiagnostics | null; stepCount: number }) {
   if (!diagnostics) return null
+
+  if (stepCount === 0) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--text-muted)]">
+        <GitBranch className="h-4 w-4" />
+        Pipeline vide
+      </div>
+    )
+  }
 
   const items = [
     ...diagnostics.orderIssues.map((message) => ({ type: 'Ordre', message })),
@@ -130,7 +141,7 @@ function DiagnosticList({ diagnostics }: { diagnostics: OrchestratorPipelineDiag
 
 export default function OrchestratorPage() {
   const [config, setConfig] = useState<OrchestratorPipelineConfig | null>(null)
-  const [defaultConfig, setDefaultConfig] = useState<OrchestratorPipelineConfig | null>(null)
+  const [stepTemplates, setStepTemplates] = useState<OrchestratorPipelineStep[]>([])
   const [diagnostics, setDiagnostics] = useState<OrchestratorPipelineDiagnostics | null>(null)
   const [agents, setAgents] = useState<AgentDefinition[]>([])
   const [memories, setMemories] = useState<MemoryDefinition[]>([])
@@ -148,7 +159,7 @@ export default function OrchestratorPage() {
         fetchMemories(),
       ])
       setConfig({ ...pipeline.config, steps: reindexSteps([...pipeline.config.steps].sort((a, b) => a.order - b.order)) })
-      setDefaultConfig(pipeline.defaultConfig)
+      setStepTemplates(pipeline.stepTemplates?.steps ?? pipeline.defaultConfig.steps)
       setDiagnostics(pipeline.diagnostics)
       setAgents(agentRows)
       setMemories(memoryRows)
@@ -212,16 +223,16 @@ export default function OrchestratorPage() {
   }
 
   async function handleReset() {
-    if (!window.confirm('Restaurer la configuration orchestrateur par défaut ?')) return
+    if (!window.confirm('Vider toute la configuration orchestrateur ?')) return
     setSaving(true)
     try {
       const payload = await resetOrchestratorPipeline()
       setConfig({ ...payload.config, steps: reindexSteps([...payload.config.steps].sort((a, b) => a.order - b.order)) })
-      setDefaultConfig(payload.defaultConfig)
+      setStepTemplates(payload.stepTemplates?.steps ?? payload.defaultConfig.steps)
       setDiagnostics(payload.diagnostics)
       setSource(payload.source)
       setUpdatedAt(payload.updatedAt)
-      toastSuccess('Pipeline restauré')
+      toastSuccess('Pipeline vidé')
     } catch {
       toastError('Erreur lors de la restauration')
     } finally {
@@ -229,8 +240,28 @@ export default function OrchestratorPage() {
     }
   }
 
-  function applyDefaultStep(stepId: OrchestratorStepId) {
-    const fallback = defaultConfig?.steps.find((step) => step.id === stepId)
+  function addStep() {
+    setConfig((current) => {
+      if (!current) return current
+      const usedIds = new Set(current.steps.map((step) => step.id))
+      const template = stepTemplates.find((step) => !usedIds.has(step.id))
+      if (!template) {
+        toastError('Toutes les étapes disponibles sont déjà ajoutées')
+        return current
+      }
+      return { ...current, steps: reindexSteps([...current.steps, { ...template }]) }
+    })
+  }
+
+  function deleteStep(stepId: OrchestratorStepId) {
+    setConfig((current) => {
+      if (!current) return current
+      return { ...current, steps: reindexSteps(current.steps.filter((step) => step.id !== stepId)) }
+    })
+  }
+
+  function applyTemplateStep(stepId: OrchestratorStepId) {
+    const fallback = stepTemplates.find((step) => step.id === stepId)
     if (!fallback) return
     updateStep(stepId, fallback)
   }
@@ -241,10 +272,19 @@ export default function OrchestratorPage() {
         <div>
           <h1 className="text-lg font-bold text-[var(--text)]">Orchestrateur</h1>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-            {source === 'db' ? 'Configuration active en base' : 'Configuration par défaut'} · {updatedAt ? new Date(updatedAt).toLocaleString('fr-FR') : 'non enregistrée'}
+            {source === 'db' ? 'Configuration active en base' : 'Aucune configuration enregistrée'} · {updatedAt ? new Date(updatedAt).toLocaleString('fr-FR') : 'non enregistrée'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={addStep}
+            disabled={loading || saving || !config}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--bg-subtle)] disabled:opacity-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Ajouter étape
+          </button>
           <button
             type="button"
             onClick={load}
@@ -261,7 +301,7 @@ export default function OrchestratorPage() {
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text)] disabled:opacity-50"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Défaut
+            Vider
           </button>
           <button
             type="button"
@@ -306,7 +346,7 @@ export default function OrchestratorPage() {
         </div>
       </div>
 
-      <DiagnosticList diagnostics={diagnostics} />
+      <DiagnosticList diagnostics={diagnostics} stepCount={steps.length} />
 
       <datalist id="memory-keys">
         {memoryKeys.map((key) => <option key={key} value={key} />)}
@@ -330,6 +370,19 @@ export default function OrchestratorPage() {
             {Array.from({ length: 5 }).map((_, index) => (
               <div key={index} className="h-28 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
             ))}
+          </div>
+        ) : steps.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-4 py-14 text-center">
+            <GitBranch className="mb-3 h-8 w-8 text-[var(--text-subtle)]" />
+            <div className="text-sm font-semibold text-[var(--text)]">Aucune étape configurée</div>
+            <button
+              type="button"
+              onClick={addStep}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[var(--accent-hover)]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Ajouter une étape
+            </button>
           </div>
         ) : (
           <div className="divide-y divide-[var(--border)]">
@@ -393,13 +446,23 @@ export default function OrchestratorPage() {
                         </option>
                       ))}
                     </select>
-                    <button
-                      type="button"
-                      onClick={() => applyDefaultStep(step.id)}
-                      className="text-[10px] font-medium text-[var(--text-subtle)] transition-colors hover:text-[var(--accent)]"
-                    >
-                      Restaurer cette étape
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => applyTemplateStep(step.id)}
+                        className="text-[10px] font-medium text-[var(--text-subtle)] transition-colors hover:text-[var(--accent)]"
+                      >
+                        Restaurer template
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteStep(step.id)}
+                        className="inline-flex items-center gap-1 text-[10px] font-medium text-red-500 transition-colors hover:text-red-600"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Supprimer
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -412,7 +475,6 @@ export default function OrchestratorPage() {
                       <Toggle
                         checked={step.required}
                         onChange={() => updateStep(step.id, { required: !step.required })}
-                        disabled={isCritical}
                       />
                     </div>
                   </div>

@@ -66,5 +66,5 @@ export const orchestratorPipelineStepSchema = z.object({
 
 export const orchestratorPipelineConfigSchema = z.object({
   version: z.number().optional(),
-  steps: z.array(orchestratorPipelineStepSchema).min(1),
+  steps: z.array(orchestratorPipelineStepSchema),
 });
