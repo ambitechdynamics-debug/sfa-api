@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { ArtisticResourceType, Prisma, type ArtisticResource } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { AppError } from '../../utils/appError';
@@ -24,7 +25,7 @@ const toJsonInput = (value: unknown) => value as Prisma.InputJsonValue;
 const toNullableJsonInput = (value: unknown) =>
   value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
 
-type BulkFailureStage = 'upload' | 'analyze' | 'create';
+type BulkFailureStage = 'upload' | 'analyze' | 'create' | 'duplicate';
 
 type BulkUploadAnalyzeCreateParams = BulkUploadAnalyzeCreateInput & {
   files: Express.Multer.File[];
@@ -66,12 +67,19 @@ function normalizeTags(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function hashFileBuffer(buffer: Buffer) {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
 function buildCreateInputFromAnalysis(
   analysis: unknown,
   imageUrl: string,
   fileName: string,
+  metadata?: { imageHash: string },
 ): CreateArtisticResourceInput {
   const data = isRecord(analysis) ? analysis : {};
+  const content = isRecord(data.content) ? data.content : {};
+  const existingImport = isRecord(content.import) ? content.import : {};
 
   return {
     title: stringOrFallback(data.title, titleFromFileName(fileName)),
@@ -83,7 +91,17 @@ function buildCreateInputFromAnalysis(
       `Ressource artistique importee depuis ${fileName}.`,
     ),
     tags: normalizeTags(data.tags),
-    content: isRecord(data.content) ? data.content : {},
+    content: metadata
+      ? {
+          ...content,
+          import: {
+            ...existingImport,
+            imageHash: metadata.imageHash,
+            fileName,
+            importedAt: new Date().toISOString(),
+          },
+        }
+      : content,
   };
 }
 
@@ -304,6 +322,7 @@ Assure-toi de respecter scrupuleusement cette structure JSON, en particulier pou
     }
 
     const created: ArtisticResource[] = [];
+    const seenHashes = new Set<string>();
     const failed: Array<{
       index: number;
       fileName: string;
@@ -315,6 +334,38 @@ Assure-toi de respecter scrupuleusement cette structure JSON, en particulier pou
       let stage: BulkFailureStage = 'upload';
 
       try {
+        const imageHash = hashFileBuffer(file.buffer);
+        if (seenHashes.has(imageHash)) {
+          failed.push({
+            index,
+            fileName: file.originalname,
+            stage: 'duplicate',
+            message: 'Cette image est déjà présente dans le lot.',
+          });
+          return;
+        }
+        seenHashes.add(imageHash);
+
+        const existingResource = await prisma.artisticResource.findFirst({
+          where: {
+            content: {
+              path: ['import', 'imageHash'],
+              equals: imageHash,
+            },
+          },
+          select: { id: true, title: true },
+        });
+
+        if (existingResource) {
+          failed.push({
+            index,
+            fileName: file.originalname,
+            stage: 'duplicate',
+            message: `Cette image existe déjà dans la base artistique (${existingResource.title}).`,
+          });
+          return;
+        }
+
         const uploaded = await artisticBaseService.uploadImage(file);
 
         stage = 'analyze';
@@ -331,7 +382,7 @@ Assure-toi de respecter scrupuleusement cette structure JSON, en particulier pou
 
         stage = 'create';
         const resource = await artisticBaseService.create(
-          buildCreateInputFromAnalysis(analysis, uploaded.url, file.originalname),
+          buildCreateInputFromAnalysis(analysis, uploaded.url, file.originalname, { imageHash }),
         );
         created.push(resource);
       } catch (error) {

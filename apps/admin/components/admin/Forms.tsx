@@ -252,6 +252,7 @@ const BATCH_STAGE_LABEL: Record<string, string> = {
   upload: 'Upload',
   analyze: 'Analyse',
   create: 'Création',
+  duplicate: 'Doublon',
 }
 
 function formatFileSize(bytes: number) {
@@ -509,7 +510,7 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
-    if (!isEditMode && files.length > 1) {
+    if (!isEditMode && files.length > 0) {
       selectBatchFiles(files)
     } else if (files[0]) {
       handleFileUpload(files[0])
@@ -521,7 +522,7 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
     e.preventDefault()
     setIsDragging(false)
     const files = Array.from(e.dataTransfer.files ?? [])
-    if (!isEditMode && files.length > 1) {
+    if (!isEditMode && files.length > 0) {
       selectBatchFiles(files)
     } else if (files[0]) {
       handleFileUpload(files[0])
@@ -562,6 +563,8 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
     ? hasOnlyBatchErrors
       ? `Réessayer ${batchItems.length} image(s)`
       : `Uploader, analyser et créer (${batchItems.length})`
+    : !isEditMode
+      ? 'Sélectionnez une image'
     : isLoading
       ? 'Enregistrement...'
       : 'Enregistrer'
@@ -572,54 +575,58 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
         <div className="rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-3 py-2">
           <p className="text-xs font-medium text-[var(--text)]">Import automatique actif</p>
           <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-            Les champs ci-dessous seront générés par le provider IA pour chaque image.
+            Chaque image sera uploadée, analysée par l'IA, puis créée automatiquement.
           </p>
         </div>
       )}
-      <Field label="Titre *">
-        <input className={inputCls} value={form.title || ''} onChange={(e) => set('title', e.target.value)} required={!hasBatchSelection} disabled={hasBatchSelection} />
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Catégorie">
-          {isNewCategory ? (
-            <div className="flex gap-1.5">
-              <input
-                className={cn(inputCls, 'flex-1 min-w-0')}
-                value={newCategoryInput}
-                onChange={(e) => { setNewCategoryInput(e.target.value); set('category', e.target.value) }}
-                placeholder="Nouvelle catégorie…"
-                autoFocus
-                required={!hasBatchSelection}
-                disabled={hasBatchSelection}
-              />
-              <button
-                type="button"
-                onClick={cancelNewCategory}
-                title="Revenir à la liste"
-                disabled={hasBatchSelection}
-                className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-red-500 hover:border-red-300 transition-colors text-base"
-              >
-                ×
-              </button>
-            </div>
-          ) : (
-            <select className={selectCls} value={form.category} onChange={handleCategorySelect} disabled={hasBatchSelection}>
-              {allCategories.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-              <option disabled>──────────</option>
-              <option value="__new__">+ Nouvelle catégorie…</option>
-            </select>
-          )}
-        </Field>
-        <Field label="Type">
-          <select className={selectCls} value={form.resourceType} onChange={(e) => set('resourceType', e.target.value)} disabled={hasBatchSelection}>
-            {['MODEL','TEXTURE','FONT','PALETTE','STYLE','REFERENCE','FORBIDDEN_RULE'].map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-        </Field>
-      </div>
+      {isEditMode && (
+        <>
+          <Field label="Titre *">
+            <input className={inputCls} value={form.title || ''} onChange={(e) => set('title', e.target.value)} required={!hasBatchSelection} disabled={hasBatchSelection} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Catégorie">
+              {isNewCategory ? (
+                <div className="flex gap-1.5">
+                  <input
+                    className={cn(inputCls, 'flex-1 min-w-0')}
+                    value={newCategoryInput}
+                    onChange={(e) => { setNewCategoryInput(e.target.value); set('category', e.target.value) }}
+                    placeholder="Nouvelle catégorie…"
+                    autoFocus
+                    required={!hasBatchSelection}
+                    disabled={hasBatchSelection}
+                  />
+                  <button
+                    type="button"
+                    onClick={cancelNewCategory}
+                    title="Revenir à la liste"
+                    disabled={hasBatchSelection}
+                    className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-red-500 hover:border-red-300 transition-colors text-base"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <select className={selectCls} value={form.category} onChange={handleCategorySelect} disabled={hasBatchSelection}>
+                  {allCategories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  <option disabled>──────────</option>
+                  <option value="__new__">+ Nouvelle catégorie…</option>
+                </select>
+              )}
+            </Field>
+            <Field label="Type">
+              <select className={selectCls} value={form.resourceType} onChange={(e) => set('resourceType', e.target.value)} disabled={hasBatchSelection}>
+                {['MODEL','TEXTURE','FONT','PALETTE','STYLE','REFERENCE','FORBIDDEN_RULE'].map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        </>
+      )}
       {/* ── Image Upload Zone ── */}
       <Field label="Image / URL">
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onFileChange} multiple={!isEditMode} />
@@ -873,7 +880,7 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
           <p className="text-xs text-red-500 mt-1">{uploadError}</p>
         )}
 
-        {!hasBatchSelection && (
+        {isEditMode && !hasBatchSelection && (
           <>
             {/* Toggle URL manuelle */}
             <button
@@ -897,29 +904,33 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
           </>
         )}
       </Field>
-      <Field label="Description">
-        <textarea className={cn(inputCls, 'resize-none')} rows={3} value={form.description || ''} onChange={(e) => set('description', e.target.value)} disabled={hasBatchSelection} />
-      </Field>
-      <Field label="Tags (Entrée pour ajouter)">
-        <input className={inputCls} value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={addTag} placeholder="Ajouter un tag..." disabled={hasBatchSelection} />
-        {(form.tags || []).length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {(form.tags || []).map((tag, i) => (
-              <span key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent-light)] text-[var(--accent)] text-xs">
-                {tag}
-                <button type="button" onClick={() => set('tags', (form.tags || []).filter((_, j) => j !== i))} className="hover:text-red-500">×</button>
-              </span>
-            ))}
-          </div>
-        )}
-      </Field>
-      <JsonEditor label="Contenu JSON" value={form.content as Record<string, unknown> || {}} onChange={(v) => set('content', v)} rows={5} />
+      {isEditMode && (
+        <>
+          <Field label="Description">
+            <textarea className={cn(inputCls, 'resize-none')} rows={3} value={form.description || ''} onChange={(e) => set('description', e.target.value)} disabled={hasBatchSelection} />
+          </Field>
+          <Field label="Tags (Entrée pour ajouter)">
+            <input className={inputCls} value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={addTag} placeholder="Ajouter un tag..." disabled={hasBatchSelection} />
+            {(form.tags || []).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {(form.tags || []).map((tag, i) => (
+                  <span key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent-light)] text-[var(--accent)] text-xs">
+                    {tag}
+                    <button type="button" onClick={() => set('tags', (form.tags || []).filter((_, j) => j !== i))} className="hover:text-red-500">×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </Field>
+          <JsonEditor label="Contenu JSON" value={form.content as Record<string, unknown> || {}} onChange={(v) => set('content', v)} rows={5} />
+        </>
+      )}
       <div className="flex gap-3 pt-2">
         <button type="button" onClick={onCancel} className="flex-1 px-4 py-2.5 rounded-lg border border-[var(--border)] text-sm text-[var(--text)] hover:bg-[var(--bg-subtle)] transition-colors">Annuler</button>
         <button
           type="submit"
           formNoValidate={hasBatchSelection}
-          disabled={isLoading || isBatchProcessing || (hasBatchSelection && visionProviders.length === 0)}
+          disabled={isLoading || isBatchProcessing || (!isEditMode && !hasBatchSelection) || (hasBatchSelection && visionProviders.length === 0)}
           className="flex-1 px-4 py-2.5 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-60"
         >
           {isBatchProcessing ? (

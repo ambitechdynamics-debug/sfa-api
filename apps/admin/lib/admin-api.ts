@@ -250,7 +250,7 @@ export async function uploadArtisticResourceImage(
 export type BulkArtisticResourceFailure = {
   index: number
   fileName: string
-  stage: 'upload' | 'analyze' | 'create'
+  stage: 'upload' | 'analyze' | 'create' | 'duplicate'
   message: string
 }
 
