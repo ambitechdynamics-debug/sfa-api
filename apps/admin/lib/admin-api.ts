@@ -5,6 +5,7 @@ import { AgentDefinition, AgentMemoryLink, AgentRunRecord } from '@/types/agent'
 import { MemoryDefinition } from '@/types/memory'
 import { Payment, ArtisticResource } from '@/types/payment'
 import { ForbiddenRule, ForbiddenRulesFilters, ForbiddenRulesPaginated } from '@/types/forbidden-rule'
+import { OrchestratorPipelineConfig, OrchestratorPipelinePayload } from '@/types/orchestrator'
 import { clearSession, getToken } from './auth'
 import { AdminApiError } from './api-error'
 
@@ -187,6 +188,25 @@ export async function createAgentMemoryLink(data: Partial<AgentMemoryLink>): Pro
 
 export async function deleteAgentMemoryLink(id: string): Promise<void> {
   return apiFetch(`/api/admin/agent-memory-links/${id}`, { method: 'DELETE' })
+}
+
+// ─── ORCHESTRATOR PIPELINE ───────────────────────────────────────────────────
+export async function fetchOrchestratorPipeline(): Promise<OrchestratorPipelinePayload> {
+  return apiFetch('/api/admin/orchestrator-pipeline')
+}
+
+export async function saveOrchestratorPipeline(config: OrchestratorPipelineConfig): Promise<OrchestratorPipelinePayload> {
+  return apiFetch('/api/admin/orchestrator-pipeline', {
+    method: 'PUT',
+    body: JSON.stringify(config),
+  })
+}
+
+export async function resetOrchestratorPipeline(): Promise<OrchestratorPipelinePayload> {
+  return apiFetch('/api/admin/orchestrator-pipeline/reset', {
+    method: 'POST',
+    body: '{}',
+  })
 }
 
 // ─── ARTISTIC RESOURCES ───────────────────────────────────────────────────────

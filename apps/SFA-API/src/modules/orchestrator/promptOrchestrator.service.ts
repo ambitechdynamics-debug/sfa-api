@@ -22,6 +22,12 @@ import { AppError } from '../../utils/appError';
 import { AIProvider } from '../ai/ai.types';
 import { buildMemorySnapshot, type MemorySnapshot } from '../agents/dynamic-context.service';
 import {
+  orchestratorPipelineService,
+  type OrchestratorPipelineConfig,
+  type OrchestratorPipelineStep,
+  type OrchestratorStepId,
+} from './orchestratorPipeline.service';
+import {
   runPlannerAgent,
   runImageAnalystAgent,
   runTextAnalystAgent,
@@ -75,73 +81,75 @@ export interface OrchestrationResult {
   };
 }
 
-// ─── Pipeline déclaratif (orchestration dynamique) ──────────────────────────
-// `AgentDefinition` est désormais la source de vérité pour : isActive,
-// provider et model. Chaque "stage" liste les clés d'agent à invoquer. Si un
-// agent est marqué `required` et qu'il est inactif/manquant en DB, le
-// pre-flight refuse le démarrage. Si un agent est `optional` et inactif, il
-// est ignoré (avec trace dans `agents_skipped`).
-//
-// Modifier ce tableau permet de réordonner ou retirer des étapes sans toucher
-// au code du runner principal. Pour ajouter un nouvel agent, déclarer un
-// runner dans `STAGE_RUNNERS` ci-dessous et l'ajouter au pipeline.
+const CRITICAL_STEP_IDS = new Set<OrchestratorStepId>(['planning', 'prompt_architect']);
 
-type StageId =
-  | 'analysis'
-  | 'planning'
-  | 'design'
-  | 'composition'
-  | 'safety'
-  | 'validation';
-
-interface PipelineAgent {
-  key: string;
-  required: boolean;
+function getStep(config: OrchestratorPipelineConfig, id: OrchestratorStepId): OrchestratorPipelineStep {
+  const step = config.steps.find((item) => item.id === id);
+  if (!step) throw new AppError(`Étape orchestrateur manquante: ${id}`, 500);
+  return step;
 }
 
-interface PipelineStage {
-  id: StageId;
-  /** `true` ⇒ tous les agents du stage s'exécutent en parallèle */
-  parallel: boolean;
-  agents: PipelineAgent[];
+function stepOutputKey(step: OrchestratorPipelineStep, fallback: string): string {
+  return step.outputMemoryKey?.trim() || fallback;
 }
 
-const PIPELINE: PipelineStage[] = [
-  {
-    id: 'analysis',
-    parallel: false,
-    agents: [{ key: 'IMAGE_ANALYST_AGENT', required: false }],
-  },
-  {
-    id: 'planning',
-    parallel: false,
-    agents: [{ key: 'PLANNER_AGENT', required: true }],
-  },
-  {
-    id: 'design',
-    parallel: true,
-    agents: [
-      { key: 'TEXT_ANALYST_AGENT', required: true },
-      { key: 'BRAND_AGENT', required: true },
-      { key: 'ARTISTIC_BASE_AGENT', required: true },
-    ],
-  },
-  {
-    id: 'composition',
-    parallel: false,
-    agents: [{ key: 'PROMPT_ARCHITECT_AGENT', required: true }],
-  },
-  {
-    id: 'safety',
-    parallel: false,
-    agents: [{ key: 'SAFETY_AGENT', required: false }],
-  },
-  {
-    id: 'validation',
-    parallel: false,
-    agents: [{ key: 'QUALITY_AGENT', required: false }],
-  },
-];
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : 'Unknown';
+}
+
+async function withStepPolicy<T>(
+  step: OrchestratorPipelineStep,
+  run: () => Promise<T>,
+): Promise<T> {
+  const attempts = Math.max(1, step.retries + 1);
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      if (step.timeoutMs <= 0) return await run();
+
+      let timeout: NodeJS.Timeout | undefined;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error(`${step.label} timeout après ${step.timeoutMs}ms`)),
+          step.timeoutMs,
+        );
+      });
+
+      try {
+        return await Promise.race([run(), timeoutPromise]);
+      } finally {
+        if (timeout) clearTimeout(timeout);
+      }
+    } catch (err) {
+      lastError = err;
+      if (attempt >= attempts) break;
+      console.warn(`[orchestrator] ${step.label} retry ${attempt}/${attempts - 1}:`, errorMessage(err));
+    }
+  }
+
+  throw lastError;
+}
+
+function shouldRunStep(
+  step: OrchestratorPipelineStep,
+  skippedStepIds: Set<OrchestratorStepId>,
+  context: { hasFiles: boolean; plannerReady?: boolean; force?: boolean; hasPrompt?: boolean },
+): boolean {
+  if (!step.enabled || skippedStepIds.has(step.id)) return false;
+
+  switch (step.condition) {
+    case 'has_files':
+      return context.hasFiles;
+    case 'planner_ready_or_force':
+      return Boolean(context.plannerReady || context.force);
+    case 'has_prompt':
+      return Boolean(context.hasPrompt);
+    case 'always':
+    default:
+      return true;
+  }
+}
 
 /**
  * Pre-flight check : avant de lancer un cycle, vérifie que tous les agents
@@ -151,8 +159,10 @@ const PIPELINE: PipelineStage[] = [
  * Pour un agent inactif marqué `required`, lève AppError(400) avec la liste
  * complète des défaillances pour faciliter le debug côté admin.
  */
-async function validateActiveAgents(): Promise<{ skipped: string[] }> {
-  const allKeys = PIPELINE.flatMap((s) => s.agents.map((a) => a.key));
+async function validateActiveAgents(
+  config: OrchestratorPipelineConfig,
+): Promise<{ skipped: string[]; skippedStepIds: Set<OrchestratorStepId> }> {
+  const allKeys = Array.from(new Set(config.steps.map((step) => step.agentKey).filter(Boolean)));
   const rows = await prisma.agentDefinition.findMany({
     where: { key: { in: allKeys } },
     select: { key: true, isActive: true },
@@ -162,16 +172,36 @@ async function validateActiveAgents(): Promise<{ skipped: string[] }> {
   const missing: string[] = [];
   const inactiveRequired: string[] = [];
   const skipped: string[] = [];
+  const skippedStepIds = new Set<OrchestratorStepId>();
 
-  for (const stage of PIPELINE) {
-    for (const a of stage.agents) {
-      const row = byKey.get(a.key);
-      if (!row) {
-        (a.required ? missing : skipped).push(a.key);
-        continue;
+  for (const step of config.steps) {
+    const isCritical = CRITICAL_STEP_IDS.has(step.id);
+    const isRequired = step.required || isCritical;
+
+    if (!step.enabled) {
+      if (isRequired) missing.push(`${step.agentKey} (étape désactivée)`);
+      else {
+        skipped.push(`${step.agentKey} (désactivé)`);
+        skippedStepIds.add(step.id);
       }
-      if (!row.isActive) {
-        (a.required ? inactiveRequired : skipped).push(a.key);
+      continue;
+    }
+
+    const row = byKey.get(step.agentKey);
+    if (!row) {
+      if (isRequired) missing.push(step.agentKey);
+      else {
+        skipped.push(`${step.agentKey} (absent)`);
+        skippedStepIds.add(step.id);
+      }
+      continue;
+    }
+
+    if (!row.isActive) {
+      if (isRequired) inactiveRequired.push(step.agentKey);
+      else {
+        skipped.push(`${step.agentKey} (inactif)`);
+        skippedStepIds.add(step.id);
       }
     }
   }
@@ -186,19 +216,31 @@ async function validateActiveAgents(): Promise<{ skipped: string[] }> {
     );
   }
 
-  return { skipped };
+  return { skipped, skippedStepIds };
 }
 
 export async function runFullOrchestration(options: OrchestrationOptions): Promise<OrchestrationResult> {
   const startTime = Date.now();
   const agentsExecuted: string[] = [];
+  const agentFailures: Array<{ agent: string; error: string }> = [];
+  const pipelineConfig = await orchestratorPipelineService.getRuntimeConfig();
 
   // ─── 0. Pre-flight dynamique : valider le pipeline avant tout coût IA ───
   // Refuse de démarrer si un agent `required` est manquant ou inactif en DB.
   // Récupère la liste des `skipped` (agents optionnels désactivés) pour les
   // sauter explicitement plus bas.
-  const { skipped: agentsSkipped } = await validateActiveAgents();
-  const skipSet = new Set(agentsSkipped);
+  const preflight = await validateActiveAgents(pipelineConfig);
+  const agentsSkipped: string[] = [...preflight.skipped];
+  const skippedStepIds = preflight.skippedStepIds;
+
+  const imageStep = getStep(pipelineConfig, 'image_analysis');
+  const plannerStep = getStep(pipelineConfig, 'planning');
+  const textStep = getStep(pipelineConfig, 'text_analysis');
+  const brandStep = getStep(pipelineConfig, 'brand_analysis');
+  const artisticStep = getStep(pipelineConfig, 'artistic_base');
+  const promptStep = getStep(pipelineConfig, 'prompt_architect');
+  const safetyStep = getStep(pipelineConfig, 'safety');
+  const qualityStep = getStep(pipelineConfig, 'quality');
 
   // ─── 1. Vérification du travail et ownership ───────────
 
@@ -237,6 +279,22 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     memorySnapshot = buildMemorySnapshot(fresh);
   };
 
+  const persistStepMemory = async (
+    step: OrchestratorPipelineStep,
+    fallbackKey: string,
+    content: Prisma.InputJsonValue,
+  ) => {
+    const memoryKey = stepOutputKey(step, fallbackKey);
+    try {
+      await upsertMemory(options.travailId, memoryKey, content);
+    } catch (err) {
+      const msg = `Mémoire ${memoryKey}: ${errorMessage(err)}`;
+      if (step.required || CRITICAL_STEP_IDS.has(step.id)) throw new Error(msg);
+      agentFailures.push({ agent: step.agentKey, error: msg });
+      console.warn(`[orchestrator] ${step.label} memory write skipped:`, msg);
+    }
+  };
+
   // ─── 2. Auto-peupler M_SMS depuis M-CREATIVE-BRIEF si absent ────
 
   const mSmsEntry = travail.memoryEntries.find(
@@ -251,13 +309,18 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       const history = brief.conversationHistory as Array<{ role: string; content: string }> | undefined;
       const firstUserMessage = history?.find((m) => m.role === 'user')?.content;
       if (firstUserMessage) {
-        await upsertMemory(options.travailId, 'M_SMS', {
-          request: firstUserMessage,
-          conversationHistory: history?.slice(0, 10),
-          auto_populated: true,
-          populated_at: new Date().toISOString(),
-        } as unknown as Prisma.InputJsonValue);
-        await refreshSnapshot();
+        try {
+          await upsertMemory(options.travailId, 'M_SMS', {
+            request: firstUserMessage,
+            conversationHistory: history?.slice(0, 10),
+            auto_populated: true,
+            populated_at: new Date().toISOString(),
+          } as unknown as Prisma.InputJsonValue);
+          await refreshSnapshot();
+        } catch (err) {
+          agentFailures.push({ agent: 'orchestrator', error: `Mémoire M_SMS: ${errorMessage(err)}` });
+          console.warn('[orchestrator] M_SMS auto-populate skipped:', errorMessage(err));
+        }
       }
     }
   }
@@ -266,21 +329,25 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
 
   let imageAnalystResults: ImageAnalystOutput[] = [];
 
-  if (allFiles.length > 0 && !skipSet.has('IMAGE_ANALYST_AGENT')) {
+  if (shouldRunStep(imageStep, skippedStepIds, { hasFiles: allFiles.length > 0 })) {
     try {
-      imageAnalystResults = await runImageAnalystAgent({
-        travailId: options.travailId,
-        files: allFiles.map(f => ({
-          id: f.id,
-          fileUrl: f.fileUrl,
-          fileType: f.fileType,
-          originalName: f.originalName,
-          usageType: f.usageType
-        })),
-        provider: options.visionProvider,
-        model: options.visionModel,
-        memorySnapshot
-      });
+      imageAnalystResults = await withStepPolicy(imageStep, () =>
+        runImageAnalystAgent({
+          travailId: options.travailId,
+          files: allFiles.map(f => ({
+            id: f.id,
+            fileUrl: f.fileUrl,
+            fileType: f.fileType,
+            originalName: f.originalName,
+            usageType: f.usageType
+          })),
+          provider: options.visionProvider,
+          model: options.visionModel,
+          memorySnapshot,
+          agentKey: imageStep.agentKey,
+          inputMemoryKeys: imageStep.inputMemoryKeys,
+        }),
+      );
 
       agentsExecuted.push('ImageAnalystAgent');
 
@@ -290,12 +357,17 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
         file_count: imageAnalystResults.length,
         generated_at: new Date().toISOString()
       };
-      await upsertMemory(options.travailId, 'M_MD', mdContent as unknown as Prisma.InputJsonValue);
+      await persistStepMemory(imageStep, 'M_MD', mdContent as unknown as Prisma.InputJsonValue);
       await refreshSnapshot();
     } catch (err) {
+      if (imageStep.required) {
+        throw new AppError(`Image Analyst Agent échoué: ${errorMessage(err)}`, 500);
+      }
       // Non bloquant : continuer même si l'analyse image échoue
       console.warn('ImageAnalystAgent warning:', err instanceof Error ? err.message : err);
     }
+  } else if (allFiles.length === 0 && imageStep.enabled) {
+    agentsSkipped.push(`${imageStep.agentKey} (condition has_files non remplie)`);
   }
 
   // ─── 4. Planner Agent ────────────────────────────────
@@ -303,19 +375,23 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   let plannerResult: PlannerOutput;
 
   try {
-    plannerResult = await runPlannerAgent({
-      travailId: options.travailId,
-      provider: options.provider,
-      model: options.model,
-      memorySnapshot
-    });
+    plannerResult = await withStepPolicy(plannerStep, () =>
+      runPlannerAgent({
+        travailId: options.travailId,
+        provider: options.provider,
+        model: options.model,
+        memorySnapshot,
+        agentKey: plannerStep.agentKey,
+        inputMemoryKeys: plannerStep.inputMemoryKeys,
+      }),
+    );
     agentsExecuted.push('PlannerAgent');
   } catch (err) {
     throw new AppError(`Planner Agent échoué: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
   }
 
   // Sauvegarder M_QT1
-  await upsertMemory(options.travailId, 'M_QT1', {
+  await persistStepMemory(plannerStep, 'M_QT1', {
     questions_to_user: plannerResult.questions_to_user,
     missing_information: plannerResult.missing_information,
     generated_at: new Date().toISOString()
@@ -418,51 +494,6 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
 
   const artisticResources = await fetchArtisticResources();
 
-  const [textSettled, brandSettled, artisticSettled] = await Promise.allSettled([
-    runTextAnalystAgent({
-      travailId: options.travailId,
-      plannerResult,
-      provider: options.provider,
-      model: options.model,
-      memorySnapshot
-    }),
-    runBrandAgent({
-      travailId: options.travailId,
-      logoFile: logoFile
-        ? {
-            id: logoFile.id,
-            fileUrl: logoFile.fileUrl,
-            fileType: logoFile.fileType,
-            originalName: logoFile.originalName,
-            usageType: logoFile.usageType
-          }
-        : null,
-      imageAnalystResult: firstImageAnalysis,
-      provider: options.provider,
-      model: options.model,
-      memorySnapshot
-    }),
-    runArtisticBaseAgent({
-      travailId: options.travailId,
-      plannerResult,
-      artisticResources: artisticResources.map(r => ({
-        id: r.id,
-        title: r.title,
-        category: r.category,
-        resourceType: r.resourceType,
-        description: r.description,
-        tags: r.tags,
-        content: r.content,
-        url: r.url
-      })),
-      provider: options.provider,
-      model: options.model,
-      memorySnapshot
-    })
-  ]);
-
-  const agentFailures: Array<{ agent: string; error: string }> = [];
-
   // ─── Soft-fail policy ───────────────────────────────────────────────────
   // TextAnalyst / Brand / ArtisticBase sont enrichissants mais pas vitaux :
   // si l'un échoue, on continue avec des valeurs par défaut et on trace la
@@ -471,76 +502,163 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   // Planner et PromptArchitect restent en hard-throw (sans eux, pas de
   // M_PROMPT1 utilisable → la suite n'a pas de sens).
 
-  let textAnalystResult: TextAnalystOutput;
-  if (textSettled.status === 'rejected') {
-    const msg = textSettled.reason instanceof Error ? textSettled.reason.message : 'Unknown';
-    agentFailures.push({ agent: 'TextAnalystAgent', error: msg });
-    console.warn('[orchestrator] TextAnalystAgent failed (soft-fail):', msg);
-    textAnalystResult = {
-      main_title: '',
-      subtitle: '',
-      description: '',
-      call_to_action: '',
-      corrected_text: '',
-      text_hierarchy: { level_1: '', level_2: '', level_3: '' },
-    };
+  let textAnalystResult: TextAnalystOutput = {
+    main_title: '',
+    subtitle: '',
+    description: '',
+    call_to_action: '',
+    corrected_text: '',
+    text_hierarchy: { level_1: '', level_2: '', level_3: '' },
+  };
+
+  let brandAgentResult: BrandAgentOutput = {
+    brand_identity: {
+      brand_name: '',
+      logo_url: logoFile?.fileUrl ?? '',
+      slogan: '',
+      visual_style: '',
+      typography: '',
+      specific_elements: [],
+    },
+    m_contact: {
+      company_name: '',
+      phone: '', whatsapp: '', email: '',
+      address: '', website: '', facebook: '', instagram: '',
+    },
+    m_colors: {
+      primary: '', secondary: '', accent: '',
+      extracted_colors: [], source: 'fallback',
+    },
+    missing_brand_information: [],
+  };
+
+  let artisticBaseResult: ArtisticBaseOutput = {
+    recommended_models: [],
+    recommended_textures: [],
+    recommended_fonts: [],
+    recommended_palettes: [],
+    recommended_styles: [],
+    selected_model_url: null,
+    selected_style_url: null,
+    forbidden_elements: [],
+    quality_rules: [],
+  };
+
+  const designContext = {
+    hasFiles: allFiles.length > 0,
+    plannerReady: plannerResult.ready_for_next_step,
+    force: options.force,
+  };
+
+  const designTasks = [
+    {
+      step: textStep,
+      name: 'TextAnalystAgent',
+      run: async () => {
+        textAnalystResult = await withStepPolicy(textStep, () =>
+          runTextAnalystAgent({
+            travailId: options.travailId,
+            plannerResult,
+            provider: options.provider,
+            model: options.model,
+            memorySnapshot,
+            agentKey: textStep.agentKey,
+            inputMemoryKeys: textStep.inputMemoryKeys,
+          }),
+        );
+      },
+    },
+    {
+      step: brandStep,
+      name: 'BrandAgent',
+      run: async () => {
+        brandAgentResult = await withStepPolicy(brandStep, () =>
+          runBrandAgent({
+            travailId: options.travailId,
+            logoFile: logoFile
+              ? {
+                  id: logoFile.id,
+                  fileUrl: logoFile.fileUrl,
+                  fileType: logoFile.fileType,
+                  originalName: logoFile.originalName,
+                  usageType: logoFile.usageType
+                }
+              : null,
+            imageAnalystResult: firstImageAnalysis,
+            provider: options.provider,
+            model: options.model,
+            memorySnapshot,
+            agentKey: brandStep.agentKey,
+            inputMemoryKeys: brandStep.inputMemoryKeys,
+          }),
+        );
+      },
+    },
+    {
+      step: artisticStep,
+      name: 'ArtisticBaseAgent',
+      run: async () => {
+        artisticBaseResult = await withStepPolicy(artisticStep, () =>
+          runArtisticBaseAgent({
+            travailId: options.travailId,
+            plannerResult,
+            artisticResources: artisticResources.map(r => ({
+              id: r.id,
+              title: r.title,
+              category: r.category,
+              resourceType: r.resourceType,
+              description: r.description,
+              tags: r.tags,
+              content: r.content,
+              url: r.url
+            })),
+            provider: options.provider,
+            model: options.model,
+            memorySnapshot,
+            agentKey: artisticStep.agentKey,
+            inputMemoryKeys: artisticStep.inputMemoryKeys,
+          }),
+        );
+      },
+    },
+  ].sort((a, b) => a.step.order - b.step.order);
+
+  const runnableDesignTasks = designTasks.filter((task) => {
+    const shouldRun = shouldRunStep(task.step, skippedStepIds, designContext);
+    if (!shouldRun && task.step.enabled && !skippedStepIds.has(task.step.id)) {
+      agentsSkipped.push(`${task.step.agentKey} (condition ${task.step.condition} non remplie)`);
+    }
+    return shouldRun;
+  });
+
+  const runDesignTask = async (task: typeof designTasks[number]) => {
+    try {
+      await task.run();
+      agentsExecuted.push(task.name);
+    } catch (err) {
+      const msg = errorMessage(err);
+      if (task.step.required) {
+        throw new AppError(`${task.name} échoué: ${msg}`, 500);
+      }
+      agentFailures.push({ agent: task.name, error: msg });
+      console.warn(`[orchestrator] ${task.name} failed (soft-fail):`, msg);
+    }
+  };
+
+  if (runnableDesignTasks.every((task) => task.step.executionMode === 'parallel')) {
+    await Promise.all(runnableDesignTasks.map(runDesignTask));
   } else {
-    textAnalystResult = textSettled.value;
-    agentsExecuted.push('TextAnalystAgent');
+    for (const task of runnableDesignTasks) {
+      await runDesignTask(task);
+    }
   }
 
-  let brandAgentResult: BrandAgentOutput;
-  if (brandSettled.status === 'rejected') {
-    const msg = brandSettled.reason instanceof Error ? brandSettled.reason.message : 'Unknown';
-    agentFailures.push({ agent: 'BrandAgent', error: msg });
-    console.warn('[orchestrator] BrandAgent failed (soft-fail):', msg);
-    brandAgentResult = {
-      brand_identity: {
-        brand_name: '',
-        logo_url: logoFile?.fileUrl ?? '',
-        slogan: '',
-        visual_style: '',
-        typography: '',
-        specific_elements: [],
-      },
-      m_contact: {
-        company_name: '',
-        phone: '', whatsapp: '', email: '',
-        address: '', website: '', facebook: '', instagram: '',
-      },
-      m_colors: {
-        primary: '', secondary: '', accent: '',
-        extracted_colors: [], source: 'fallback (BrandAgent failed)',
-      },
-      missing_brand_information: ['BrandAgent did not respond — toutes les informations marque manquent'],
-    };
-  } else {
-    brandAgentResult = brandSettled.value;
-    agentsExecuted.push('BrandAgent');
+  if (brandStep.enabled && !skippedStepIds.has(brandStep.id)) {
+    await persistStepMemory(brandStep, 'M_ID', brandAgentResult as unknown as Prisma.InputJsonValue);
   }
-  await upsertMemory(options.travailId, 'M_ID', brandAgentResult as unknown as Prisma.InputJsonValue);
-
-  let artisticBaseResult: ArtisticBaseOutput;
-  if (artisticSettled.status === 'rejected') {
-    const msg = artisticSettled.reason instanceof Error ? artisticSettled.reason.message : 'Unknown';
-    agentFailures.push({ agent: 'ArtisticBaseAgent', error: msg });
-    console.warn('[orchestrator] ArtisticBaseAgent failed (soft-fail):', msg);
-    artisticBaseResult = {
-      recommended_models: [],
-      recommended_textures: [],
-      recommended_fonts: [],
-      recommended_palettes: [],
-      recommended_styles: [],
-      selected_model_url: null,
-      selected_style_url: null,
-      forbidden_elements: [],
-      quality_rules: [],
-    };
-  } else {
-    artisticBaseResult = artisticSettled.value;
-    agentsExecuted.push('ArtisticBaseAgent');
+  if (artisticStep.enabled && !skippedStepIds.has(artisticStep.id)) {
+    await persistStepMemory(artisticStep, 'M_BA', artisticBaseResult as unknown as Prisma.InputJsonValue);
   }
-  await upsertMemory(options.travailId, 'M_BA', artisticBaseResult as unknown as Prisma.InputJsonValue);
   await refreshSnapshot();
 
   // ─── 9. Prompt Architect → M-PROMPT1 ────────────────
@@ -554,23 +672,28 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   let promptArchitectResult: PromptArchitectOutput;
 
   try {
-    promptArchitectResult = await runPromptArchitectAgent({
-      travailId: options.travailId,
-      plannerResult,
-      textAnalystResult,
-      brandAgentResult,
-      artisticBaseResult,
-      provider: options.provider,
-      model: options.model,
-      memorySnapshot
-    });
+    promptArchitectResult = await withStepPolicy(promptStep, () =>
+      runPromptArchitectAgent({
+        travailId: options.travailId,
+        plannerResult,
+        textAnalystResult,
+        brandAgentResult,
+        artisticBaseResult,
+        provider: options.provider,
+        model: options.model,
+        memorySnapshot,
+        agentKey: promptStep.agentKey,
+        inputMemoryKeys: promptStep.inputMemoryKeys,
+      }),
+    );
     agentsExecuted.push('PromptArchitectAgent');
   } catch (err) {
     throw new AppError(`Prompt Architect Agent échoué: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
   }
 
   // Sauvegarder M_PROMPT1
-  await upsertMemory(options.travailId, 'M_PROMPT1', promptArchitectResult as unknown as Prisma.InputJsonValue);
+  const promptMemoryKey = stepOutputKey(promptStep, 'M_PROMPT1');
+  await persistStepMemory(promptStep, 'M_PROMPT1', promptArchitectResult as unknown as Prisma.InputJsonValue);
   await refreshSnapshot();
 
   // ─── 10. SAFETY AGENT (entre Prompt Architect et Quality) ─────────────
@@ -580,8 +703,11 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   // l'admin a désactivé l'agent SAFETY_AGENT (pre-flight l'a déjà détecté).
 
   let safetyResult: SafetyAgentOutput | undefined;
-  if (skipSet.has('SAFETY_AGENT')) {
-    console.warn('[orchestrator] SAFETY_AGENT inactif — étape sautée');
+  if (!shouldRunStep(safetyStep, skippedStepIds, { hasFiles: allFiles.length > 0, hasPrompt: true })) {
+    if (safetyStep.enabled && !skippedStepIds.has(safetyStep.id)) {
+      agentsSkipped.push(`${safetyStep.agentKey} (condition ${safetyStep.condition} non remplie)`);
+    }
+    console.warn('[orchestrator] SAFETY_AGENT étape sautée');
   } else try {
     const activeRules = await prisma.forbiddenRule.findMany({
       where: { isActive: true },
@@ -594,14 +720,18 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
         negativePrompt: true,
       },
     });
-    safetyResult = await runSafetyAgent({
-      travailId: options.travailId,
-      mPrompt1: promptArchitectResult,
-      forbiddenRules: activeRules,
-      provider: options.provider,
-      model: options.model,
-      memorySnapshot,
-    });
+    safetyResult = await withStepPolicy(safetyStep, () =>
+      runSafetyAgent({
+        travailId: options.travailId,
+        mPrompt1: promptArchitectResult,
+        forbiddenRules: activeRules,
+        provider: options.provider,
+        model: options.model,
+        memorySnapshot,
+        agentKey: safetyStep.agentKey,
+        inputMemoryKeys: safetyStep.inputMemoryKeys,
+      }),
+    );
     agentsExecuted.push('SafetyAgent');
 
     if (safetyResult.decision === 'blocked') {
@@ -639,17 +769,20 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
           .join(', ');
       }
       // Re-sauvegarder M_PROMPT1 avec les amendements Safety
-      await upsertMemory(
-        options.travailId,
-        'M_PROMPT1',
+      await persistStepMemory(
+        safetyStep,
+        promptMemoryKey,
         promptArchitectResult as unknown as Prisma.InputJsonValue,
       );
     }
   } catch (err) {
+    if (safetyStep.required) {
+      throw new AppError(`Safety Agent échoué: ${errorMessage(err)}`, 500);
+    }
     // Safety non bloquant : on continue mais on trace la défaillance.
     agentFailures.push({
       agent: 'SafetyAgent',
-      error: err instanceof Error ? err.message : 'Unknown',
+      error: errorMessage(err),
     });
     console.warn('SafetyAgent warning:', err instanceof Error ? err.message : err);
   }
@@ -661,31 +794,41 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   let qualityResult: QualityAgentOutput | undefined;
   let qualityFailed = false;
 
-  if (skipSet.has('QUALITY_AGENT')) {
-    console.warn('[orchestrator] QUALITY_AGENT inactif — étape sautée');
+  if (!shouldRunStep(qualityStep, skippedStepIds, { hasFiles: allFiles.length > 0, hasPrompt: true })) {
+    if (qualityStep.enabled && !skippedStepIds.has(qualityStep.id)) {
+      agentsSkipped.push(`${qualityStep.agentKey} (condition ${qualityStep.condition} non remplie)`);
+    }
+    console.warn('[orchestrator] QUALITY_AGENT étape sautée');
   } else try {
-    qualityResult = await runQualityAgent({
-      travailId: options.travailId,
-      mPrompt1: promptArchitectResult,
-      provider: options.provider,
-      model: options.model,
-      memorySnapshot
-    });
+    qualityResult = await withStepPolicy(qualityStep, () =>
+      runQualityAgent({
+        travailId: options.travailId,
+        mPrompt1: promptArchitectResult,
+        provider: options.provider,
+        model: options.model,
+        memorySnapshot,
+        agentKey: qualityStep.agentKey,
+        inputMemoryKeys: qualityStep.inputMemoryKeys,
+      }),
+    );
     agentsExecuted.push('QualityAgent');
   } catch (err) {
+    if (qualityStep.required) {
+      throw new AppError(`Quality Agent échoué: ${errorMessage(err)}`, 500);
+    }
     qualityFailed = true;
     agentFailures.push({
       agent: 'QualityAgent',
-      error: err instanceof Error ? err.message : 'Unknown',
+      error: errorMessage(err),
     });
     console.warn('QualityAgent warning:', err instanceof Error ? err.message : err);
   }
 
   // Persister le quality_score dans M_PROMPT1 pour la quality gate de imageGen
   if (qualityResult) {
-    await upsertMemory(
-      options.travailId,
-      'M_PROMPT1',
+    await persistStepMemory(
+      qualityStep,
+      promptMemoryKey,
       {
         ...promptArchitectResult,
         quality_score: qualityResult.quality_score,

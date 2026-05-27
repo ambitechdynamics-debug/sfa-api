@@ -8,7 +8,8 @@ import {
   createAgentDefSchema,
   updateAgentDefSchema,
   createAgentMemoryLinkSchema,
-  updateAgentMemoryLinkSchema
+  updateAgentMemoryLinkSchema,
+  orchestratorPipelineConfigSchema
 } from './admin.validation';
 import { AppError } from '../../utils/appError';
 
@@ -89,5 +90,10 @@ router.get('/agent-memory-links', adminController.listAgentMemoryLinks);
 router.get('/agent-definitions/:agentId/memories', adminController.getAgentMemoryLinksByAgent);
 router.patch('/agent-memory-links/:id', validate({ body: updateAgentMemoryLinkSchema }), adminController.updateAgentMemoryLink);
 router.delete('/agent-memory-links/:id', adminController.deleteAgentMemoryLink);
+
+// ─── Orchestrator Pipeline ──────────────────────────────────────────────────
+router.get('/orchestrator-pipeline', adminController.getOrchestratorPipeline);
+router.put('/orchestrator-pipeline', validate({ body: orchestratorPipelineConfigSchema }), adminController.saveOrchestratorPipeline);
+router.post('/orchestrator-pipeline/reset', adminController.resetOrchestratorPipeline);
 
 export default router;

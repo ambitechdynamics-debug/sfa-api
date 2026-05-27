@@ -11,6 +11,10 @@ export interface AgentContextData {
   systemPrompt: string;
 }
 
+export interface AgentContextOptions {
+  inputMemoryKeys?: string[];
+}
+
 /**
  * Snapshot mémoire pré-chargé (par exemple par l'orchestrateur, qui le partage
  * entre les 7 agents pour éviter 7 queries `MemoryEntry.findMany`). Map de
@@ -22,6 +26,7 @@ export async function buildAgentContext(
   agentKey: string,
   travailId: string,
   snapshot?: MemorySnapshot,
+  options: AgentContextOptions = {},
 ): Promise<AgentContextData> {
   // 1. Récupérer l'agent et ses liaisons INPUT / BOTH
   const agent = await prisma.agentDefinition.findUnique({
@@ -39,8 +44,34 @@ export async function buildAgentContext(
     throw new Error(`Agent with key ${agentKey} not found in database.`);
   }
 
-  // 2. Récupérer les mémoires du travail correspondant
-  const memoryKeys = agent.memoryLinks.map(link => link.memory.key);
+  // 2. Récupérer les mémoires du travail correspondant. Par défaut les liens
+  // AgentMemoryLink restent la source, mais l'orchestrateur peut injecter une
+  // liste administrée par pipeline pour tester un flux sans modifier les liens.
+  type PromptMemoryLink = { memory: { key: string; name: string }; isRequired: boolean };
+  let promptLinks: PromptMemoryLink[];
+
+  if (options.inputMemoryKeys !== undefined) {
+    const keys = Array.from(new Set(options.inputMemoryKeys.map((key) => key.trim()).filter(Boolean)));
+    const definitions = keys.length > 0
+      ? await prisma.memoryDefinition.findMany({
+          where: { key: { in: keys }, isActive: true },
+          select: { key: true, name: true },
+        })
+      : [];
+    const byKey = new Map(definitions.map((memory) => [memory.key, memory]));
+
+    promptLinks = keys.map((key) => ({
+      memory: byKey.get(key) ?? { key, name: key },
+      isRequired: false,
+    }));
+  } else {
+    promptLinks = agent.memoryLinks.map((link) => ({
+      memory: { key: link.memory.key, name: link.memory.name },
+      isRequired: link.isRequired,
+    }));
+  }
+
+  const memoryKeys = promptLinks.map(link => link.memory.key);
 
   if (memoryKeys.length === 0) {
     return {
@@ -75,7 +106,7 @@ export async function buildAgentContext(
   }
 
   // 3. Vérifier les mémoires requises
-  for (const link of agent.memoryLinks) {
+  for (const link of promptLinks) {
     if (link.isRequired && !entriesByKey.has(link.memory.key)) {
       throw new Error(`Memory ${link.memory.key} (${link.memory.name}) is required for agent ${agentKey} but not found in travail.`);
     }
@@ -83,7 +114,7 @@ export async function buildAgentContext(
 
   // 4. Construire le texte du prompt dynamique
   let promptText = '';
-  for (const link of agent.memoryLinks) {
+  for (const link of promptLinks) {
     const content = entriesByKey.get(link.memory.key);
     if (content) {
       promptText += `\n## Mémoire: ${link.memory.key} (${link.memory.name})\n`;

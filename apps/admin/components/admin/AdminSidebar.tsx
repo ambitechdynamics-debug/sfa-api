@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, FolderOpen, Bot, Brain, Link2,
   Palette, Image, Files, FileText, CreditCard, Wallet,
-  Coins, Activity, Settings, Sparkles, ChevronRight, X, Ban
+  Coins, Activity, Settings, Sparkles, ChevronRight, X, Ban, GitBranch
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAdminStore } from '@/store/admin-store'
@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { label: 'Crédits IA', href: '/admin/credits', icon: Coins },
   { label: 'Séparateur', type: 'separator', section: 'IA & Contenu' },
   { label: 'Agents IA', href: '/admin/agents', icon: Bot },
+  { label: 'Orchestrateur', href: '/admin/orchestrator', icon: GitBranch },
   { label: 'Mémoires', href: '/admin/memories', icon: Brain },
   { label: 'Liaisons Agent/Mémoire', href: '/admin/agent-memory-links', icon: Link2 },
   { label: 'Base Artistique', href: '/admin/artistic-base', icon: Palette },

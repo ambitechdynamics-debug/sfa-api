@@ -70,6 +70,20 @@ export const adminController = {
     sendSuccess(res, 'AgentMemoryLink deleted', result);
   }),
 
+  // Orchestrator Pipeline
+  getOrchestratorPipeline: asyncHandler(async (_req: Request, res: Response) => {
+    const result = await adminService.getOrchestratorPipeline();
+    sendSuccess(res, 'Orchestrator pipeline retrieved', result);
+  }),
+  saveOrchestratorPipeline: asyncHandler(async (req: Request, res: Response) => {
+    const result = await adminService.saveOrchestratorPipeline(req.body);
+    sendSuccess(res, 'Orchestrator pipeline saved', result);
+  }),
+  resetOrchestratorPipeline: asyncHandler(async (_req: Request, res: Response) => {
+    const result = await adminService.resetOrchestratorPipeline();
+    sendSuccess(res, 'Orchestrator pipeline reset', result);
+  }),
+
   // ─── New Admin Endpoints ──────────────────────────────────────────────────
 
   getStats: asyncHandler(async (_req: Request, res: Response) => {

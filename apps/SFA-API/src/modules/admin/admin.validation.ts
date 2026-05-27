@@ -39,3 +39,32 @@ export const updateAgentMemoryLinkSchema = z.object({
   isRequired: z.boolean().optional(),
   priority: z.number().optional()
 });
+
+export const orchestratorPipelineStepSchema = z.object({
+  id: z.enum([
+    'image_analysis',
+    'planning',
+    'text_analysis',
+    'brand_analysis',
+    'artistic_base',
+    'prompt_architect',
+    'safety',
+    'quality',
+  ]),
+  label: z.string().min(1),
+  agentKey: z.string().min(1),
+  order: z.number(),
+  enabled: z.boolean(),
+  required: z.boolean(),
+  executionMode: z.enum(['sequential', 'parallel']),
+  inputMemoryKeys: z.array(z.string()),
+  outputMemoryKey: z.string().nullable(),
+  retries: z.number().int().min(0).max(5),
+  timeoutMs: z.number().int().min(1000).max(300000),
+  condition: z.enum(['always', 'has_files', 'planner_ready_or_force', 'has_prompt']),
+});
+
+export const orchestratorPipelineConfigSchema = z.object({
+  version: z.number().optional(),
+  steps: z.array(orchestratorPipelineStepSchema).min(1),
+});

@@ -11,6 +11,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   '/admin/users': 'Utilisateurs',
   '/admin/projects': 'Projets',
   '/admin/agents': 'Agents IA',
+  '/admin/orchestrator': 'Orchestrateur',
   '/admin/memories': 'Mémoires',
   '/admin/agent-memory-links': 'Liaisons Agent/Mémoire',
   '/admin/artistic-base': 'Base Artistique',

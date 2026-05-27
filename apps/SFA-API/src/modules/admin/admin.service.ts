@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { AppError } from '../../utils/appError';
 import { stripe } from '../../config/stripe';
+import { orchestratorPipelineService } from '../orchestrator/orchestratorPipeline.service';
 
 const SUBSCRIPTION_PLAN_DEFAULTS = {
   free:     { name: 'Gratuit',  price: 0,  currency: 'XOF', credits: 0,   maxProjects: 3,   maxFilesPerProject: 3,  features: ['3 projets max', '3 générations gratuites', 'Affiches en basse résolution'], isActive: true },
@@ -81,6 +82,17 @@ export const adminService = {
   },
   deleteAgentMemoryLink: async (id: string) => {
     return prisma.agentMemoryLink.delete({ where: { id } });
+  },
+
+  // Orchestrator Pipeline
+  getOrchestratorPipeline: async () => {
+    return orchestratorPipelineService.getPayload();
+  },
+  saveOrchestratorPipeline: async (data: unknown) => {
+    return orchestratorPipelineService.save(data);
+  },
+  resetOrchestratorPipeline: async () => {
+    return orchestratorPipelineService.reset();
   },
 
   // ─── Admin overview ────────────────────────────────────────────────────────
