@@ -1,14 +1,6 @@
 export type OrchestratorExecutionMode = 'sequential' | 'parallel'
 export type OrchestratorCondition = 'always' | 'has_files' | 'planner_ready_or_force' | 'has_prompt'
-export type OrchestratorStepId =
-  | 'image_analysis'
-  | 'planning'
-  | 'text_analysis'
-  | 'brand_analysis'
-  | 'artistic_base'
-  | 'prompt_architect'
-  | 'safety'
-  | 'quality'
+export type OrchestratorStepId = string
 
 export interface OrchestratorPipelineStep {
   id: OrchestratorStepId
@@ -42,6 +34,5 @@ export interface OrchestratorPipelinePayload {
   updatedAt: string | null
   config: OrchestratorPipelineConfig
   defaultConfig: OrchestratorPipelineConfig
-  stepTemplates: OrchestratorPipelineConfig
   diagnostics: OrchestratorPipelineDiagnostics
 }

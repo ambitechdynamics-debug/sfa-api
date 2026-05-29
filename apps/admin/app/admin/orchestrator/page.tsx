@@ -44,7 +44,7 @@ const CONDITION_OPTIONS: Array<{ value: OrchestratorCondition; label: string }> 
   { value: 'has_prompt', label: 'Prompt présent' },
 ]
 
-const CRITICAL_STEPS = new Set<OrchestratorStepId>(['planning', 'prompt_architect'])
+const CRITICAL_AGENT_KEYS = new Set<string>(['PLANNER_AGENT', 'PROMPT_ARCHITECT_AGENT'])
 
 const inputCls = 'w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-xs text-[var(--text)] outline-none transition-colors focus:border-[var(--accent)]'
 
@@ -141,7 +141,6 @@ function DiagnosticList({ diagnostics, stepCount }: { diagnostics: OrchestratorP
 
 export default function OrchestratorPage() {
   const [config, setConfig] = useState<OrchestratorPipelineConfig | null>(null)
-  const [stepTemplates, setStepTemplates] = useState<OrchestratorPipelineStep[]>([])
   const [diagnostics, setDiagnostics] = useState<OrchestratorPipelineDiagnostics | null>(null)
   const [agents, setAgents] = useState<AgentDefinition[]>([])
   const [memories, setMemories] = useState<MemoryDefinition[]>([])
@@ -159,7 +158,6 @@ export default function OrchestratorPage() {
         fetchMemories(),
       ])
       setConfig({ ...pipeline.config, steps: reindexSteps([...pipeline.config.steps].sort((a, b) => a.order - b.order)) })
-      setStepTemplates(pipeline.stepTemplates?.steps ?? pipeline.defaultConfig.steps)
       setDiagnostics(pipeline.diagnostics)
       setAgents(agentRows)
       setMemories(memoryRows)
@@ -228,7 +226,6 @@ export default function OrchestratorPage() {
     try {
       const payload = await resetOrchestratorPipeline()
       setConfig({ ...payload.config, steps: reindexSteps([...payload.config.steps].sort((a, b) => a.order - b.order)) })
-      setStepTemplates(payload.stepTemplates?.steps ?? payload.defaultConfig.steps)
       setDiagnostics(payload.diagnostics)
       setSource(payload.source)
       setUpdatedAt(payload.updatedAt)
@@ -244,12 +241,27 @@ export default function OrchestratorPage() {
     setConfig((current) => {
       if (!current) return current
       const usedIds = new Set(current.steps.map((step) => step.id))
-      const template = stepTemplates.find((step) => !usedIds.has(step.id))
-      if (!template) {
-        toastError('Toutes les étapes disponibles sont déjà ajoutées')
-        return current
+      let candidate = `etape-${current.steps.length + 1}`
+      let suffix = 1
+      while (usedIds.has(candidate)) {
+        suffix += 1
+        candidate = `etape-${current.steps.length + 1}-${suffix}`
       }
-      return { ...current, steps: reindexSteps([...current.steps, { ...template }]) }
+      const newStep: OrchestratorPipelineStep = {
+        id: candidate,
+        label: 'Nouvelle étape',
+        agentKey: agents[0]?.key ?? '',
+        order: (current.steps.length + 1) * 10,
+        enabled: true,
+        required: false,
+        executionMode: 'sequential',
+        inputMemoryKeys: [],
+        outputMemoryKey: null,
+        retries: 0,
+        timeoutMs: 30000,
+        condition: 'always',
+      }
+      return { ...current, steps: reindexSteps([...current.steps, newStep]) }
     })
   }
 
@@ -258,12 +270,6 @@ export default function OrchestratorPage() {
       if (!current) return current
       return { ...current, steps: reindexSteps(current.steps.filter((step) => step.id !== stepId)) }
     })
-  }
-
-  function applyTemplateStep(stepId: OrchestratorStepId) {
-    const fallback = stepTemplates.find((step) => step.id === stepId)
-    if (!fallback) return
-    updateStep(stepId, fallback)
   }
 
   return (
@@ -388,7 +394,7 @@ export default function OrchestratorPage() {
           <div className="divide-y divide-[var(--border)]">
             {steps.map((step, index) => {
               const currentAgentMissing = Boolean(step.agentKey && !agentKeys.includes(step.agentKey))
-              const isCritical = CRITICAL_STEPS.has(step.id)
+              const isCritical = CRITICAL_AGENT_KEYS.has(step.agentKey)
 
               return (
                 <div key={step.id} className="grid gap-3 p-4 xl:grid-cols-[56px_1.2fr_1fr_110px_110px_120px_1.2fr_1fr_96px] xl:items-start">
@@ -423,10 +429,17 @@ export default function OrchestratorPage() {
                       onChange={(event) => updateStep(step.id, { label: event.target.value })}
                       className={cn(inputCls, 'font-semibold')}
                     />
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="rounded-md bg-[var(--bg-subtle)] px-2 py-1 text-[10px] text-[var(--text-muted)]">{step.id}</code>
-                      {isCritical && <span className="rounded-md bg-red-500/10 px-2 py-1 text-[10px] font-semibold text-red-500">critique</span>}
-                    </div>
+                    <input
+                      value={step.id}
+                      onChange={(event) => updateStep(step.id, { id: event.target.value.trim() || step.id })}
+                      className={cn(inputCls, 'font-mono text-[10px]')}
+                      placeholder="identifiant"
+                    />
+                    {isCritical && (
+                      <div className="flex">
+                        <span className="rounded-md bg-red-500/10 px-2 py-1 text-[10px] font-semibold text-red-500">critique</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -447,13 +460,6 @@ export default function OrchestratorPage() {
                       ))}
                     </select>
                     <div className="flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => applyTemplateStep(step.id)}
-                        className="text-[10px] font-medium text-[var(--text-subtle)] transition-colors hover:text-[var(--accent)]"
-                      >
-                        Restaurer template
-                      </button>
                       <button
                         type="button"
                         onClick={() => deleteStep(step.id)}

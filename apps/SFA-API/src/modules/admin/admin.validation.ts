@@ -41,16 +41,7 @@ export const updateAgentMemoryLinkSchema = z.object({
 });
 
 export const orchestratorPipelineStepSchema = z.object({
-  id: z.enum([
-    'image_analysis',
-    'planning',
-    'text_analysis',
-    'brand_analysis',
-    'artistic_base',
-    'prompt_architect',
-    'safety',
-    'quality',
-  ]),
+  id: z.string().min(1),
   label: z.string().min(1),
   agentKey: z.string().min(1),
   order: z.number(),

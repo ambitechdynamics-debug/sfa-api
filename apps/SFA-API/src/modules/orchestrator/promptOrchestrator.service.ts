@@ -22,11 +22,9 @@ import { AppError } from '../../utils/appError';
 import { AIProvider } from '../ai/ai.types';
 import { buildMemorySnapshot, type MemorySnapshot } from '../agents/dynamic-context.service';
 import {
-  ORCHESTRATOR_STEP_TEMPLATES,
   orchestratorPipelineService,
   type OrchestratorPipelineConfig,
   type OrchestratorPipelineStep,
-  type OrchestratorStepId,
 } from './orchestratorPipeline.service';
 import {
   runPlannerAgent,
@@ -82,25 +80,43 @@ export interface OrchestrationResult {
   };
 }
 
-const CRITICAL_STEP_IDS = new Set<OrchestratorStepId>(['planning', 'prompt_architect']);
-const STEP_TEMPLATES_BY_ID = new Map(ORCHESTRATOR_STEP_TEMPLATES.map((step) => [step.id, step]));
+const CRITICAL_AGENT_KEYS = new Set<string>(['PLANNER_AGENT', 'PROMPT_ARCHITECT_AGENT']);
 
-function getOptionalStep(config: OrchestratorPipelineConfig, id: OrchestratorStepId): OrchestratorPipelineStep {
-  const step = config.steps.find((item) => item.id === id);
-  if (step) return step;
-
-  const template = STEP_TEMPLATES_BY_ID.get(id);
-  if (!template) throw new AppError(`Étape orchestrateur inconnue: ${id}`, 500);
-  return { ...template, enabled: false };
+function disabledStub(agentKey: string, label: string): OrchestratorPipelineStep {
+  return {
+    id: agentKey.toLowerCase(),
+    label,
+    agentKey,
+    order: 9999,
+    enabled: false,
+    required: false,
+    executionMode: 'sequential',
+    inputMemoryKeys: [],
+    outputMemoryKey: null,
+    retries: 0,
+    timeoutMs: 30000,
+    condition: 'always',
+  };
 }
 
-function getRequiredRuntimeStep(config: OrchestratorPipelineConfig, id: OrchestratorStepId): OrchestratorPipelineStep {
-  const step = config.steps.find((item) => item.id === id);
+function getOptionalStepByAgent(
+  config: OrchestratorPipelineConfig,
+  agentKey: string,
+  fallbackLabel: string,
+): OrchestratorPipelineStep {
+  return config.steps.find((item) => item.agentKey === agentKey) ?? disabledStub(agentKey, fallbackLabel);
+}
+
+function getRequiredRuntimeStepByAgent(
+  config: OrchestratorPipelineConfig,
+  agentKey: string,
+): OrchestratorPipelineStep {
+  const step = config.steps.find((item) => item.agentKey === agentKey);
   if (!step) {
-    throw new AppError(`Pipeline orchestrateur incomplet: ajoutez l'étape "${id}" dans /admin/orchestrator.`, 400);
+    throw new AppError(`Pipeline orchestrateur incomplet: ajoutez une étape utilisant l'agent "${agentKey}" dans /admin/orchestrator.`, 400);
   }
   if (!step.enabled) {
-    throw new AppError(`Pipeline orchestrateur incomplet: activez l'étape "${id}" dans /admin/orchestrator.`, 400);
+    throw new AppError(`Pipeline orchestrateur incomplet: activez l'étape utilisant l'agent "${agentKey}" dans /admin/orchestrator.`, 400);
   }
   return step;
 }
@@ -149,7 +165,7 @@ async function withStepPolicy<T>(
 
 function shouldRunStep(
   step: OrchestratorPipelineStep,
-  skippedStepIds: Set<OrchestratorStepId>,
+  skippedStepIds: Set<string>,
   context: { hasFiles: boolean; plannerReady?: boolean; force?: boolean; hasPrompt?: boolean },
 ): boolean {
   if (!step.enabled || skippedStepIds.has(step.id)) return false;
@@ -177,7 +193,7 @@ function shouldRunStep(
  */
 async function validateActiveAgents(
   config: OrchestratorPipelineConfig,
-): Promise<{ skipped: string[]; skippedStepIds: Set<OrchestratorStepId> }> {
+): Promise<{ skipped: string[]; skippedStepIds: Set<string> }> {
   const allKeys = Array.from(new Set(config.steps.map((step) => step.agentKey).filter(Boolean)));
   const rows = await prisma.agentDefinition.findMany({
     where: { key: { in: allKeys } },
@@ -188,10 +204,10 @@ async function validateActiveAgents(
   const missing: string[] = [];
   const inactiveRequired: string[] = [];
   const skipped: string[] = [];
-  const skippedStepIds = new Set<OrchestratorStepId>();
+  const skippedStepIds = new Set<string>();
 
   for (const step of config.steps) {
-    const isCritical = CRITICAL_STEP_IDS.has(step.id);
+    const isCritical = CRITICAL_AGENT_KEYS.has(step.agentKey);
     const isRequired = step.required || isCritical;
 
     if (!step.enabled) {
@@ -252,14 +268,14 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   const agentsSkipped: string[] = [...preflight.skipped];
   const skippedStepIds = preflight.skippedStepIds;
 
-  const imageStep = getOptionalStep(pipelineConfig, 'image_analysis');
-  const plannerStep = getRequiredRuntimeStep(pipelineConfig, 'planning');
-  const textStep = getOptionalStep(pipelineConfig, 'text_analysis');
-  const brandStep = getOptionalStep(pipelineConfig, 'brand_analysis');
-  const artisticStep = getOptionalStep(pipelineConfig, 'artistic_base');
-  const promptStep = getRequiredRuntimeStep(pipelineConfig, 'prompt_architect');
-  const safetyStep = getOptionalStep(pipelineConfig, 'safety');
-  const qualityStep = getOptionalStep(pipelineConfig, 'quality');
+  const imageStep = getOptionalStepByAgent(pipelineConfig, 'IMAGE_ANALYST_AGENT', 'Analyse image');
+  const plannerStep = getRequiredRuntimeStepByAgent(pipelineConfig, 'PLANNER_AGENT');
+  const textStep = getOptionalStepByAgent(pipelineConfig, 'TEXT_ANALYST_AGENT', 'Analyse texte');
+  const brandStep = getOptionalStepByAgent(pipelineConfig, 'BRAND_AGENT', 'Identité marque');
+  const artisticStep = getOptionalStepByAgent(pipelineConfig, 'ARTISTIC_BASE_AGENT', 'Base artistique');
+  const promptStep = getRequiredRuntimeStepByAgent(pipelineConfig, 'PROMPT_ARCHITECT_AGENT');
+  const safetyStep = getOptionalStepByAgent(pipelineConfig, 'SAFETY_AGENT', 'Sécurité');
+  const qualityStep = getOptionalStepByAgent(pipelineConfig, 'QUALITY_AGENT', 'Qualité');
 
   // ─── 1. Vérification du travail et ownership ───────────
 
@@ -308,7 +324,7 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       await upsertMemory(options.travailId, memoryKey, content);
     } catch (err) {
       const msg = `Mémoire ${memoryKey}: ${errorMessage(err)}`;
-      if (step.required || CRITICAL_STEP_IDS.has(step.id)) throw new Error(msg);
+      if (step.required || CRITICAL_AGENT_KEYS.has(step.agentKey)) throw new Error(msg);
       agentFailures.push({ agent: step.agentKey, error: msg });
       console.warn(`[orchestrator] ${step.label} memory write skipped:`, msg);
     }
