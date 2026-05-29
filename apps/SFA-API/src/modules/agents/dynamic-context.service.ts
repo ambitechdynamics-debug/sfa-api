@@ -3,6 +3,11 @@ import { prisma } from '../../config/database';
 import { upsertMemory } from './agents.service';
 
 import { AIProvider } from '../ai/ai.types';
+import {
+  buildAgentModuleBlocks,
+  normalizeAgentModuleAccess,
+  type AgentModuleAccess,
+} from './agentModuleContext.service';
 
 export interface AgentContextData {
   promptText: string;
@@ -44,6 +49,32 @@ export async function buildAgentContext(
     throw new Error(`Agent with key ${agentKey} not found in database.`);
   }
 
+  // 1.bis. Modules optionnels accordés à cet agent (fichiers, base artistique,
+  // règles interdites, type de création). Chargés en parallèle des mémoires
+  // pour ne pas pénaliser le temps de réponse.
+  const moduleAccess: AgentModuleAccess = normalizeAgentModuleAccess(agent.moduleAccess);
+  const hasAnyModule =
+    moduleAccess.files || moduleAccess.artistic_base || moduleAccess.forbidden_rules || moduleAccess.creation_options;
+
+  const moduleBlocksPromise: Promise<string> = hasAnyModule
+    ? (async () => {
+        const travail = await prisma.travail.findUnique({
+          where: { id: travailId },
+          select: { category: true, posterType: true },
+        });
+        return buildAgentModuleBlocks(moduleAccess, {
+          travailId,
+          category: travail?.category ?? null,
+          posterType: travail?.posterType ?? null,
+        });
+      })()
+    : Promise.resolve('');
+
+  const composeSystemPrompt = async () => {
+    const moduleBlocks = await moduleBlocksPromise;
+    return moduleBlocks ? `${agent.systemPrompt}\n\n${moduleBlocks}` : agent.systemPrompt;
+  };
+
   // 2. Récupérer les mémoires du travail correspondant. Par défaut les liens
   // AgentMemoryLink restent la source, mais l'orchestrateur peut injecter une
   // liste administrée par pipeline pour tester un flux sans modifier les liens.
@@ -78,7 +109,7 @@ export async function buildAgentContext(
       promptText: "Aucune mémoire en entrée pour cet agent.",
       provider: agent.provider as AIProvider,
       model: agent.model,
-      systemPrompt: agent.systemPrompt
+      systemPrompt: await composeSystemPrompt(),
     };
   }
 
@@ -125,7 +156,7 @@ export async function buildAgentContext(
     promptText: promptText.trim(),
     provider: agent.provider as AIProvider,
     model: agent.model,
-    systemPrompt: agent.systemPrompt
+    systemPrompt: await composeSystemPrompt(),
   };
 }
 

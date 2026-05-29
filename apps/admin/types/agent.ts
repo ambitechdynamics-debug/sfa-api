@@ -12,6 +12,7 @@ export interface AgentDefinition {
   model: string
   systemPrompt: string
   expectedOutputSchema: Record<string, unknown>
+  moduleAccess?: ChatAgentModuleAccess | null
   isActive: boolean
   createdAt: string
   updatedAt: string

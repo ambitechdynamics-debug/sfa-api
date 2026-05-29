@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Upload, ImagePlus, X, Link2, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
 import { JsonEditor } from './JsonEditor'
-import { AgentDefinition, AgentMemoryLink } from '@/types/agent'
+import { AgentDefinition, AgentMemoryLink, ChatAgentModuleAccess } from '@/types/agent'
 import { MemoryDefinition } from '@/types/memory'
 import { ArtisticResource } from '@/types/payment'
 import {
@@ -50,10 +50,38 @@ interface AgentFormProps {
   isLoading?: boolean
 }
 
+const DEFAULT_AGENT_MODULE_ACCESS: ChatAgentModuleAccess = {
+  files: false,
+  artistic_base: false,
+  forbidden_rules: false,
+  creation_options: false,
+}
+
+const AGENT_MODULE_META: Record<keyof ChatAgentModuleAccess, { label: string; description: string }> = {
+  files: {
+    label: 'Fichiers du client',
+    description: "L'agent voit l'inventaire des fichiers uploadés (logos, modèles, références).",
+  },
+  artistic_base: {
+    label: 'Base artistique',
+    description: "L'agent peut citer les ressources artistiques (styles, palettes, polices, modèles). Filtré par catégorie du travail si renseignée.",
+  },
+  forbidden_rules: {
+    label: 'Règles interdites',
+    description: "L'agent voit la liste des règles actives et refuse poliment les demandes correspondantes.",
+  },
+  creation_options: {
+    label: 'Type de création',
+    description: "L'agent reçoit le contexte spécifique au type d'affiche choisi par le client (slug CreationOption).",
+  },
+}
+
 export function AgentForm({ initial, onSubmit, onCancel, isLoading }: AgentFormProps) {
   const [form, setForm] = useState<Partial<AgentDefinition>>({
     key: '', name: '', description: '', provider: 'anthropic', model: 'claude-sonnet-4-6',
-    systemPrompt: '', expectedOutputSchema: {}, isActive: true, ...initial
+    systemPrompt: '', expectedOutputSchema: {}, isActive: true,
+    ...initial,
+    moduleAccess: { ...DEFAULT_AGENT_MODULE_ACCESS, ...(initial?.moduleAccess ?? {}) },
   })
   const [providers, setProviders] = useState<LlmProvider[]>([])
   const [loadingProviders, setLoadingProviders] = useState(true)
@@ -137,6 +165,55 @@ export function AgentForm({ initial, onSubmit, onCancel, isLoading }: AgentFormP
         onChange={(v) => set('expectedOutputSchema', v)}
         rows={5}
       />
+
+      {/* Modules accessibles */}
+      <div className="space-y-2.5">
+        <div className="space-y-0.5">
+          <div className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Modules accessibles à l'agent</div>
+          <div className="text-[11px] text-[var(--text-subtle)]">
+            Sources de données injectées dans le prompt système lors de l'exécution.
+          </div>
+        </div>
+        <div className="space-y-2">
+          {(Object.keys(AGENT_MODULE_META) as (keyof ChatAgentModuleAccess)[]).map((key) => {
+            const meta = AGENT_MODULE_META[key]
+            const access = (form.moduleAccess ?? DEFAULT_AGENT_MODULE_ACCESS) as ChatAgentModuleAccess
+            const enabled = access[key]
+            return (
+              <div
+                key={key}
+                className={cn(
+                  'flex items-start justify-between gap-3 rounded-lg border p-3 transition-colors',
+                  enabled ? 'border-[var(--accent)]/40 bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg)]',
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-[var(--text)]">{meta.label}</div>
+                  <p className="mt-0.5 text-[11px] leading-4 text-[var(--text-muted)]">{meta.description}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => set('moduleAccess', { ...access, [key]: !enabled })}
+                  aria-pressed={enabled}
+                  aria-label={meta.label}
+                  className={cn(
+                    'relative h-6 w-11 shrink-0 rounded-full transition-colors',
+                    enabled ? 'bg-[var(--accent)]' : 'bg-[var(--border)]',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-all',
+                      enabled ? 'left-6' : 'left-1',
+                    )}
+                  />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--bg-subtle)]">
         <div>
           <div className="text-sm font-medium text-[var(--text)]">Agent actif</div>

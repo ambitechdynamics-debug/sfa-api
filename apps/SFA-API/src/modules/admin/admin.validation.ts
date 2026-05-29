@@ -13,6 +13,13 @@ export const createMemoryDefSchema = z.object({
 
 export const updateMemoryDefSchema = createMemoryDefSchema.partial();
 
+export const agentModuleAccessSchema = z.object({
+  files: z.boolean(),
+  artistic_base: z.boolean(),
+  forbidden_rules: z.boolean(),
+  creation_options: z.boolean(),
+});
+
 export const createAgentDefSchema = z.object({
   key: z.string().min(1),
   name: z.string().min(1),
@@ -21,6 +28,7 @@ export const createAgentDefSchema = z.object({
   model: z.string(),
   systemPrompt: z.string().min(1),
   expectedOutputSchema: z.record(z.unknown()).optional(),
+  moduleAccess: agentModuleAccessSchema.nullish(),
   isActive: z.boolean().optional()
 });
 

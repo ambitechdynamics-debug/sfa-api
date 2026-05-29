@@ -120,6 +120,7 @@ model AgentDefinition {
   model                String
   systemPrompt         String
   expectedOutputSchema Json
+  moduleAccess         Json?
   isActive             Boolean           @default(true)
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
