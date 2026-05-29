@@ -59,3 +59,13 @@ export const orchestratorPipelineConfigSchema = z.object({
   version: z.number().optional(),
   steps: z.array(orchestratorPipelineStepSchema),
 });
+
+export const chatAgentConfigSchema = z.object({
+  memoryTargetKey: z.string().min(1),
+  moduleAccess: z.object({
+    files: z.boolean(),
+    artistic_base: z.boolean(),
+    forbidden_rules: z.boolean(),
+    creation_options: z.boolean(),
+  }),
+});

@@ -9,7 +9,8 @@ import {
   updateAgentDefSchema,
   createAgentMemoryLinkSchema,
   updateAgentMemoryLinkSchema,
-  orchestratorPipelineConfigSchema
+  orchestratorPipelineConfigSchema,
+  chatAgentConfigSchema
 } from './admin.validation';
 import { AppError } from '../../utils/appError';
 
@@ -95,5 +96,9 @@ router.delete('/agent-memory-links/:id', adminController.deleteAgentMemoryLink);
 router.get('/orchestrator-pipeline', adminController.getOrchestratorPipeline);
 router.put('/orchestrator-pipeline', validate({ body: orchestratorPipelineConfigSchema }), adminController.saveOrchestratorPipeline);
 router.post('/orchestrator-pipeline/reset', adminController.resetOrchestratorPipeline);
+
+// ─── Chat Agent Configuration ───────────────────────────────────────────────
+router.get('/chat-agent-config', adminController.getChatAgentConfig);
+router.put('/chat-agent-config', validate({ body: chatAgentConfigSchema }), adminController.saveChatAgentConfig);
 
 export default router;

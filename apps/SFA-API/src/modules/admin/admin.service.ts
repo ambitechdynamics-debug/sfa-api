@@ -3,6 +3,7 @@ import { prisma } from '../../config/database';
 import { AppError } from '../../utils/appError';
 import { stripe } from '../../config/stripe';
 import { orchestratorPipelineService } from '../orchestrator/orchestratorPipeline.service';
+import { chatAgentConfigService } from '../chat/chatAgentConfig.service';
 
 const SUBSCRIPTION_PLAN_DEFAULTS = {
   free:     { name: 'Gratuit',  price: 0,  currency: 'XOF', credits: 0,   maxProjects: 3,   maxFilesPerProject: 3,  features: ['3 projets max', '3 générations gratuites', 'Affiches en basse résolution'], isActive: true },
@@ -93,6 +94,14 @@ export const adminService = {
   },
   resetOrchestratorPipeline: async () => {
     return orchestratorPipelineService.reset();
+  },
+
+  // Chat Agent Configuration
+  getChatAgentConfig: async () => {
+    return chatAgentConfigService.get();
+  },
+  saveChatAgentConfig: async (data: unknown) => {
+    return chatAgentConfigService.save(data);
   },
 
   // ─── Admin overview ────────────────────────────────────────────────────────

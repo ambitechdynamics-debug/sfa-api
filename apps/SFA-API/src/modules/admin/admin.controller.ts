@@ -84,6 +84,16 @@ export const adminController = {
     sendSuccess(res, 'Orchestrator pipeline reset', result);
   }),
 
+  // Chat Agent Configuration
+  getChatAgentConfig: asyncHandler(async (_req: Request, res: Response) => {
+    const result = await adminService.getChatAgentConfig();
+    sendSuccess(res, 'Chat agent config retrieved', result);
+  }),
+  saveChatAgentConfig: asyncHandler(async (req: Request, res: Response) => {
+    const result = await adminService.saveChatAgentConfig(req.body);
+    sendSuccess(res, 'Chat agent config saved', result);
+  }),
+
   // ─── New Admin Endpoints ──────────────────────────────────────────────────
 
   getStats: asyncHandler(async (_req: Request, res: Response) => {

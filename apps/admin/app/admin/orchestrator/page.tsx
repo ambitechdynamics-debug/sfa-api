@@ -26,6 +26,7 @@ import {
 } from '@/lib/admin-api'
 import { toastError, toastLoadError, toastSuccess } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { Toggle } from '@/components/admin/Toggle'
 import { AgentDefinition } from '@/types/agent'
 import { MemoryDefinition } from '@/types/memory'
 import {
@@ -60,36 +61,6 @@ function splitMemoryKeys(value: string) {
         .map((item) => item.trim())
         .filter(Boolean),
     ),
-  )
-}
-
-function Toggle({
-  checked,
-  onChange,
-  disabled,
-}: {
-  checked: boolean
-  onChange: () => void
-  disabled?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onChange}
-      disabled={disabled}
-      className={cn(
-        'relative h-6 w-11 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60',
-        checked ? 'bg-[var(--accent)]' : 'bg-[var(--border)]',
-      )}
-      aria-pressed={checked}
-    >
-      <span
-        className={cn(
-          'absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-all',
-          checked ? 'left-6' : 'left-1',
-        )}
-      />
-    </button>
   )
 }
 

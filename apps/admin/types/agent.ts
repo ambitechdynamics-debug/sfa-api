@@ -44,3 +44,17 @@ export interface AgentRunRecord {
   durationMs?: number
   createdAt: string
 }
+
+export type ChatAgentModule = 'files' | 'artistic_base' | 'forbidden_rules' | 'creation_options'
+
+export interface ChatAgentModuleAccess {
+  files: boolean
+  artistic_base: boolean
+  forbidden_rules: boolean
+  creation_options: boolean
+}
+
+export interface ChatAgentConfig {
+  memoryTargetKey: string
+  moduleAccess: ChatAgentModuleAccess
+}

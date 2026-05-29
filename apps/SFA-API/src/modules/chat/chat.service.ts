@@ -3,6 +3,7 @@ import { prisma } from '../../config/database';
 import { createProvider } from '../ai/ai.providers';
 import type { AIProvider } from '../ai/ai.types';
 import { replaceObsoleteModel, settingsService } from '../settings/settings.service';
+import { chatAgentConfigService } from './chatAgentConfig.service';
 import type {
   ChatHistoryMessage,
   ChatOpeningInput,
@@ -455,12 +456,80 @@ function buildWorkspaceBriefPrompt(context: WorkspaceBriefContext | null, instru
   ].join('\n');
 }
 
+async function buildArtisticBaseContextBlock(
+  workspaceBrief: WorkspaceBriefContext | null,
+): Promise<string> {
+  const category = workspaceBrief?.category?.trim() || undefined;
+  try {
+    const where = category ? { category: { contains: category, mode: 'insensitive' as const } } : {};
+    const items = await prisma.artisticResource.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+      take: 12,
+      select: { title: true, category: true, resourceType: true, description: true, url: true },
+    });
+    if (items.length === 0) return '';
+
+    const lines = items
+      .map((r) => {
+        const head = `${r.resourceType} · ${r.title}${r.category ? ` (${r.category})` : ''}`;
+        const desc = r.description?.trim() ? ` — ${r.description.trim().slice(0, 120)}` : '';
+        return `  • ${head}${desc}`;
+      })
+      .join('\n');
+
+    return [
+      '═══════════════════════════════════════',
+      `BASE ARTISTIQUE DISPONIBLE${category ? ` (filtre catégorie : ${category})` : ''}`,
+      '═══════════════════════════════════════',
+      'Tu peux suggérer ces ressources au client si pertinent (styles, palettes, polices, modèles) :',
+      lines,
+    ].join('\n');
+  } catch (err) {
+    logger.warn('[chat] failed to load artistic base for context', err);
+    return '';
+  }
+}
+
+async function buildForbiddenRulesContextBlock(): Promise<string> {
+  try {
+    const rules = await prisma.forbiddenRule.findMany({
+      where: { isActive: true },
+      orderBy: [{ severity: 'desc' }, { title: 'asc' }],
+      take: 30,
+      select: { title: true, category: true, severity: true, description: true },
+    });
+    if (rules.length === 0) return '';
+
+    const lines = rules
+      .map((r) => {
+        const head = `[${r.severity}] ${r.title} · ${r.category}`;
+        const desc = r.description?.trim() ? ` — ${r.description.trim().slice(0, 140)}` : '';
+        return `  • ${head}${desc}`;
+      })
+      .join('\n');
+
+    return [
+      '═══════════════════════════════════════',
+      'RÈGLES INTERDITES (à ne jamais suggérer / valider)',
+      '═══════════════════════════════════════',
+      'Si le client demande explicitement l\'une de ces choses, refuse poliment et explique pourquoi :',
+      lines,
+    ].join('\n');
+  } catch (err) {
+    logger.warn('[chat] failed to load forbidden rules for context', err);
+    return '';
+  }
+}
+
 async function callChatProvider(input: ChatRequestInput): Promise<string> {
-  const [provider, agentProfile, workspaceContextPrompts] = await Promise.all([
+  const [provider, agentProfile, workspaceContextPrompts, chatAgentConfig] = await Promise.all([
     resolveChatProvider(),
     resolveChatAgentProfile(),
     loadWorkspaceContextPrompts(),
+    chatAgentConfigService.get(),
   ]);
+  const moduleAccess = chatAgentConfig.moduleAccess;
 
   let workspaceContextPrompt = '';
   const workspaceBrief = mergeWorkspaceBriefContext(
@@ -481,8 +550,18 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
     workspaceContextPrompt += `\n\n${workspaceBriefPrompt}`;
   }
 
-  if (workspaceBrief?.posterTypeContextPrompt) {
+  if (moduleAccess.creation_options && workspaceBrief?.posterTypeContextPrompt) {
     workspaceContextPrompt += `\n\n═══════════════════════════════════════\nCONTEXTE SPÉCIFIQUE (TYPE DE CRÉATION : ${workspaceBrief.posterTypeName || workspaceBrief.posterType})\n═══════════════════════════════════════\n${workspaceBrief.posterTypeContextPrompt}`;
+  }
+
+  if (moduleAccess.artistic_base) {
+    const artisticBlock = await buildArtisticBaseContextBlock(workspaceBrief);
+    if (artisticBlock) workspaceContextPrompt += `\n\n${artisticBlock}`;
+  }
+
+  if (moduleAccess.forbidden_rules) {
+    const forbiddenBlock = await buildForbiddenRulesContextBlock();
+    if (forbiddenBlock) workspaceContextPrompt += `\n\n${forbiddenBlock}`;
   }
 
   if (input.visualConfig && Object.keys(input.visualConfig).length > 0) {
@@ -520,7 +599,7 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
   type AssetSummaryItem = { label: string; count: number; names: string[] };
   let projectAssetSummary: AssetSummaryItem[] = [];
 
-  if (input.travailId) {
+  if (moduleAccess.files && input.travailId) {
     try {
       // Fichiers visibles = ceux du travail + ceux du projet parent (assets de marque)
       const files = await prisma.fileAsset.findMany({
@@ -675,12 +754,13 @@ export const chatService = {
       });
     });
 
-    // Save first user message as M_SMS so orchestrator agents have context.
-    // Awaité (et erreurs loguées) pour éviter la race avec un déclenchement
-    // immédiat de /generate-final-prompt.
+    // Persiste le premier message dans la mémoire configurée par l'admin
+    // (ex M_SMS par défaut). Awaité — erreurs loguées en soft-fail.
     if (isFirstMessage) {
       try {
-        const def = await prisma.memoryDefinition.findUnique({ where: { key: 'M_SMS' } });
+        const config = await chatAgentConfigService.get();
+        const targetKey = config.memoryTargetKey;
+        const def = await prisma.memoryDefinition.findUnique({ where: { key: targetKey } });
         if (def) {
           await prisma.memoryEntry.upsert({
             where: {
@@ -700,9 +780,11 @@ export const chatService = {
               },
             },
           });
+        } else {
+          logger.warn('[chat] memory target not found', { targetKey });
         }
       } catch (err) {
-        logger.warn('[chat] failed to persist M_SMS', err instanceof Error ? err.message : err);
+        logger.warn('[chat] failed to persist chat memory', err instanceof Error ? err.message : err);
       }
     }
 

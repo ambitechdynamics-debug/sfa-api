@@ -1,7 +1,7 @@
 import { AdminStats, SubscriptionPlan } from '@/types/admin'
 import { AdminUser, CreditTransaction } from '@/types/user'
 import { AdminProject, FileAsset, GeneratedPoster, FinalPrompt } from '@/types/project'
-import { AgentDefinition, AgentMemoryLink, AgentRunRecord } from '@/types/agent'
+import { AgentDefinition, AgentMemoryLink, AgentRunRecord, ChatAgentConfig } from '@/types/agent'
 import { MemoryDefinition } from '@/types/memory'
 import { Payment, ArtisticResource } from '@/types/payment'
 import { ForbiddenRule, ForbiddenRulesFilters, ForbiddenRulesPaginated } from '@/types/forbidden-rule'
@@ -206,6 +206,18 @@ export async function resetOrchestratorPipeline(): Promise<OrchestratorPipelineP
   return apiFetch('/api/admin/orchestrator-pipeline/reset', {
     method: 'POST',
     body: '{}',
+  })
+}
+
+// ─── CHAT AGENT CONFIG ────────────────────────────────────────────────────────
+export async function fetchChatAgentConfig(): Promise<ChatAgentConfig> {
+  return apiFetch('/api/admin/chat-agent-config')
+}
+
+export async function saveChatAgentConfig(config: ChatAgentConfig): Promise<ChatAgentConfig> {
+  return apiFetch('/api/admin/chat-agent-config', {
+    method: 'PUT',
+    body: JSON.stringify(config),
   })
 }
 
