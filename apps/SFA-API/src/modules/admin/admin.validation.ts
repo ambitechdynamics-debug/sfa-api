@@ -69,3 +69,10 @@ export const chatAgentConfigSchema = z.object({
     creation_options: z.boolean(),
   }),
 });
+
+export const artisticVisionConfigSchema = z.object({
+  providerId: z.string().min(1),
+  model: z.string(),
+  systemPrompt: z.string().min(1),
+  userPrompt: z.string().min(1),
+});

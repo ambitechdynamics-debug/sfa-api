@@ -10,7 +10,8 @@ import {
   createAgentMemoryLinkSchema,
   updateAgentMemoryLinkSchema,
   orchestratorPipelineConfigSchema,
-  chatAgentConfigSchema
+  chatAgentConfigSchema,
+  artisticVisionConfigSchema
 } from './admin.validation';
 import { AppError } from '../../utils/appError';
 
@@ -100,5 +101,9 @@ router.post('/orchestrator-pipeline/reset', adminController.resetOrchestratorPip
 // ─── Chat Agent Configuration ───────────────────────────────────────────────
 router.get('/chat-agent-config', adminController.getChatAgentConfig);
 router.put('/chat-agent-config', validate({ body: chatAgentConfigSchema }), adminController.saveChatAgentConfig);
+
+// ─── Artistic Vision Configuration ──────────────────────────────────────────
+router.get('/artistic-vision-config', adminController.getArtisticVisionConfig);
+router.put('/artistic-vision-config', validate({ body: artisticVisionConfigSchema }), adminController.saveArtisticVisionConfig);
 
 export default router;

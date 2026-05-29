@@ -94,6 +94,16 @@ export const adminController = {
     sendSuccess(res, 'Chat agent config saved', result);
   }),
 
+  // Artistic Vision Configuration
+  getArtisticVisionConfig: asyncHandler(async (_req: Request, res: Response) => {
+    const result = await adminService.getArtisticVisionConfig();
+    sendSuccess(res, 'Artistic vision config retrieved', result);
+  }),
+  saveArtisticVisionConfig: asyncHandler(async (req: Request, res: Response) => {
+    const result = await adminService.saveArtisticVisionConfig(req.body);
+    sendSuccess(res, 'Artistic vision config saved', result);
+  }),
+
   // ─── New Admin Endpoints ──────────────────────────────────────────────────
 
   getStats: asyncHandler(async (_req: Request, res: Response) => {

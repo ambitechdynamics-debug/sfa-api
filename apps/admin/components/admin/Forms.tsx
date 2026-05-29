@@ -17,6 +17,7 @@ import {
   analyzeArtisticResourceImage,
   bulkUploadAnalyzeCreateArtisticResources,
   fetchLlmProviders,
+  fetchArtisticVisionConfig,
 } from '@/lib/admin-api'
 import type { BulkArtisticResourcesResult, LlmProvider } from '@/lib/admin-api'
 import { cn } from '@/lib/utils'
@@ -320,24 +321,31 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
   const [providers, setProviders] = useState<LlmProvider[]>([])
 
   useEffect(() => {
-    fetchLlmProviders().then((list) => {
-      const activeList = list.filter(p => p.enabled)
-      setProviders(activeList)
+    Promise.all([fetchLlmProviders(), fetchArtisticVisionConfig().catch(() => null)])
+      .then(([list, adminConfig]) => {
+        const activeList = list.filter(p => p.enabled)
+        setProviders(activeList)
 
-      const visionList = activeList.filter(p => p.supportsVision)
-      if (visionList.some(p => p.id === 'gemini')) {
-        const geminiProv = visionList.find(p => p.id === 'gemini')!
-        setAnalyzeProviderId('gemini')
-        setAnalyzeModel(geminiProv.defaultModel || 'gemini-2.0-flash')
-      } else if (visionList.some(p => p.id === 'mock')) {
-        const mockProv = visionList.find(p => p.id === 'mock')!
-        setAnalyzeProviderId('mock')
-        setAnalyzeModel(mockProv.defaultModel || 'mock-model')
-      } else if (visionList.length > 0) {
-        setAnalyzeProviderId(visionList[0].id)
-        setAnalyzeModel(visionList[0].defaultModel || '')
-      }
-    }).catch(() => {})
+        const visionList = activeList.filter(p => p.supportsVision)
+        const adminProvider = adminConfig && visionList.find(p => p.id === adminConfig.providerId)
+
+        if (adminProvider) {
+          setAnalyzeProviderId(adminProvider.id)
+          setAnalyzeModel(adminConfig.model || adminProvider.defaultModel || '')
+        } else if (visionList.some(p => p.id === 'gemini')) {
+          const geminiProv = visionList.find(p => p.id === 'gemini')!
+          setAnalyzeProviderId('gemini')
+          setAnalyzeModel(geminiProv.defaultModel || 'gemini-2.0-flash')
+        } else if (visionList.some(p => p.id === 'mock')) {
+          const mockProv = visionList.find(p => p.id === 'mock')!
+          setAnalyzeProviderId('mock')
+          setAnalyzeModel(mockProv.defaultModel || 'mock-model')
+        } else if (visionList.length > 0) {
+          setAnalyzeProviderId(visionList[0].id)
+          setAnalyzeModel(visionList[0].defaultModel || '')
+        }
+      })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {

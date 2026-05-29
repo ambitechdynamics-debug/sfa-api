@@ -221,6 +221,25 @@ export async function saveChatAgentConfig(config: ChatAgentConfig): Promise<Chat
   })
 }
 
+// ─── ARTISTIC VISION CONFIG ───────────────────────────────────────────────────
+export interface ArtisticVisionConfig {
+  providerId: string
+  model: string
+  systemPrompt: string
+  userPrompt: string
+}
+
+export async function fetchArtisticVisionConfig(): Promise<ArtisticVisionConfig> {
+  return apiFetch('/api/admin/artistic-vision-config')
+}
+
+export async function saveArtisticVisionConfig(config: ArtisticVisionConfig): Promise<ArtisticVisionConfig> {
+  return apiFetch('/api/admin/artistic-vision-config', {
+    method: 'PUT',
+    body: JSON.stringify(config),
+  })
+}
+
 // ─── ARTISTIC RESOURCES ───────────────────────────────────────────────────────
 export async function fetchArtisticResources(): Promise<ArtisticResource[]> {
   // Backend returns { items, pagination } — extract the array

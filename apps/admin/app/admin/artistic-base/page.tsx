@@ -5,6 +5,7 @@ import { Palette, Plus, Pencil, Trash2, ExternalLink, Tag, AlertCircle, LayoutGr
 import { Drawer } from '@/components/admin/Drawer'
 import { ArtisticResourceForm } from '@/components/admin/Forms'
 import { ConfirmDeleteModal } from '@/components/admin/Modals'
+import { VisionAnalyzerConfigCard } from '@/components/admin/VisionAnalyzerConfigCard'
 import {
   fetchArtisticResources,
   createArtisticResource,
@@ -260,6 +261,9 @@ export default function ArtisticBasePage() {
           <Plus className="w-4 h-4" /> Ajouter ressource
         </button>
       </div>
+
+      {/* Vision analyzer admin config (collapsible) */}
+      <VisionAnalyzerConfigCard />
 
       {/* Filters row */}
       <div className="flex flex-wrap items-center gap-3">

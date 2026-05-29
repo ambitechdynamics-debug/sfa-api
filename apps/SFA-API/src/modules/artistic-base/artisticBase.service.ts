@@ -12,6 +12,7 @@ import {
   AnalyzeImageInput
 } from './artisticBase.validation';
 import { callVisionAI } from '../ai/ai.service';
+import { artisticVisionConfigService } from './artisticVisionConfig.service';
 
 const buildPagination = (page?: number, limit?: number) => {
   if (page === undefined || limit === undefined) return {};
@@ -242,68 +243,19 @@ export const artisticBaseService = {
     if (!imageUrl) {
       throw new AppError("L'URL de l'image est obligatoire.", 400);
     }
-    const providerId = input.providerId || input.provider || 'gemini';
-    const model = input.model || undefined;
 
-    const systemPrompt = `Tu es un expert en direction artistique et analyse visuelle pour le design graphique.
-Analyse l'image fournie et extrais les informations pour remplir la base de ressources artistiques.
-Tu dois répondre UNIQUEMENT avec un objet JSON valide suivant ce format strict :
-{
-  "title": "Un titre court et descriptif",
-  "category": "Une catégorie appropriée (ex: Événement, Promotion, Corporate, etc. - invente si nécessaire)",
-  "resourceType": "STYLE", // Doit être parmi: MODEL, TEXTURE, FONT, PALETTE, STYLE, REFERENCE
-  "description": "Une description textuelle de l'image (composition, ambiance, usage)",
-  "tags": ["tag1", "tag2", "tag3"],
-  "content": {
-    "colors": {
-      "color_mood": "...",
-      "contrast_notes": "...",
-      "dominant_colors": ["..."],
-      "recommended_color_codes": ["#..."]
-    },
-    "style_key": "...",
-    "style_name": "...",
-    "typography": {
-      "title_style": "...",
-      "badge_text_style": "...",
-      "typography_rules": ["..."],
-      "recommended_fonts": ["..."],
-      "secondary_text_style": "..."
-    },
-    "composition": {
-      "main_subject": "...",
-      "title_position": "...",
-      "background_style": "...",
-      "layout_structure": "...",
-      "visual_hierarchy": ["..."],
-      "secondary_subjects": "...",
-      "year_badge_position": "...",
-      "description_position": "..."
-    },
-    "quality_rules": ["..."],
-    "graphic_elements": {
-      "elements_to_avoid": ["..."],
-      "optional_elements": ["..."],
-      "recommended_elements": ["..."]
-    },
-    "visual_description": {
-      "mood": "...",
-      "main_style": "...",
-      "target_usage": ["..."],
-      "visual_level": "premium"
-    },
-    "negative_prompt_rules": ["..."],
-    "prompt_usage_instruction": "..."
-  }
-}
-
-Assure-toi de respecter scrupuleusement cette structure JSON, en particulier pour le champ 'content'. Si un élément n'est pas applicable, mets une chaîne vide ou omet le, mais garde la structure globale.`;
+    // Fallback chain: input override (per-upload) > admin config > default
+    const config = await artisticVisionConfigService.get();
+    const providerId = input.providerId || input.provider || config.providerId;
+    const model = input.model || config.model || undefined;
+    const systemPrompt = config.systemPrompt;
+    const userPrompt = config.userPrompt;
 
     const aiResponse = await callVisionAI({
       provider: providerId as any,
       model,
       systemPrompt,
-      userPrompt: 'Analyse cette image et extrais les métadonnées requises au format JSON.',
+      userPrompt,
       imageUrls: [imageUrl],
       responseFormat: 'json',
       temperature: 0.2
