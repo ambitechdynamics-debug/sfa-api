@@ -12,7 +12,12 @@ import {
 } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { authClient } from "@/lib/authClient"
+import {
+  useUser as useClerkUser,
+  useAuth as useClerkAuth,
+  useSignIn,
+  useSignUp,
+} from "@clerk/nextjs"
 import {
   AUTH_EXPIRED_EVENT,
   buildLoginPath,
@@ -22,12 +27,7 @@ import {
   sanitizeNextPath,
   SESSION_EXPIRED_MESSAGE,
 } from "@/lib/session-token"
-import {
-  registerWithEmail as registerWithEmailService,
-  signInWithEmail,
-  signInWithGoogle,
-  signOutSession,
-} from "@/services/auth.service"
+import { signOutSession } from "@/services/auth.service"
 import { getCurrentUser } from "@/services/user.service"
 import { ApiError } from "@/lib/api"
 import { useAuthStore } from "@/store/auth-store"
@@ -72,7 +72,6 @@ type AuthContextValue = {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
-const PUBLIC_AUTH_PENDING_TIMEOUT_MS = 2_500
 
 function debugAuthTransition(phase: string, details?: Record<string, unknown>) {
   if (process.env.NODE_ENV !== "production") {
@@ -80,10 +79,46 @@ function debugAuthTransition(phase: string, details?: Record<string, unknown>) {
   }
 }
 
-function getSessionSignature(data: unknown) {
-  if (!data || typeof data !== "object") return ""
-  const record = data as { user?: { id?: string; email?: string }; session?: { id?: string } }
-  return [record.session?.id, record.user?.id, record.user?.email].filter(Boolean).join(":")
+function mapClerkSignInError(err: unknown): string {
+  const error = err as { errors?: Array<{ code?: string; message?: string }>; message?: string } | undefined
+  const first = error?.errors?.[0]
+  const code = first?.code
+  switch (code) {
+    case "form_identifier_not_found":
+      return "Aucun compte n'est associé à cette adresse."
+    case "form_password_incorrect":
+    case "form_password_pwned":
+      return "Email ou mot de passe incorrect."
+    case "form_identifier_exists":
+      return "Un compte existe déjà avec cet email."
+    case "form_password_length_too_short":
+      return "Mot de passe trop court (8 caractères minimum)."
+    case "form_param_format_invalid":
+    case "form_param_nil":
+      return "Format d'email ou de mot de passe invalide."
+    case "session_exists":
+      return "Une session est déjà active. Rechargez la page."
+    default:
+      return first?.message || error?.message || "Connexion impossible. Veuillez réessayer."
+  }
+}
+
+function mapClerkSignUpError(err: unknown): string {
+  const error = err as { errors?: Array<{ code?: string; message?: string }>; message?: string } | undefined
+  const first = error?.errors?.[0]
+  const code = first?.code
+  switch (code) {
+    case "form_identifier_exists":
+      return "Un compte existe déjà avec cet email."
+    case "form_password_length_too_short":
+      return "Mot de passe trop court (8 caractères minimum)."
+    case "form_password_pwned":
+      return "Ce mot de passe a été compromis dans une fuite. Choisissez-en un autre."
+    case "form_param_format_invalid":
+      return "Format d'email invalide."
+    default:
+      return first?.message || error?.message || "Inscription impossible. Veuillez réessayer."
+  }
 }
 
 function loadingScreen(message = "Chargement de la session...") {
@@ -100,24 +135,27 @@ function loadingScreen(message = "Chargement de la session...") {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const betterSession = authClient.useSession()
+
+  const { isLoaded: clerkUserLoaded, isSignedIn: clerkIsSignedIn } = useClerkUser()
+  const { signOut: clerkSignOut } = useClerkAuth()
+  const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn()
+  const { signUp, setActive: setActiveSignUp, isLoaded: signUpLoaded } = useSignUp()
+
   const { user, setUser, clearProfile } = useAuthStore()
   const resetProjects = useProjectStore((state) => state.reset)
   const resetChat = useChatStore((state) => state.reset)
+
   const [status, setStatus] = useState<AuthStatus>("loading")
   const [profileLoading, setProfileLoading] = useState(false)
-  const [sessionPendingTimedOut, setSessionPendingTimedOut] = useState(false)
   const [error, setError] = useState("")
-  const validatedSignatureRef = useRef("")
+  const lastSyncedClerkUserRef = useRef<string | null>(null)
   const lastRefreshErrorRef = useRef("")
-  const isCurrentAuthPath = isAuthPath(pathname)
-  const ignoreStalledPublicAuthSession = isCurrentAuthPath && sessionPendingTimedOut
 
   const clearWorkspaceState = useCallback(() => {
     clearProfile()
     resetProjects()
     resetChat()
-    validatedSignatureRef.current = ""
+    lastSyncedClerkUserRef.current = null
   }, [clearProfile, resetChat, resetProjects])
 
   const expireSession = useCallback(async (message = SESSION_EXPIRED_MESSAGE) => {
@@ -140,8 +178,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = await getCurrentUser()
       setUser(currentUser)
       setStatus("authenticated")
-      lastRefreshErrorRef.current = ""
-      validatedSignatureRef.current = getSessionSignature(betterSession.data)
       debugAuthTransition("authenticated", { userId: currentUser.id })
       return currentUser
     } catch (reason) {
@@ -150,7 +186,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await expireSession()
         return null
       }
-
       const message = reason instanceof Error ? reason.message : "Impossible de vérifier votre session."
       lastRefreshErrorRef.current = message
       setError(message)
@@ -160,79 +195,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setProfileLoading(false)
     }
-  }, [betterSession.data, expireSession, setUser])
+  }, [expireSession, setUser])
 
   useEffect(() => {
     function onAuthExpired(event: Event) {
       const detail = readAuthExpiredDetail(event)
       void expireSession(detail.message || SESSION_EXPIRED_MESSAGE)
     }
-
     window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
   }, [expireSession])
 
+  // Sync Clerk session state → backend profile.
   useEffect(() => {
-    if (!betterSession.isPending || !isCurrentAuthPath) {
-      setSessionPendingTimedOut(false)
-      return
-    }
-
-    const timeout = window.setTimeout(() => {
-      setSessionPendingTimedOut(true)
-    }, PUBLIC_AUTH_PENDING_TIMEOUT_MS)
-
-    return () => window.clearTimeout(timeout)
-  }, [betterSession.isPending, isCurrentAuthPath])
-
-  useEffect(() => {
-    if (betterSession.isPending) {
-      debugAuthTransition("session pending", { authPath: isCurrentAuthPath })
-      if (ignoreStalledPublicAuthSession) {
-        if (status !== "authenticated" && status !== "expired") {
-          clearWorkspaceState()
-          setStatus("anonymous")
-          debugAuthTransition("anonymous", { reason: "public auth pending timeout" })
-        }
-        return
-      }
-
+    if (!clerkUserLoaded) {
       setStatus("loading")
       return
     }
-
-    if (!betterSession.data) {
+    if (!clerkIsSignedIn) {
       if (status !== "expired") {
         clearWorkspaceState()
         setStatus("anonymous")
-        debugAuthTransition("anonymous", { reason: "no better-auth session" })
+        debugAuthTransition("anonymous", { reason: "clerk reports signed-out" })
       }
       return
     }
-
-    const signature = getSessionSignature(betterSession.data)
-    if (signature && signature === validatedSignatureRef.current && user) return
-    void refreshSession()
-  }, [
-    betterSession.data,
-    betterSession.isPending,
-    clearWorkspaceState,
-    isCurrentAuthPath,
-    ignoreStalledPublicAuthSession,
-    refreshSession,
-    status,
-    user,
-  ])
-
-  // Better Auth owns session refetching. Keep profile loading single-shot to avoid dashboard loader loops.
+    // Already loaded the backend profile for this Clerk session — no-op.
+    if (status === "authenticated" && user && lastSyncedClerkUserRef.current === user.id) return
+    void refreshSession().then((u) => {
+      if (u) lastSyncedClerkUserRef.current = u.id
+    })
+  }, [clerkUserLoaded, clerkIsSignedIn, status, user, clearWorkspaceState, refreshSession])
 
   const logout = useCallback(async () => {
     clearWorkspaceState()
     setStatus("anonymous")
     setError("")
+    try {
+      await clerkSignOut()
+    } catch {
+      // ignore — Clerk may already be signed out
+    }
     await signOutSession()
     router.replace("/login")
-  }, [clearWorkspaceState, router])
+  }, [clearWorkspaceState, clerkSignOut, router])
 
   const requireAuth = useCallback((nextPath = pathname) => {
     if (status === "authenticated") return true
@@ -242,61 +248,92 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pathname, router, status])
 
   const loginWithEmail = useCallback(async (input: LoginInput): Promise<AuthActionResult> => {
+    if (!signInLoaded || !signIn) {
+      return { success: false, message: "Service d'authentification non prêt. Réessayez dans une seconde." }
+    }
     setStatus("loading")
     setError("")
-    const result = await signInWithEmail(input.email.trim(), input.password)
-    if (!result.success) {
-      setStatus("anonymous")
-      setError(result.message)
-      return result
-    }
-
-    const currentUser = await refreshSession()
-    if (!currentUser) {
-      return {
-        success: false,
-        message: lastRefreshErrorRef.current || error || "Connexion acceptée, mais la session API n'a pas pu être vérifiée. Réessayez dans quelques instants.",
+    try {
+      const result = await signIn.create({ identifier: input.email.trim(), password: input.password })
+      if (result.status !== "complete" || !result.createdSessionId) {
+        setStatus("anonymous")
+        const message = "Authentification incomplète. Vérification supplémentaire requise."
+        setError(message)
+        return { success: false, message }
       }
+      await setActiveSignIn({ session: result.createdSessionId })
+      const currentUser = await refreshSession()
+      if (!currentUser) {
+        return {
+          success: false,
+          message: lastRefreshErrorRef.current || "Connexion acceptée, mais la session API n'a pas pu être vérifiée.",
+        }
+      }
+      router.replace(sanitizeNextPath(input.nextPath))
+      return { success: true }
+    } catch (err) {
+      const message = mapClerkSignInError(err)
+      setStatus("anonymous")
+      setError(message)
+      return { success: false, message }
     }
-
-    router.replace(sanitizeNextPath(input.nextPath))
-    return { success: true }
-  }, [error, refreshSession, router])
+  }, [signInLoaded, signIn, setActiveSignIn, refreshSession, router])
 
   const loginWithGoogle = useCallback(async (nextPath?: string | null): Promise<AuthActionResult> => {
+    if (!signInLoaded || !signIn) {
+      return { success: false, message: "Service d'authentification non prêt. Réessayez dans une seconde." }
+    }
     setError("")
     const target = sanitizeNextPath(nextPath)
-    return signInWithGoogle(`${window.location.origin}${target}`)
-  }, [])
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: `${window.location.origin}/sso-callback?next=${encodeURIComponent(target)}`,
+        redirectUrlComplete: `${window.location.origin}${target}`,
+      })
+      // authenticateWithRedirect navigates away — this return won't usually run.
+      return { success: true }
+    } catch (err) {
+      const message = mapClerkSignInError(err)
+      setError(message)
+      return { success: false, message }
+    }
+  }, [signInLoaded, signIn])
 
   const registerWithEmail = useCallback(async (input: RegisterInput): Promise<AuthActionResult> => {
+    if (!signUpLoaded || !signUp) {
+      return { success: false, message: "Service d'authentification non prêt. Réessayez dans une seconde." }
+    }
     setError("")
     const target = sanitizeNextPath(input.nextPath)
-    const result = await registerWithEmailService({
-      fullName: input.fullName.trim(),
-      email: input.email.trim(),
-      password: input.password,
-      callbackURL: `${window.location.origin}${target}`,
-    })
-
-    if (!result.success) {
-      setError(result.message)
-      return result
+    try {
+      const parts = input.fullName.trim().split(/\s+/)
+      const firstName = parts[0] || undefined
+      const lastName = parts.length > 1 ? parts.slice(1).join(" ") : undefined
+      await signUp.create({
+        emailAddress: input.email.trim(),
+        password: input.password,
+        firstName,
+        lastName,
+      })
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" })
+      // Verification continues on /verify-email — caller handles the redirect.
+      return { success: true, verificationRequired: true, email: input.email.trim() }
+    } catch (err) {
+      const message = mapClerkSignUpError(err)
+      setError(message)
+      return { success: false, message }
     }
-
-    if ("verificationRequired" in result && result.verificationRequired) return result
-
-    const currentUser = await refreshSession()
-    if (!currentUser) return { success: false, message: error || "Compte créé, mais la session n'a pas pu être validée." }
-
-    router.replace(target)
-    return { success: true }
-  }, [error, refreshSession, router])
+    // setActiveSignUp is consumed by the verify-email page after the user
+    // submits the code, not here.
+    void setActiveSignUp
+    void target
+  }, [signUpLoaded, signUp, setActiveSignUp])
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
     status,
-    sessionLoading: (betterSession.isPending && !ignoreStalledPublicAuthSession) || status === "loading",
+    sessionLoading: !clerkUserLoaded || status === "loading",
     profileLoading,
     isAuthenticated: status === "authenticated" && Boolean(user),
     isExpired: status === "expired",
@@ -308,9 +345,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     requireAuth,
   }), [
-    betterSession.isPending,
+    clerkUserLoaded,
     error,
-    ignoreStalledPublicAuthSession,
     loginWithEmail,
     loginWithGoogle,
     logout,

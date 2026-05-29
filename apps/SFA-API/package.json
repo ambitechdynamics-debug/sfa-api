@@ -17,6 +17,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@clerk/backend": "^3.4.14",
     "@prisma/client": "^6.0.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",

@@ -44,10 +44,14 @@ export const adminService = {
     return prisma.agentDefinition.create({ data });
   },
   listAgentDefs: async () => {
-    return prisma.agentDefinition.findMany({
+    const rows = await prisma.agentDefinition.findMany({
       include: { _count: { select: { memoryLinks: true } } },
       orderBy: { createdAt: 'desc' }
     });
+    return rows.map(({ _count, ...rest }) => ({
+      ...rest,
+      memoryLinksCount: _count.memoryLinks,
+    }));
   },
   getAgentDef: async (id: string) => {
     const def = await prisma.agentDefinition.findUnique({

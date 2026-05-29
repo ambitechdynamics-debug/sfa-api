@@ -4,29 +4,36 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { useSignUp } from "@clerk/nextjs"
 import { AuthShell, AuthLeftPitch } from "@/components/auth/AuthShell"
 import { BrandMark } from "@/components/ui/BrandMark"
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 import { Input } from "@/components/ui/Input"
-import { authClient } from "@/lib/authClient"
 import { useAuth } from "@/hooks/useAuth"
 
 function normalizeCode(value: string) {
   return value.replace(/\D/g, "").slice(0, 6)
 }
 
-function otpErrorMessage(code?: string) {
-  if (code === "INVALID_OTP") return "Code incorrect. Vérifiez les 6 chiffres reçus par e-mail."
-  if (code === "OTP_EXPIRED") return "Ce code a expiré. Demandez un nouveau code."
-  if (code === "TOO_MANY_ATTEMPTS") return "Trop de tentatives. Demandez un nouveau code."
-  if (code === "USER_NOT_FOUND") return "Aucun compte n'est associé à cette adresse."
-  return "Impossible de vérifier ce code. Veuillez réessayer."
+function otpErrorMessage(code?: string): string {
+  switch (code) {
+    case "form_code_incorrect":
+    case "verification_failed":
+      return "Code incorrect. Vérifiez les 6 chiffres reçus par e-mail."
+    case "verification_expired":
+      return "Ce code a expiré. Demandez un nouveau code."
+    case "too_many_requests":
+      return "Trop de tentatives. Patientez quelques minutes puis réessayez."
+    default:
+      return "Impossible de vérifier ce code. Veuillez réessayer."
+  }
 }
 
 export function CheckEmailForm({ email }: { email: string }) {
   const router = useRouter()
   const { refreshSession } = useAuth()
+  const { signUp, setActive, isLoaded } = useSignUp()
   const [code, setCode] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
@@ -44,29 +51,27 @@ export function CheckEmailForm({ email }: { email: string }) {
       setError("Saisissez le code à 6 chiffres.")
       return
     }
+    if (!isLoaded || !signUp) {
+      setError("Service d'authentification non prêt. Réessayez dans une seconde.")
+      return
+    }
 
     setIsVerifying(true)
     try {
-      const { data, error: authError } = await authClient.emailOtp.verifyEmail({
-        email,
-        otp,
-      })
+      const result = await signUp.attemptEmailAddressVerification({ code: otp })
 
-      if (authError) {
-        setError(otpErrorMessage(authError.code))
+      if (result.status !== "complete" || !result.createdSessionId) {
+        setError("Code incorrect. Vérifiez les 6 chiffres reçus par e-mail.")
         return
       }
 
+      await setActive({ session: result.createdSessionId })
       toast.success("Adresse e-mail confirmée.")
-      const verified = data as { token?: string | null } | null
-      if (verified?.token) {
-        await refreshSession()
-        router.push("/dashboard")
-        return
-      }
-      router.push(`/login?verified=1&email=${encodeURIComponent(email)}`)
-    } catch {
-      setError("Erreur de connexion au service d'authentification.")
+      await refreshSession()
+      router.push("/dashboard")
+    } catch (err: unknown) {
+      const e = err as { errors?: Array<{ code?: string }> } | undefined
+      setError(otpErrorMessage(e?.errors?.[0]?.code))
     } finally {
       setIsVerifying(false)
     }
@@ -78,21 +83,17 @@ export function CheckEmailForm({ email }: { email: string }) {
       setError("Adresse e-mail manquante. Reprenez l'inscription.")
       return
     }
+    if (!isLoaded || !signUp) {
+      setError("Service d'authentification non prêt.")
+      return
+    }
 
     setIsResending(true)
     try {
-      const { error: authError } = await authClient.emailOtp.sendVerificationOtp({
-        email,
-        type: "email-verification",
-      })
-
-      if (authError) {
-        setError("Impossible de renvoyer le code maintenant.")
-        return
-      }
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" })
       toast.success("Nouveau code envoyé.")
     } catch {
-      setError("Erreur lors de l'envoi du code.")
+      setError("Impossible de renvoyer le code maintenant.")
     } finally {
       setIsResending(false)
     }

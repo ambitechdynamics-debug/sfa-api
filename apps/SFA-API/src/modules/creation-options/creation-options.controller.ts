@@ -5,15 +5,16 @@ import {
   createCreationOptionSchema,
   updateCreationOptionSchema,
 } from "./creation-options.validation";
+import { sendSuccess } from "../../utils/apiResponse";
 
 export async function getAllCreationOptions(req: Request, res: Response) {
   try {
     const includeInactive = req.query.includeInactive === "true";
     const options = await creationOptionsService.getAllCreationOptions(includeInactive);
-    res.json(options);
+    return sendSuccess(res, "Creation options retrieved", options);
   } catch (error) {
     console.error("[CreationOptionsController] error getting options:", error);
-    res.status(500).json({ error: "Failed to fetch creation options" });
+    return res.status(500).json({ success: false, message: "Failed to fetch creation options" });
   }
 }
 
@@ -22,12 +23,12 @@ export async function getCreationOptionById(req: Request, res: Response) {
     const { id } = req.params;
     const option = await creationOptionsService.getCreationOptionById(id);
     if (!option) {
-      return res.status(404).json({ error: "Creation option not found" });
+      return res.status(404).json({ success: false, message: "Creation option not found" });
     }
-    res.json(option);
+    return sendSuccess(res, "Creation option retrieved", option);
   } catch (error) {
     console.error("[CreationOptionsController] error getting option by id:", error);
-    res.status(500).json({ error: "Failed to fetch creation option" });
+    return res.status(500).json({ success: false, message: "Failed to fetch creation option" });
   }
 }
 
@@ -35,13 +36,13 @@ export async function createCreationOption(req: Request, res: Response) {
   try {
     const data = createCreationOptionSchema.parse(req.body);
     const newOption = await creationOptionsService.createCreationOption(data);
-    res.status(201).json(newOption);
+    return sendSuccess(res, "Creation option created", newOption, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: "Validation error", details: error.errors });
+      return res.status(400).json({ success: false, message: "Validation error", details: error.errors });
     }
     console.error("[CreationOptionsController] error creating option:", error);
-    res.status(500).json({ error: "Failed to create creation option" });
+    return res.status(500).json({ success: false, message: "Failed to create creation option" });
   }
 }
 
@@ -50,13 +51,13 @@ export async function updateCreationOption(req: Request, res: Response) {
     const { id } = req.params;
     const data = updateCreationOptionSchema.parse(req.body);
     const updatedOption = await creationOptionsService.updateCreationOption(id, data);
-    res.json(updatedOption);
+    return sendSuccess(res, "Creation option updated", updatedOption);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: "Validation error", details: error.errors });
+      return res.status(400).json({ success: false, message: "Validation error", details: error.errors });
     }
     console.error("[CreationOptionsController] error updating option:", error);
-    res.status(500).json({ error: "Failed to update creation option" });
+    return res.status(500).json({ success: false, message: "Failed to update creation option" });
   }
 }
 
@@ -64,9 +65,9 @@ export async function deleteCreationOption(req: Request, res: Response) {
   try {
     const { id } = req.params;
     await creationOptionsService.deleteCreationOption(id);
-    res.status(204).send();
+    return sendSuccess(res, "Creation option deleted", { id });
   } catch (error) {
     console.error("[CreationOptionsController] error deleting option:", error);
-    res.status(500).json({ error: "Failed to delete creation option" });
+    return res.status(500).json({ success: false, message: "Failed to delete creation option" });
   }
 }

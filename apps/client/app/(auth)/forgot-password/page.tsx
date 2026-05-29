@@ -3,12 +3,13 @@
 import { useState } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
+import { useSignIn } from "@clerk/nextjs"
 import { AuthShell, AuthLeftPitch } from "@/components/auth/AuthShell"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { authClient } from "@/lib/authClient"
 
 export default function ForgotPasswordPage() {
+  const { signIn, isLoaded } = useSignIn()
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -17,27 +18,31 @@ export default function ForgotPasswordPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!isLoaded || !signIn) {
+      setError("Service d'authentification non prêt. Réessayez dans une seconde.")
+      return
+    }
     setLoading(true)
-    
+
     try {
-      const { error: authError } = await authClient.requestPasswordReset({
-        email,
-        redirectTo: "/reset-password",
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email.trim(),
       })
 
-      if (authError) {
-        // Better Auth errors mapping
-        const msg = authError.code === "USER_NOT_FOUND" 
-          ? "Aucun compte n'est associé à cette adresse e-mail."
-          : authError.message || "Une erreur est survenue."
-        setError(msg)
-        return
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("sfa.reset.email", email.trim())
       }
 
       setSuccess(true)
       toast.success("E-mail de réinitialisation envoyé !")
-    } catch (err: any) {
-      setError("Erreur lors de l'envoi de l'e-mail de réinitialisation.")
+    } catch (err: unknown) {
+      const e = err as { errors?: Array<{ code?: string; message?: string }> } | undefined
+      const first = e?.errors?.[0]
+      const msg = first?.code === "form_identifier_not_found"
+        ? "Aucun compte n'est associé à cette adresse e-mail."
+        : first?.message || "Erreur lors de l'envoi de l'e-mail de réinitialisation."
+      setError(msg)
     } finally {
       setLoading(false)
     }
