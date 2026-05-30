@@ -32,6 +32,7 @@ const ALLOWED_ORIGINS = new Set([
   ...env.APP_URL.split(',').map((o) => o.trim()).filter(Boolean),
   'http://localhost:3000',
   'http://localhost:3001',
+  'http://localhost:3010',
   'https://studio-flyer.vercel.app',
   'https://admin-seven-teal-10.vercel.app',
   'https://studio-flyer-ai-admin.vercel.app',
@@ -43,7 +44,12 @@ function isAllowedOrigin(origin: string) {
   if (ALLOWED_ORIGINS.has(origin)) return true;
 
   try {
-    const { hostname, protocol } = new URL(origin);
+    const { hostname, protocol, port } = new URL(origin);
+    // En dev, accepter tout localhost:* / 127.0.0.1:* (HTTP). Évite d'avoir à
+    // patcher app.ts à chaque port utilisé par un client local.
+    if (env.NODE_ENV !== 'production' && protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1') && port) {
+      return true;
+    }
     if (protocol !== 'https:') return false;
     return (
       hostname.endsWith('-ambitechdynamics-debugs-projects.vercel.app') ||

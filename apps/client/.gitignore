@@ -25,3 +25,8 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Playwright artifacts (local only)
+/test-results/
+/playwright-report/
+/playwright/.cache/
