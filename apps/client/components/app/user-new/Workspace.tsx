@@ -10,6 +10,7 @@ import {
   generateImages,
   uploadProjectFile,
 } from "@/lib/projects"
+import { ApiError } from "@/lib/api"
 import { fetchChatOpening } from "@/lib/chat"
 import type { GeneratedPoster } from "@/types/project"
 import { WorkspaceAssetPanel } from "./WorkspaceAssetPanel"
@@ -327,18 +328,44 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
     if (isGenerating) return
     setIsGenerating(true)
     setGenError(null)
-    try {
-      const result = await generateFinalPrompt(travailId, { force: true })
-      if (result?.data?.ready_for_generation) {
-        await generateImages(travailId, { variations: 3 })
-        const fresh = await fetchGeneratedPosters(travailId)
-        if (Array.isArray(fresh)) setPosters(fresh)
-      } else {
-        setGenError("Le prompt n'est pas encore prêt. Continuez le chat pour préciser le brief.")
+
+    // Retry transient 503/502/504 (DB cold-pause Neon, Gemini overload) avec
+    // backoff exponentiel. Le pipeline d'orchestration peut prendre plusieurs
+    // minutes, donc on retry plutôt que d'échouer immédiatement.
+    const isTransient = (e: unknown) =>
+      e instanceof ApiError && (e.status === 503 || e.status === 502 || e.status === 504)
+    const retry = async <T,>(fn: () => Promise<T>, label: string): Promise<T> => {
+      const delays = [2_000, 5_000, 12_000]
+      let lastErr: unknown
+      for (let i = 0; i <= delays.length; i++) {
+        try {
+          return await fn()
+        } catch (err) {
+          lastErr = err
+          if (!isTransient(err) || i === delays.length) throw err
+          console.warn(`[gen] ${label} retry ${i + 1}/${delays.length} after`, (err as ApiError).status)
+          await new Promise((r) => setTimeout(r, delays[i]))
+        }
       }
+      throw lastErr
+    }
+
+    try {
+      const result = await retry(() => generateFinalPrompt(travailId, { force: true }), 'generateFinalPrompt')
+      if (!result?.data?.ready_for_generation) {
+        setGenError("Le prompt n'est pas encore prêt. Continuez le chat pour préciser le brief.")
+        return
+      }
+      await retry(() => generateImages(travailId, { variations: 3 }), 'generateImages')
+      const fresh = await retry(() => fetchGeneratedPosters(travailId), 'fetchGeneratedPosters')
+      if (Array.isArray(fresh)) setPosters(fresh)
     } catch (err) {
       console.error("[user-new workspace] generation failed", err)
-      setGenError(err instanceof Error ? err.message : "Génération impossible.")
+      const msg =
+        isTransient(err)
+          ? "Service temporairement indisponible (base de données ou provider d'image). Veuillez réessayer dans un instant."
+          : err instanceof Error ? err.message : "Génération impossible."
+      setGenError(msg)
     } finally {
       setIsGenerating(false)
     }
