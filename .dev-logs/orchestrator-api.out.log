@@ -1,0 +1,66 @@
+
+> studio-flyer-ai-backend@0.1.0 dev
+> ts-node-dev --respawn --transpile-only src/server.ts
+
+[INFO] 11:06:00 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 5.9.3)
+STUDIO FLYER AI backend listening on port 5000
+prisma:error 
+Invalid `prisma.appSetting.findUnique()` invocation in
+C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\settings\settings.service.ts:192:48
+
+  189 let migrated = 0;
+  190 
+  191 for (const def of DEFAULT_SETTINGS) {
+→ 192   const existing = await prisma.appSetting.findUnique(
+Can't reach database server at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.appSetting.findUnique()` invocation in
+C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\settings\settings.service.ts:192:48
+
+  189 let migrated = 0;
+  190 
+  191 for (const def of DEFAULT_SETTINGS) {
+→ 192   const existing = await prisma.appSetting.findUnique(
+Can't reach database server at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.appSetting.findUnique()` invocation in
+C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\settings\settings.service.ts:192:48
+
+  189 let migrated = 0;
+  190 
+  191 for (const def of DEFAULT_SETTINGS) {
+→ 192   const existing = await prisma.appSetting.findUnique(
+Can't reach database server at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.forbiddenRule.findUnique()` invocation in
+C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\forbidden-rules\forbiddenRules.service.ts:409:49
+
+  406 let created = 0;
+  407 let skipped = 0;
+  408 for (const rule of DEFAULT_FORBIDDEN_RULES) {
+→ 409   const exists = await prisma.forbiddenRule.findUnique(
+Can't reach database server at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.forbiddenRule.findUnique()` invocation in
+C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\forbidden-rules\forbiddenRules.service.ts:409:49
+
+  406 let created = 0;
+  407 let skipped = 0;
+  408 for (const rule of DEFAULT_FORBIDDEN_RULES) {
+→ 409   const exists = await prisma.forbiddenRule.findUnique(
+Can't reach database server at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`.
+[scheduled-cleanup] enabled — every 10 min
+[0mGET /api/admin/orchestrator-pipeline [33m401[0m 12.514 ms - 74[0m
+[INFO] 11:12:06 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\orchestrator\promptOrchestrator.service.ts has been modified
+STUDIO FLYER AI backend listening on port 5000
+[scheduled-cleanup] enabled — every 10 min

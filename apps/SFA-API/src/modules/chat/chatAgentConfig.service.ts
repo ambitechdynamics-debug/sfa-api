@@ -17,7 +17,7 @@ export interface ChatAgentConfig {
 }
 
 const DEFAULT_CONFIG: ChatAgentConfig = {
-  memoryTargetKey: 'M_SMS',
+  memoryTargetKey: 'M-CREATIVE-BRIEF',
   moduleAccess: {
     files: true,
     artistic_base: false,

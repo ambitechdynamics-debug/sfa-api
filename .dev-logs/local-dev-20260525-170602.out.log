@@ -1,0 +1,1018 @@
+
+> dev
+> concurrently --names "API,ADMIN,CLIENT" --prefix-colors "cyan,magenta,green" "npm run dev --workspace=apps/SFA-API" "npm run dev --workspace=apps/admin" "npm run dev --workspace=apps/client"
+
+[API] 
+[API] > studio-flyer-ai-backend@0.1.0 dev
+[API] > ts-node-dev --respawn --transpile-only src/server.ts
+[API] 
+[ADMIN] 
+[ADMIN] > admin-dashboard@0.1.0 dev
+[ADMIN] > next dev --webpack -p 3000
+[ADMIN] 
+[CLIENT] 
+[CLIENT] > frontend-client@0.1.0 dev
+[CLIENT] > next dev --webpack -p 3001
+[CLIENT] 
+[API] [INFO] 17:06:35 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 5.9.3)
+[ADMIN] ▲ Next.js 16.2.6 (webpack)
+[ADMIN] - Local:         http://localhost:3000
+[ADMIN] - Network:       http://10.252.47.60:3000
+[ADMIN] - Environments: .env.local
+[CLIENT] ▲ Next.js 16.2.6 (webpack)
+[ADMIN] ✓ Ready in 22.8s
+[CLIENT] - Local:         http://localhost:3001
+[CLIENT] - Network:       http://10.252.47.60:3001
+[CLIENT] - Environments: .env.local
+[CLIENT] ✓ Ready in 22.8s
+[API] STUDIO FLYER AI backend listening on port 5000
+[ADMIN] 
+[CLIENT] 
+[API] [0mGET /api/health [32m200[0m 5.762 ms - 92[0m
+[ADMIN] ○ Compiling / ...
+[ADMIN]  GET / 307 in 8.1s (next.js: 6.8s, application-code: 1320ms)
+[ADMIN] ○ Compiling /admin ...
+[CLIENT] ○ Compiling / ...
+[API] [scheduled-cleanup] enabled — every 10 min
+[ADMIN]  GET / 307 in 223ms (next.js: 47ms, application-code: 176ms)
+[ADMIN]  GET /admin 200 in 113ms (next.js: 11ms, application-code: 102ms)
+[CLIENT]  GET / 200 in 305ms (next.js: 17ms, application-code: 288ms)
+[CLIENT]  GET / 200 in 373ms (next.js: 139ms, application-code: 234ms)
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[CLIENT] ○ Compiling /api/auth/[...path] ...
+[CLIENT]  GET /login 200 in 6.5s (next.js: 5.8s, application-code: 685ms)
+[CLIENT]  GET /api/auth/get-session 200 in 10.0s (next.js: 7.9s, application-code: 2.2s)
+[CLIENT]  GET /api/auth/token 200 in 544ms (next.js: 51ms, application-code: 493ms)
+[API] [0mGET /api/users/me [32m200[0m 4671.758 ms - 428[0m
+[CLIENT] ○ Compiling /dashboard ...
+[CLIENT]  GET /dashboard 200 in 11.6s (next.js: 11.2s, application-code: 321ms)
+[CLIENT]  GET /api/auth/get-session 200 in 13.0s (next.js: 10.1s, application-code: 2.9s)
+[CLIENT]  GET /api/auth/get-session 200 in 515ms (next.js: 35ms, application-code: 480ms)
+[CLIENT]  GET /api/auth/token 200 in 2.9s (next.js: 16ms, application-code: 2.9s)
+[CLIENT]  GET /api/auth/token 200 in 2.9s (next.js: 18ms, application-code: 2.9s)
+[CLIENT]  GET /api/auth/token 200 in 2.9s (next.js: 20ms, application-code: 2.9s)
+[CLIENT]  GET /api/auth/token 200 in 2.9s (next.js: 11ms, application-code: 2.8s)
+[CLIENT]  GET /api/auth/token 200 in 3.0s (next.js: 12ms, application-code: 3.0s)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2746.291 ms - 335[0m
+[API] [0mGET /api/projects [32m200[0m 3340.866 ms - 1562[0m
+[API] [0mGET /api/projects [36m304[0m 2064.967 ms - -[0m
+[API] [CreationOptionsController] error getting options: PrismaClientInitializationError: 
+[API] Invalid `prisma.creationOption.findMany()` invocation in
+[API] C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\creation-options\creation-options.service.ts:6:32
+[API] 
+[API]   3 const prisma = new PrismaClient();
+[API]   4 
+[API]   5 export async function getAllCreationOptions(includeInactive = false) {
+[API] → 6   return prisma.creationOption.findMany(
+[API] Can't reach database server at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`
+[API] 
+[API] Please make sure your database server is running at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`.
+[API]     at Mn.handleRequestError (C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\node_modules\@prisma\client\runtime\library.js:121:7638)
+[API]     at Mn.handleAndLogRequestError (C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\node_modules\@prisma\client\runtime\library.js:121:6663)
+[API]     at Mn.request (C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\node_modules\@prisma\client\runtime\library.js:121:6370)
+[API]     at l (C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\node_modules\@prisma\client\runtime\library.js:130:9633)
+[API]     at getAllCreationOptions (C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\creation-options\creation-options.controller.ts:12:21) {
+[API]   clientVersion: '6.0.0',
+[API]   errorCode: undefined
+[API] }
+[API] [0mGET /api/creation-options?includeInactive=false [31m500[0m 7260.225 ms - 44[0m
+[CLIENT] [browser] Error fetching creation options: ApiError: Failed to fetch creation options
+[CLIENT]     at apiFetch (lib\api.ts:102:11)
+[CLIENT]     at async fetchOptions (store\creation-options-store.ts:30:23)
+[CLIENT]   100 |   if (!response.ok || data.success === false) {
+[CLIENT]   101 |     notifyAuthFailure(response.status, suppressAuthRedirect)
+[CLIENT] > 102 |     throw new ApiError(readErrorMessage(data, response.status, suppressAuthRedirect), res...
+[CLIENT]       |           ^
+[CLIENT]   103 |   }
+[CLIENT]   104 |
+[CLIENT]   105 |   return data.data as T (store\creation-options-store.ts:33:15)
+[API] [0mGET /api/creation-options?includeInactive=false [32m200[0m 8649.586 ms - 2[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1806ms (next.js: 51ms, application-code: 1755ms)
+[CLIENT]  GET /api/auth/get-session 200 in 450ms (next.js: 47ms, application-code: 403ms)
+[CLIENT]  GET /api/auth/token 200 in 753ms (next.js: 31ms, application-code: 722ms)
+[API] [0mGET /api/travaux?projectId=cmple9dok0003az01q1qt5nzm [32m200[0m 2573.805 ms - 533[0m
+[CLIENT]  GET /dashboard/t/cmple9t3u000baz0154eq05jm 200 in 4.0s (next.js: 3.9s, application-code: 137ms)
+[CLIENT]  GET /api/auth/token 200 in 1872ms (next.js: 5ms, application-code: 1867ms)
+[CLIENT]  GET /api/auth/token 200 in 1946ms (next.js: 24ms, application-code: 1922ms)
+[CLIENT]  GET /api/auth/token 200 in 2.1s (next.js: 98ms, application-code: 1993ms)
+[CLIENT]  GET /api/auth/token 200 in 1813ms (next.js: 4ms, application-code: 1808ms)
+[CLIENT]  GET /api/auth/token 200 in 1866ms (next.js: 6ms, application-code: 1860ms)
+[CLIENT]  GET /api/auth/token 200 in 2.3s (next.js: 10ms, application-code: 2.3s)
+[CLIENT]  GET /api/auth/token 200 in 403ms (next.js: 27ms, application-code: 376ms)
+[CLIENT]  GET /api/auth/token 200 in 379ms (next.js: 7ms, application-code: 372ms)
+[CLIENT]  GET /api/auth/token 200 in 399ms (next.js: 7ms, application-code: 393ms)
+[CLIENT]  GET /api/auth/token 200 in 392ms (next.js: 4ms, application-code: 388ms)
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2173.512 ms - 409[0m
+[API] [0mPOST /api/ux-metrics/events [32m201[0m 2196.717 ms - 371[0m
+[API] [0mGET /api/travaux/cmple9t3u000baz0154eq05jm [32m200[0m 3914.976 ms - 557[0m
+[CLIENT]  GET /api/auth/token 200 in 414ms (next.js: 32ms, application-code: 382ms)
+[CLIENT]  GET /api/auth/token 200 in 389ms (next.js: 5ms, application-code: 384ms)
+[API] [0mGET /api/travaux/cmple9t3u000baz0154eq05jm/generated-posters [32m200[0m 5756.505 ms - 66[0m
+[CLIENT]  GET /api/auth/token 200 in 421ms (next.js: 34ms, application-code: 387ms)
+[API] [0mGET /api/projects/cmple9dok0003az01q1qt5nzm/files [32m200[0m 2561.648 ms - 1636[0m
+[API] [0mGET /api/travaux/cmple9t3u000baz0154eq05jm [36m304[0m 3880.233 ms - -[0m
+[API] [0mGET /api/travaux/cmple9t3u000baz0154eq05jm/generated-posters [36m304[0m 2516.566 ms - -[0m
+[API] [0mGET /api/travaux/cmple9t3u000baz0154eq05jm [36m304[0m 2440.542 ms - -[0m
+[API] [0mGET /api/travaux/cmple9t3u000baz0154eq05jm/generated-posters [36m304[0m 3235.818 ms - -[0m
+[API] [0mGET /api/travaux/cmple9t3u000baz0154eq05jm [36m304[0m 2442.198 ms - -[0m
+[API] [0mGET /api/travaux/cmple9t3u000baz0154eq05jm/generated-posters [36m304[0m 2608.987 ms - -[0m
+[API] [chat/opening] request failed Gemini-compatible API error 404: {
+[API]   "error": {
+[API]     "code": 404,
+[API]     "message": "This model models/gemini-3.1-flash-lite-preview is no longer available. Please update your code to use a newer model for the latest features and improvements.",
+[API]     "status": "NOT_FOUND"
+[API]   }
+[API] }
+[API] 
+[API] [0mPOST /api/chat/opening [31m502[0m 23308.104 ms - 95[0m
+[CLIENT]  POST /api/chat/opening 502 in 25.4s (next.js: 1566ms, application-code: 23.8s)
+[CLIENT]  GET /api/auth/token 200 in 1769ms (next.js: 45ms, application-code: 1724ms)
+[CLIENT] ○ Compiling /api/chat ...
+[CLIENT]  GET /dashboard/t/cmple9t3u000baz0154eq05jm 200 in 773ms (next.js: 542ms, application-code: 231ms)
+[CLIENT]  GET /api/auth/get-session 200 in 8.7s (next.js: 6.2s, application-code: 2.5s)
+[CLIENT]  GET /api/auth/token 200 in 1805ms (next.js: 7ms, application-code: 1798ms)
+[CLIENT]  GET /api/auth/get-session 200 in 508ms (next.js: 40ms, application-code: 467ms)
+[API] [chat] message received {
+[API]   travailId: 'cmple9t3u000baz0154eq05jm',
+[API]   isFirstMessage: true,
+[API]   historyLength: 0,
+[API]   messageLength: 21
+[API] }
+[API] [chat] calling AI provider {
+[API]   provider: 'chat-dashboard',
+[API]   model: 'gemini-3.1-flash-lite-preview',
+[API]   agentName: 'Studio Flyer AI',
+[API]   mode: 'vision',
+[API]   attachmentCount: 3
+[API] }
+[API] [chat] request failed Gemini-compatible API error 404: {
+[API]   "error": {
+[API]     "code": 404,
+[API]     "message": "This model models/gemini-3.1-flash-lite-preview is no longer available. Please update your code to use a newer model for the latest features and improvements.",
+[API]     "status": "NOT_FOUND"
+[API]   }
+[API] }
+[API] 
+[API] [0mPOST /api/chat [31m502[0m 29932.466 ms - 95[0m
+[CLIENT]  POST /api/chat 502 in 49s (next.js: 16.3s, application-code: 32.8s)
+[CLIENT]  GET /api/auth/get-session 200 in 2.8s (next.js: 84ms, application-code: 2.7s)
+[CLIENT]  GET /api/auth/get-session 200 in 494ms (next.js: 27ms, application-code: 467ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1914ms (next.js: 24ms, application-code: 1890ms)
+[CLIENT]  GET /api/auth/get-session 200 in 626ms (next.js: 25ms, application-code: 601ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.9s (next.js: 34ms, application-code: 2.8s)
+[CLIENT]  GET /api/auth/get-session 200 in 579ms (next.js: 33ms, application-code: 546ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 35ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 551ms (next.js: 33ms, application-code: 518ms)
+[CLIENT]  GET /api/auth/get-session 200 in 4.2s (next.js: 27ms, application-code: 4.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 442ms (next.js: 25ms, application-code: 416ms)
+[CLIENT]  GET /api/auth/get-session 200 in 3.1s (next.js: 34ms, application-code: 3.1s)
+[CLIENT]  GET /api/auth/get-session 200 in 455ms (next.js: 26ms, application-code: 429ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1991ms (next.js: 195ms, application-code: 1796ms)
+[CLIENT]  GET /api/auth/get-session 200 in 612ms (next.js: 7ms, application-code: 605ms)
+[CLIENT]  GET /api/auth/get-session 200 in 567ms (next.js: 20ms, application-code: 547ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1218ms (next.js: 53ms, application-code: 1165ms)
+[ADMIN]  GET /admin 200 in 324ms (next.js: 34ms, application-code: 290ms)
+[ADMIN] ○ Compiling /api/auth/[...path] ...
+[ADMIN]  GET /admin 200 in 607ms (next.js: 258ms, application-code: 349ms)
+[ADMIN]  GET /admin 200 in 141ms (next.js: 15ms, application-code: 126ms)
+[ADMIN]  GET /api/auth/get-session 200 in 11.4s (next.js: 8.8s, application-code: 2.5s)
+[ADMIN]  GET /api/auth/get-session 200 in 587ms (next.js: 36ms, application-code: 552ms)
+[API] [auth] Neon token verification failed Neon Auth session lookup returned no user
+[API] [0mGET /api/users/me [33m401[0m 3124.752 ms - 81[0m
+[ADMIN] ○ Compiling /login ...
+[ADMIN]  GET /login 200 in 5.7s (next.js: 5.5s, application-code: 227ms)
+[ADMIN] [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[ADMIN]  POST /api/auth/sign-out 200 in 7.5s (next.js: 5.5s, application-code: 2.0s)
+[ADMIN]  GET /api/auth/get-session 200 in 413ms (next.js: 29ms, application-code: 384ms)
+[ADMIN]  POST /api/auth/sign-in/email 401 in 2.5s (next.js: 29ms, application-code: 2.5s)
+[ADMIN]  POST /api/auth/sign-out 200 in 599ms (next.js: 32ms, application-code: 567ms)
+[ADMIN]  GET /api/auth/get-session 200 in 533ms (next.js: 11ms, application-code: 522ms)
+[API] [0mPOST /api/auth/login [32m200[0m 3803.488 ms - 663[0m
+[ADMIN]  GET /admin 200 in 119ms (next.js: 50ms, application-code: 69ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /login 200 in 189ms (next.js: 15ms, application-code: 174ms)
+[ADMIN]  GET /login 200 in 95ms (next.js: 8ms, application-code: 88ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/users/me [32m200[0m 1925.870 ms - 435[0m
+[ADMIN]  POST /api/auth/sign-in/email 401 in 2.6s (next.js: 29ms, application-code: 2.5s)
+[ADMIN]  POST /api/auth/sign-out 200 in 603ms (next.js: 27ms, application-code: 576ms)
+[ADMIN]  GET /api/auth/get-session 200 in 572ms (next.js: 13ms, application-code: 559ms)
+[API] [0mPOST /api/auth/login [32m200[0m 1188.765 ms - 663[0m
+[ADMIN]  GET /admin 200 in 94ms (next.js: 9ms, application-code: 85ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /login 200 in 226ms (next.js: 9ms, application-code: 217ms)
+[ADMIN]  GET /login 200 in 105ms (next.js: 10ms, application-code: 95ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/chart-data [32m200[0m 4341.351 ms - 2068[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/users [32m200[0m 4776.969 ms - 538[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 29ms, application-code: 1981ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 173ms (next.js: 53ms, application-code: 120ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-runs [32m200[0m 5785.499 ms - 59[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/stats [32m200[0m 6171.966 ms - 247[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET /api/auth/get-session 200 in 415ms (next.js: 34ms, application-code: 381ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/chart-data [36m304[0m 2115.322 ms - -[0m
+[API] [0mGET /api/admin/users [36m304[0m 1684.258 ms - -[0m
+[API] [0mGET /api/admin/projects [32m200[0m 6629.475 ms - 1093[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[ADMIN]  GET /login 200 in 1113ms (next.js: 21ms, application-code: 1092ms)
+[ADMIN]  GET /login 200 in 115ms (next.js: 7ms, application-code: 108ms)
+[ADMIN]  GET /login 200 in 122ms (next.js: 7ms, application-code: 115ms)
+[API] [0mGET /api/admin/agent-runs [0m-[0m - ms - -[0m
+[API] [0mGET /api/admin/stats [0m-[0m - ms - -[0m
+[API] [0mGET /api/admin/projects [0m-[0m - ms - -[0m
+[ADMIN]  GET /login 200 in 149ms (next.js: 5ms, application-code: 144ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[ADMIN]  GET /login 200 in 139ms (next.js: 6ms, application-code: 133ms)
+[ADMIN]  GET /login 200 in 148ms (next.js: 10ms, application-code: 138ms)
+[ADMIN]  GET /login 200 in 156ms (next.js: 5ms, application-code: 151ms)
+[ADMIN]  GET /login 200 in 134ms (next.js: 5ms, application-code: 128ms)
+[ADMIN]  GET /login 200 in 139ms (next.js: 6ms, application-code: 133ms)
+[ADMIN]  GET /login 200 in 163ms (next.js: 5ms, application-code: 158ms)
+[ADMIN]  POST /api/auth/sign-in/email 400 in 1849ms (next.js: 39ms, application-code: 1810ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 614ms (next.js: 32ms, application-code: 582ms)
+[API] [0mPOST /api/auth/login [33m400[0m 2.477 ms - 159[0m
+[ADMIN]  POST /api/auth/sign-in/email 401 in 645ms (next.js: 29ms, application-code: 615ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 476ms (next.js: 4ms, application-code: 471ms)
+[API] [0mPOST /api/auth/login [32m200[0m 1734.943 ms - 663[0m
+[ADMIN]  GET /admin 200 in 59ms (next.js: 8ms, application-code: 51ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /api/auth/get-session 200 in 451ms (next.js: 34ms, application-code: 417ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/users/me [36m304[0m 1229.736 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN] [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/agent-runs [32m200[0m 2443.639 ms - 59[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/chart-data [36m304[0m 3000.793 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/users [36m304[0m 2814.855 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/stats [32m200[0m 3080.760 ms - 247[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/projects [32m200[0m 3574.206 ms - 1093[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-runs [36m304[0m 1563.937 ms - -[0m
+[API] [0mGET /api/admin/users [36m304[0m 1654.616 ms - -[0m
+[API] [0mGET /api/admin/chart-data [36m304[0m 2122.358 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/stats [36m304[0m 2772.878 ms - -[0m
+[API] [0mGET /api/admin/projects [36m304[0m 3290.704 ms - -[0m
+[ADMIN] ○ Compiling /admin/agents ...
+[ADMIN]  GET /admin/agents 200 in 4.6s (next.js: 4.4s, application-code: 223ms)
+[ADMIN]  GET /admin/agents 200 in 152ms (next.js: 6ms, application-code: 146ms)
+[ADMIN]  GET /admin/agents 200 in 76ms (next.js: 8ms, application-code: 68ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/agent-definitions [32m200[0m 2122.674 ms - 65[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/llm-providers [32m200[0m 2983.923 ms - 2547[0m
+[API] [0mGET /api/admin/settings [32m200[0m 3129.918 ms - 74320[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/llm-providers [32m200[0m 3292.143 ms - 2547[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-definitions [36m304[0m 1534.814 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/settings [36m304[0m 2001.775 ms - -[0m
+[API] [INFO] 17:31:44 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\settings\settings.service.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[API] [INFO] 17:31:57 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\chat\chat.service.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[API] [INFO] 17:32:07 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\server.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[API] AppSettings: 1 settings migrated
+[API] [INFO] 17:32:43 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\settings\settings.service.ts has been modified
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 1471ms (next.js: 920ms, application-code: 552ms)
+[API] STUDIO FLYER AI backend listening on port 5000
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 164ms (next.js: 20ms, application-code: 143ms)
+[ADMIN]  GET /admin/agents 200 in 653ms (next.js: 509ms, application-code: 145ms)
+[ADMIN]  GET /admin/agents 200 in 133ms (next.js: 14ms, application-code: 118ms)
+[API] [scheduled-cleanup] enabled — every 10 min
+[CLIENT] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[API] [INFO] 17:34:42 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\middlewares\auth.middleware.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[API] [scheduled-cleanup] enabled — every 10 min
+[API] [INFO] 17:35:25 Restarting: C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\middlewares\auth.middleware.ts has been modified
+[API] STUDIO FLYER AI backend listening on port 5000
+[API] [scheduled-cleanup] enabled — every 10 min
+[ADMIN] ○ Compiling /api/auth/[...path] ...
+[ADMIN]  GET /admin/agents 200 in 898ms (next.js: 477ms, application-code: 421ms)
+[ADMIN]  GET /admin/agents 200 in 180ms (next.js: 13ms, application-code: 166ms)
+[ADMIN]  GET /api/auth/get-session 200 in 8.9s (next.js: 5.6s, application-code: 3.3s)
+[ADMIN]  GET /api/auth/get-session 200 in 553ms (next.js: 90ms, application-code: 463ms)
+[CLIENT] ○ Compiling /api/auth/[...path] ...
+[ADMIN]  GET /api/auth/get-session 200 in 2.0s (next.js: 46ms, application-code: 1965ms)
+[ADMIN]  GET /api/auth/get-session 200 in 437ms (next.js: 11ms, application-code: 426ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 693ms (next.js: 336ms, application-code: 357ms)
+[CLIENT]  GET /api/auth/get-session 200 in 7.1s (next.js: 5.1s, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 389ms (next.js: 6ms, application-code: 383ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 62ms, application-code: 2.0s)
+[CLIENT]  GET /api/auth/get-session 200 in 446ms (next.js: 31ms, application-code: 415ms)
+[CLIENT]  POST /api/auth/sign-in/email 200 in 1836ms (next.js: 32ms, application-code: 1804ms)
+[CLIENT]  GET /api/auth/token 200 in 437ms (next.js: 27ms, application-code: 410ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1642ms (next.js: 5ms, application-code: 1637ms)
+[CLIENT]  GET /api/auth/token 200 in 406ms (next.js: 26ms, application-code: 381ms)
+[CLIENT]  GET /api/auth/get-session 200 in 394ms (next.js: 4ms, application-code: 390ms)
+[CLIENT]  GET /api/auth/token 200 in 424ms (next.js: 27ms, application-code: 397ms)
+[CLIENT]  GET /api/auth/get-session 200 in 396ms (next.js: 9ms, application-code: 387ms)
+[CLIENT]  GET /api/auth/token 200 in 387ms (next.js: 4ms, application-code: 384ms)
+[API] [0mGET /api/users/me [32m200[0m 6087.626 ms - 428[0m
+[CLIENT]  GET /api/auth/token 200 in 485ms (next.js: 37ms, application-code: 448ms)
+[API] [0mGET /api/users/me [36m304[0m 725.835 ms - -[0m
+[API] [0mGET /api/users/me [36m304[0m 733.638 ms - -[0m
+[API] [0mGET /api/users/me [36m304[0m 728.054 ms - -[0m
+[API] [0mGET /api/users/me [36m304[0m 725.151 ms - -[0m
+[CLIENT] ○ Compiling middleware ...
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 81ms (next.js: 12ms, application-code: 70ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 63ms (next.js: 6ms, application-code: 57ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.6s (next.js: 27ms, application-code: 2.6s)
+[CLIENT]  GET /api/auth/get-session 200 in 467ms (next.js: 29ms, application-code: 438ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1748ms (next.js: 101ms, application-code: 1647ms)
+[CLIENT]  GET /api/auth/get-session 200 in 429ms (next.js: 6ms, application-code: 423ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 517ms (next.js: 7ms, application-code: 510ms)
+[ADMIN]  GET /api/auth/get-session 200 in 1853ms (next.js: 52ms, application-code: 1802ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.1s (next.js: 41ms, application-code: 2.0s)
+[ADMIN]  GET /api/auth/get-session 200 in 470ms (next.js: 12ms, application-code: 458ms)
+[CLIENT]  GET /api/auth/token 200 in 435ms (next.js: 33ms, application-code: 402ms)
+[API] [0mGET /api/users/me [36m304[0m 1087.905 ms - -[0m
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 51ms (next.js: 6ms, application-code: 45ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/llm-providers [32m200[0m 3102.000 ms - 2531[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/llm-providers [32m200[0m 6002.929 ms - 2531[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1992ms (next.js: 28ms, application-code: 1964ms)
+[CLIENT]  GET /api/auth/get-session 200 in 448ms (next.js: 34ms, application-code: 414ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1975ms (next.js: 42ms, application-code: 1933ms)
+[CLIENT]  GET /api/auth/get-session 200 in 419ms (next.js: 5ms, application-code: 414ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.2s (next.js: 29ms, application-code: 2.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 471ms (next.js: 25ms, application-code: 446ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.0s (next.js: 29ms, application-code: 1992ms)
+[CLIENT]  GET /api/auth/get-session 200 in 495ms (next.js: 29ms, application-code: 466ms)
+[CLIENT]  GET /api/auth/get-session 200 in 3.5s (next.js: 26ms, application-code: 3.4s)
+[CLIENT]  GET /api/auth/get-session 200 in 466ms (next.js: 25ms, application-code: 441ms)
+[ADMIN]  GET /api/auth/get-session 200 in 1732ms (next.js: 37ms, application-code: 1695ms)
+[ADMIN]  GET /api/auth/get-session 200 in 456ms (next.js: 39ms, application-code: 416ms)
+[ADMIN]  GET /admin/agents 200 in 1039ms (next.js: 11ms, application-code: 1028ms)
+[ADMIN]  GET /api/auth/get-session 200 in 1745ms (next.js: 36ms, application-code: 1709ms)
+[ADMIN]  GET /api/auth/get-session 200 in 412ms (next.js: 26ms, application-code: 386ms)
+[API] [auth] Neon token verification failed Neon Auth session lookup returned no user
+[API] [0mGET /api/users/me [33m401[0m 1628.509 ms - 81[0m
+[ADMIN]  GET /login 200 in 225ms (next.js: 43ms, application-code: 182ms)
+[ADMIN]  GET /login 200 in 57ms (next.js: 5ms, application-code: 51ms)
+[ADMIN] [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[ADMIN]  POST /api/auth/sign-out 200 in 439ms (next.js: 29ms, application-code: 410ms)
+[ADMIN]  GET /api/auth/get-session 200 in 401ms (next.js: 11ms, application-code: 389ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 1682ms (next.js: 6ms, application-code: 1676ms)
+[ADMIN]  GET /api/auth/get-session 200 in 371ms (next.js: 5ms, application-code: 366ms)
+[ADMIN]  POST /api/auth/sign-in/email 401 in 511ms (next.js: 28ms, application-code: 483ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 389ms (next.js: 5ms, application-code: 384ms)
+[ADMIN]  GET /api/auth/get-session 200 in 376ms (next.js: 5ms, application-code: 371ms)
+[API] [0mPOST /api/auth/login [32m200[0m 1653.285 ms - 663[0m
+[ADMIN]  GET /admin 200 in 108ms (next.js: 47ms, application-code: 61ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /login 200 in 211ms (next.js: 14ms, application-code: 197ms)
+[ADMIN]  GET /login 200 in 112ms (next.js: 8ms, application-code: 105ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/users/me [32m200[0m 2203.193 ms - 435[0m
+[ADMIN]  POST /api/auth/sign-in/email 401 in 659ms (next.js: 32ms, application-code: 627ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 382ms (next.js: 4ms, application-code: 377ms)
+[ADMIN]  GET /api/auth/get-session 200 in 411ms (next.js: 6ms, application-code: 405ms)
+[API] [0mPOST /api/auth/login [32m200[0m 970.078 ms - 663[0m
+[ADMIN]  GET /admin 200 in 80ms (next.js: 10ms, application-code: 70ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /login 200 in 194ms (next.js: 10ms, application-code: 183ms)
+[ADMIN]  GET /login 200 in 91ms (next.js: 9ms, application-code: 82ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/users [36m304[0m 5514.751 ms - -[0m
+[API] [0mGET /api/admin/stats [36m304[0m 5842.246 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-runs [36m304[0m 5514.945 ms - -[0m
+[API] [0mGET /api/admin/chart-data [36m304[0m 5856.180 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/projects [36m304[0m 6776.959 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET / 200 in 1675ms (next.js: 557ms, application-code: 1118ms)
+[API] [0mGET /api/admin/users [36m304[0m 2058.322 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/agent-runs [36m304[0m 2915.155 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/stats [36m304[0m 3321.855 ms - -[0m
+[API] [0mGET /api/admin/chart-data [36m304[0m 3308.138 ms - -[0m
+[API] [0mGET /api/admin/projects [36m304[0m 3447.782 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 1683ms (next.js: 36ms, application-code: 1648ms)
+[ADMIN]  POST /api/auth/sign-in/email 401 in 1958ms (next.js: 37ms, application-code: 1922ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 463ms (next.js: 27ms, application-code: 437ms)
+[ADMIN]  GET /api/auth/get-session 200 in 884ms (next.js: 7ms, application-code: 877ms)
+[API] [0mPOST /api/auth/login [32m200[0m 4296.268 ms - 663[0m
+[ADMIN]  GET /admin 200 in 69ms (next.js: 7ms, application-code: 61ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /login 200 in 197ms (next.js: 11ms, application-code: 186ms)
+[ADMIN]  GET /login 200 in 103ms (next.js: 9ms, application-code: 94ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET /api/auth/get-session 200 in 7.9s (next.js: 33ms, application-code: 7.8s)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[CLIENT]  GET /api/auth/get-session 200 in 757ms (next.js: 32ms, application-code: 725ms)
+[API] [0mGET /api/admin/agent-runs [36m304[0m 4727.268 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/stats [36m304[0m 5202.953 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/chart-data [36m304[0m 5630.489 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/users [36m304[0m 6677.134 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/projects [36m304[0m 7777.645 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-runs [36m304[0m 6498.592 ms - -[0m
+[API] [0mGET /api/admin/chart-data [36m304[0m 6470.756 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/users [36m304[0m 5148.467 ms - -[0m
+[API] [0mGET /api/admin/projects [36m304[0m 5552.988 ms - -[0m
+[API] [0mGET /api/admin/stats [36m304[0m 8457.201 ms - -[0m
+[ADMIN]  POST /api/auth/sign-in/email 401 in 8.0s (next.js: 31ms, application-code: 8.0s)
+[ADMIN]  POST /api/auth/sign-out 200 in 774ms (next.js: 29ms, application-code: 744ms)
+[ADMIN]  GET /api/auth/get-session 200 in 624ms (next.js: 6ms, application-code: 618ms)
+[API] [0mPOST /api/auth/login [32m200[0m 2360.197 ms - 663[0m
+[ADMIN]  GET /admin 200 in 65ms (next.js: 7ms, application-code: 58ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /login 200 in 181ms (next.js: 11ms, application-code: 170ms)
+[ADMIN]  GET /login 200 in 85ms (next.js: 9ms, application-code: 76ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/chart-data [36m304[0m 4874.626 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/agent-runs [36m304[0m 5175.424 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET /login 200 in 102ms (next.js: 12ms, application-code: 90ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/projects [36m304[0m 6072.197 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET /api/auth/get-session 200 in 2.7s (next.js: 37ms, application-code: 2.7s)
+[API] [0mGET /api/admin/users [36m304[0m 6156.898 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[CLIENT]  GET /api/auth/get-session 200 in 610ms (next.js: 30ms, application-code: 580ms)
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-runs [36m304[0m 2176.228 ms - -[0m
+[API] [0mGET /api/admin/chart-data [36m304[0m 3129.269 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/stats [36m304[0m 9359.514 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/users [36m304[0m 2882.258 ms - -[0m
+[API] [0mGET /api/admin/projects [36m304[0m 2952.815 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/stats [36m304[0m 2850.586 ms - -[0m
+[ADMIN]  POST /api/auth/sign-in/email 401 in 1881ms (next.js: 33ms, application-code: 1849ms)
+[ADMIN]  POST /api/auth/sign-out 200 in 476ms (next.js: 30ms, application-code: 445ms)
+[ADMIN]  GET /api/auth/get-session 200 in 445ms (next.js: 6ms, application-code: 439ms)
+[API] [0mPOST /api/auth/login [32m200[0m 1743.469 ms - 663[0m
+[ADMIN]  GET /admin 200 in 66ms (next.js: 7ms, application-code: 59ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[ADMIN]  GET /login 200 in 180ms (next.js: 13ms, application-code: 167ms)
+[ADMIN]  GET /login 200 in 78ms (next.js: 6ms, application-code: 72ms)
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/users [36m304[0m 2363.103 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/chart-data [36m304[0m 2778.603 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/stats [36m304[0m 3131.078 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/agent-runs [36m304[0m 3060.907 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/projects [36m304[0m 3434.938 ms - -[0m
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [0mGET /api/admin/users [36m304[0m 1818.194 ms - -[0m
+[API] [0mGET /api/admin/chart-data [36m304[0m 1719.327 ms - -[0m
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] Neon token verification failed Unsupported "alg" value for a JSON Web Key Set
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [auth] accepted legacy JWT while Neon Auth is enabled
+[API] [0mGET /api/admin/agent-runs [36m304[0m 1890.003 ms - -[0m
+[API] [0mGET /api/admin/stats [36m304[0m 3076.622 ms - -[0m
+[API] [0mGET /api/admin/projects [36m304[0m 3204.212 ms - -[0m
+[CLIENT]  GET /api/auth/get-session 200 in 3.8s (next.js: 57ms, application-code: 3.7s)
+[CLIENT]  GET /api/auth/get-session 200 in 909ms (next.js: 32ms, application-code: 877ms)
+[CLIENT]  GET /api/auth/get-session 200 in 3.3s (next.js: 51ms, application-code: 3.2s)
+[CLIENT]  GET /api/auth/get-session 200 in 845ms (next.js: 27ms, application-code: 818ms)
+[CLIENT]  GET /api/auth/get-session 200 in 781ms (next.js: 56ms, application-code: 724ms)
+[CLIENT]  GET /api/auth/get-session 200 in 765ms (next.js: 6ms, application-code: 759ms)
+[CLIENT] [browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+[CLIENT] 
+[CLIENT] - A server/client branch `if (typeof window !== 'undefined')`.
+[CLIENT] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[CLIENT] - Date formatting in a user's locale which doesn't match the server.
+[CLIENT] - External changing data without sending a snapshot of it along with the HTML.
+[CLIENT] - Invalid HTML tag nesting.
+[CLIENT] 
+[CLIENT] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[CLIENT] 
+[CLIENT] https://react.dev/link/hydration-mismatch
+[CLIENT] 
+[CLIENT]   ...
+[CLIENT]     <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+[CLIENT]       <AppDevOverlayErrorBoundary globalError={[...]}>
+[CLIENT]         <ReplaySsrOnlyErrors>
+[CLIENT]         <DevRootHTTPAccessFallbackBoundary>
+[CLIENT]           <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+[CLIENT]             <HTTPAccessFallbackErrorBoundary pathname="/login" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+[CLIENT]               <RedirectBoundary>
+[CLIENT]                 <RedirectErrorBoundary router={{...}}>
+[CLIENT]                   <Head>
+[CLIENT]                   <__next_root_layout_boundary__>
+[CLIENT]                     <SegmentViewNode type="layout" pagePath="layout.tsx">
+[CLIENT]                       <SegmentTrieNode>
+[CLIENT]                       <link>
+[CLIENT]                       <RootLayout>
+[CLIENT]                         <html
+[CLIENT]                           lang="fr"
+[CLIENT]                           data-theme="dark"
+[CLIENT]                           data-density="regular"
+[CLIENT] -                         crxlauncher=""
+[CLIENT]                         >
+[CLIENT]                   ...
+[CLIENT]  
+[CLIENT]  GET /api/auth/get-session 200 in 664ms (next.js: 40ms, application-code: 624ms)
+[CLIENT]  GET /api/auth/get-session 200 in 628ms (next.js: 5ms, application-code: 623ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.3s (next.js: 54ms, application-code: 2.3s)
+[CLIENT]  GET /api/auth/get-session 200 in 532ms (next.js: 28ms, application-code: 503ms)
+[CLIENT]  GET /api/auth/get-session 200 in 2.7s (next.js: 53ms, application-code: 2.6s)
+[CLIENT]  GET /api/auth/get-session 200 in 416ms (next.js: 33ms, application-code: 383ms)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 2.1s (next.js: 1074ms, application-code: 982ms)
+[CLIENT] ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 687ms (next.js: 10ms, application-code: 677ms)
+[CLIENT]  GET /api/auth/get-session 200 in 4.5s (next.js: 2.5s, application-code: 2.0s)
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 807ms (next.js: 608ms, application-code: 199ms)
+[CLIENT] ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[CLIENT]  GET /login?next=%2Fdashboard%2Ft%2Fcmple9t3u000baz0154eq05jm 200 in 757ms (next.js: 12ms, application-code: 746ms)
+[CLIENT]  GET /api/auth/get-session 200 in 1947ms (next.js: 103ms, application-code: 1844ms)
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Io, cause: Some(Os { code: 10054, kind: ConnectionReset, message: "Une connexion existante a dû être fermée par l’hôte distant." }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Io, cause: Some(Os { code: 10054, kind: ConnectionReset, message: "Une connexion existante a dû être fermée par l’hôte distant." }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Io, cause: Some(Os { code: 10054, kind: ConnectionReset, message: "Une connexion existante a dû être fermée par l’hôte distant." }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Io, cause: Some(Os { code: 10054, kind: ConnectionReset, message: "Une connexion existante a dû être fermée par l’hôte distant." }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Io, cause: Some(Os { code: 10054, kind: ConnectionReset, message: "Une connexion existante a dû être fermée par l’hôte distant." }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Io, cause: Some(Os { code: 10054, kind: ConnectionReset, message: "Une connexion existante a dû être fermée par l’hôte distant." }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Io, cause: Some(Os { code: 10054, kind: ConnectionReset, message: "Une connexion existante a dû être fermée par l’hôte distant." }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Io, cause: Some(Os { code: 10054, kind: ConnectionReset, message: "Une connexion existante a dû être fermée par l’hôte distant." }) }
+[API] prisma:error Error in PostgreSQL connection: Error { kind: Io, cause: Some(Os { code: 10054, kind: ConnectionReset, message: "Une connexion existante a dû être fermée par l’hôte distant." }) }
+[API] prisma:error 
+[API] Invalid `prisma.appSetting.findUnique()` invocation in
+[API] C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\settings\settings.service.ts:294:41
+[API] 
+[API]   291  * Get raw (unmasked) value for internal backend use.
+[API]   292  */
+[API]   293 getRaw: async (key: string): Promise<string | null> => {
+[API] → 294   const row = await prisma.appSetting.findUnique(
+[API] Can't reach database server at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`
+[API] 
+[API] Please make sure your database server is running at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`.
+[API] Prisma connection failed; retrying with a fresh connection { attempt: 1, maxAttempts: 3 }
+[API] prisma:error 
+[API] Invalid `prisma.appSetting.findUnique()` invocation in
+[API] C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\settings\settings.service.ts:294:41
+[API] 
+[API]   291  * Get raw (unmasked) value for internal backend use.
+[API]   292  */
+[API]   293 getRaw: async (key: string): Promise<string | null> => {
+[API] → 294   const row = await prisma.appSetting.findUnique(
+[API] Can't reach database server at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`
+[API] 
+[API] Please make sure your database server is running at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`.
+[API] Prisma connection failed; retrying with a fresh connection { attempt: 2, maxAttempts: 3 }
+[API] prisma:error 
+[API] Invalid `prisma.appSetting.findUnique()` invocation in
+[API] C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\settings\settings.service.ts:294:41
+[API] 
+[API]   291  * Get raw (unmasked) value for internal backend use.
+[API]   292  */
+[API]   293 getRaw: async (key: string): Promise<string | null> => {
+[API] → 294   const row = await prisma.appSetting.findUnique(
+[API] Can't reach database server at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`
+[API] 
+[API] Please make sure your database server is running at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`.
+[API] [scheduled-cleanup] error (non-blocking): 
+[API] Invalid `prisma.appSetting.findUnique()` invocation in
+[API] C:\Users\AMBITECH DYNAMICS\OneDrive\Documents\Projects\Studio Flyer AI\apps\SFA-API\src\modules\settings\settings.service.ts:294:41
+[API] 
+[API]   291  * Get raw (unmasked) value for internal backend use.
+[API]   292  */
+[API]   293 getRaw: async (key: string): Promise<string | null> => {
+[API] → 294   const row = await prisma.appSetting.findUnique(
+[API] Can't reach database server at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`
+[API] 
+[API] Please make sure your database server is running at `ep-blue-night-akk7bv95.c-3.us-west-2.aws.neon.tech:5432`.

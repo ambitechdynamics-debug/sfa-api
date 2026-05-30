@@ -36,6 +36,30 @@ async function resolveGeneratorAgentConfig(): Promise<{ provider: ImageGenProvid
   return { provider: p, model: agent.model || null };
 }
 
+/**
+ * When no Generator-Agent is configured, piggyback on whatever provider the
+ * orchestrator agents are already using. PROMPT_ARCHITECT_AGENT is the closest
+ * semantic neighbour (it consumes the same prompt imageGen will). Any active
+ * agent whose provider maps to a known image-gen provider works as fallback.
+ */
+async function resolveOrchestratorAgentFallback(): Promise<{ provider: ImageGenProvider; model: null } | null> {
+  const candidates = await prisma.agentDefinition.findMany({
+    where: {
+      isActive: true,
+      key: { in: ['PROMPT_ARCHITECT_AGENT', 'PLANNER_AGENT', 'BRAND_AGENT'] },
+    },
+    select: { provider: true },
+  });
+  for (const agent of candidates) {
+    const raw = agent.provider?.toLowerCase() ?? '';
+    // Treat any "gemini*" provider slug (e.g. "gemini", "gemini-01") as gemini
+    // for image generation purposes.
+    if (raw.startsWith('gemini')) return { provider: 'gemini', model: null };
+    if (raw === 'openai' || raw === 'openai-image') return { provider: 'openai-image', model: null };
+  }
+  return null;
+}
+
 // ─── Utility to fetch image and convert to base64 ─────────────────────────────
 async function fetchImageAsBase64(url: string): Promise<{ mimeType: string; data: string }> {
   const response = await fetch(url);
@@ -131,25 +155,83 @@ interface GeminiResponse {
   promptFeedback?: { blockReason?: string };
 }
 
+/**
+ * Resolve the Gemini API key. Source priority:
+ *   1. AppSetting `gemini_api_key` (built-in slot).
+ *   2. Any active custom provider declared as image-gen capable
+ *      (`custom_<slug>_api_key` with `is_active=true` and
+ *      `supports_image_generation=true`).
+ *
+ * This lets installs that drive the whole pipeline through a custom provider
+ * (e.g. slug `gemini-01`) generate images with the same key the orchestrator
+ * agents already use, without forcing the admin to duplicate it in the
+ * built-in slot.
+ */
+async function resolveGeminiApiKey(): Promise<string | null> {
+  const direct = await settingsService.getRaw('gemini_api_key');
+  if (direct && direct.trim()) return direct.trim();
+
+  const allSettings = await prisma.appSetting.findMany({
+    where: { category: 'providers' },
+    select: { key: true, value: true },
+  });
+  const byKey = new Map(allSettings.map((s) => [s.key, s.value]));
+
+  const slugs = new Set<string>();
+  for (const key of byKey.keys()) {
+    const match = key.match(/^custom_(.+)_name$/);
+    if (match) slugs.add(match[1]);
+  }
+
+  // First pass: providers explicitly declared as image-gen capable.
+  for (const slug of slugs) {
+    const isActive = byKey.get(`custom_${slug}_is_active`) === 'true';
+    const supportsImage = byKey.get(`custom_${slug}_supports_image_generation`) === 'true';
+    if (!isActive || !supportsImage) continue;
+    const key = byKey.get(`custom_${slug}_api_key`);
+    if (key && key.trim()) return key.trim();
+  }
+  // Second pass: any active Gemini-compatible provider — Gemini uses the same
+  // API key for text and image endpoints, so the admin's "supports_image_*"
+  // self-flag does not actually gate eligibility for image generation.
+  for (const slug of slugs) {
+    const isActive = byKey.get(`custom_${slug}_is_active`) === 'true';
+    if (!isActive) continue;
+    const type = (byKey.get(`custom_${slug}_type`) ?? '').toLowerCase();
+    if (!type.includes('gemini')) continue;
+    const key = byKey.get(`custom_${slug}_api_key`);
+    if (key && key.trim()) return key.trim();
+  }
+  return null;
+}
+
 class GeminiImageProvider implements ImageGenAdapter {
   constructor(private readonly modelOverride: string | null = null) {}
 
   async generate(input: ImageGenInput): Promise<ImageGenResult> {
-    // Clé API Gemini : source unique AppSetting (configurable via /admin/settings).
-    const apiKey = await settingsService.getRaw('gemini_api_key');
+    // Clé API Gemini : built-in slot OR active custom provider declared as
+    // image-gen capable. See resolveGeminiApiKey for the resolution order.
+    const apiKey = await resolveGeminiApiKey();
     if (!apiKey) {
       throw new AppError(
-        'Clé Gemini manquante. Renseignez "gemini_api_key" dans /admin/settings.',
+        'Clé Gemini manquante. Renseignez "gemini_api_key" dans /admin/settings, ou activez un provider custom avec "supports_image_generation=true" dans /admin/settings.',
         500,
       );
     }
 
-    // Modèle : Generator-Agent.model (DB) → AppSetting `image_gen_model` → erreur.
-    // Aucun défaut codé : l'admin doit saisir le modèle exact à utiliser.
-    const model =
+    // Modèle : Generator-Agent.model (DB) → AppSetting `image_gen_model` →
+    // canonical Gemini image-output model. The orchestrator agents (text) run
+    // on gemini-2.5-flash-lite; the publicly available Gemini model that
+    // returns IMAGE responses via :generateContent is
+    // gemini-2.0-flash-exp-image-generation. Admins can override via either
+    // route if Google ships a different SKU on their plan.
+    const GEMINI_IMAGE_MODEL_DEFAULT = 'gemini-2.0-flash-exp-image-generation';
+    const rawModel =
       this.modelOverride ||
-      (await settingsService.getRaw('image_gen_model'));
-    if (!model || !model.trim()) {
+      (await settingsService.getRaw('image_gen_model')) ||
+      GEMINI_IMAGE_MODEL_DEFAULT;
+    const model = rawModel.trim();
+    if (!model) {
       throw new AppError(
         'Aucun modèle de génération d\'image configuré. Renseignez "image_gen_model" (ex: gemini-2.5-flash-image-preview) dans /admin/settings, ou définissez le champ Model du Generator-Agent dans /admin/agents.',
         500,
@@ -308,6 +390,14 @@ export async function createImageGenProvider(provider?: ImageGenProvider): Promi
     if (fromSettings && ALLOWED_PROVIDERS.has(fromSettings as ImageGenProvider)) {
       resolved = fromSettings as ImageGenProvider;
     }
+  }
+
+  // (4) Piggyback on the orchestrator agents. If PROMPT_ARCHITECT_AGENT (or
+  // its peers) is already running on Gemini, the same provider can serve the
+  // image generation service call — no need to require a Generator-Agent.
+  if (!resolved) {
+    const fallback = await resolveOrchestratorAgentFallback();
+    if (fallback) resolved = fallback.provider;
   }
 
   // Aucun défaut : si rien n'est configuré, on erreur.

@@ -768,5 +768,77 @@ Analyse le prompt ci-dessus. Bloque si violation CRITICAL, amende si HIGH/MEDIUM
   return result!.parsed as SafetyAgentOutput;
 }
 
+// ─── GENERIC AGENT ──────────────────────────────────────
+// Runner schema-agnostique pour les agents définis par l'admin qui ne sont pas
+// dans la liste canonique des 8 (Planner, ImageAnalyst, TextAnalyst, Brand,
+// ArtisticBase, PromptArchitect, Safety, Quality). Permet aux agents Ideation,
+// Copywriter, StyleDirector, LayoutOverlay, VisualCritic, Learning, etc.
+// d'être invoqués dynamiquement par l'orchestrateur, en lisant la systemPrompt
+// admin + les mémoires en input + les modules d'accès (artistic base, etc.).
+
+export interface RunGenericAgentParams {
+  travailId: string;
+  agentKey: string;
+  agentName?: string;
+  provider?: AIProvider;
+  model?: string;
+  memorySnapshot?: MemorySnapshot;
+  inputMemoryKeys?: string[];
+  responseFormat?: 'json' | 'text';
+}
+
+export async function runGenericAgent(params: RunGenericAgentParams): Promise<unknown> {
+  const { promptText, provider: agentProvider, model: agentModel, systemPrompt } = await buildAgentContext(
+    params.agentKey,
+    params.travailId,
+    params.memorySnapshot,
+    { inputMemoryKeys: params.inputMemoryKeys },
+  );
+
+  const responseFormat = params.responseFormat ?? 'json';
+  const userPrompt = (responseFormat === 'json'
+    ? `${promptText}\n\nProduis la réponse au format JSON strict.`
+    : promptText
+  ).trim();
+
+  let agentRunStatus: 'SUCCESS' | 'FAILED' = 'SUCCESS';
+  let agentError: string | undefined;
+  let result: AIResponse | null = null;
+
+  try {
+    result = await callTextAI({
+      provider: params.provider || agentProvider,
+      model: params.model || agentModel,
+      systemPrompt,
+      userPrompt,
+      temperature: 0.6,
+      responseFormat,
+    });
+  } catch (err) {
+    agentRunStatus = 'FAILED';
+    agentError = err instanceof Error ? err.message : 'Unknown error';
+  }
+
+  await saveAgentRun({
+    travailId: params.travailId,
+    agentName: params.agentName || params.agentKey,
+    provider: result?.provider ?? params.provider ?? 'mock',
+    model: result?.model ?? params.model ?? '',
+    input: { dynamicContext: true, agentKey: params.agentKey } as unknown as Prisma.InputJsonValue,
+    output: (result?.parsed ?? null) as unknown as Prisma.InputJsonValue,
+    status: agentRunStatus,
+    error: agentError,
+    durationMs: result?.durationMs,
+  });
+
+  if (agentRunStatus === 'FAILED') throw new Error(`${params.agentKey} failed: ${agentError}`);
+
+  if (result && result.parsed) {
+    await saveAgentOutputs(params.agentKey, params.travailId, result.parsed as Prisma.InputJsonValue);
+  }
+
+  return result?.parsed ?? null;
+}
+
 // Exports des helpers pour l'orchestrateur
 export { upsertMemory, saveAgentRun };

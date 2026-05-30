@@ -15,6 +15,8 @@ import { logger } from '../../utils/logger';
 import { getStorageProvider } from '../storage/storage.provider';
 import { createImageGenProvider } from './imageGen.providers';
 import type { ImageGenProvider } from './imageGen.types';
+import { orchestratorPipelineService } from '../orchestrator/orchestratorPipeline.service';
+import { composeOverlayForTravail } from './imageOverlay.service';
 
 // ─── Helpers réutilisables (cf. AUDIT.md §2) ────────────────────────────────
 
@@ -80,41 +82,164 @@ function ratioFromFormat(format: string | null | undefined): '1:1' | '9:16' | '1
 }
 
 /**
- * Look up M_PROMPT1 content for a given project. Throws if not found.
- * Renvoie aussi le quality_score s'il est présent dans le payload
- * (utile pour la quality gate en amont de la génération).
+ * Resolve which MemoryDefinition key holds the prompt-architect output.
+ *
+ * Source of truth: the admin-configured orchestrator pipeline (the step whose
+ * agentKey is `PROMPT_ARCHITECT_AGENT`). Falls back to `M_PROMPT1` then
+ * `M-PROMPT1` for legacy/seeded installs.
+ */
+async function resolvePromptMemoryKeys(): Promise<string[]> {
+  const keys: string[] = [];
+  try {
+    const config = await orchestratorPipelineService.getRuntimeConfig();
+    const step = config.steps.find((s) => s.agentKey === 'PROMPT_ARCHITECT_AGENT');
+    const configured = step?.outputMemoryKey?.trim();
+    if (configured) keys.push(configured);
+  } catch (err) {
+    logger.warn('[imageGen] failed to load orchestrator pipeline config; falling back to legacy keys', {
+      error: err instanceof Error ? err.message : err,
+    });
+  }
+  for (const fallback of ['M_PROMPT1', 'M-PROMPT1']) {
+    if (!keys.includes(fallback)) keys.push(fallback);
+  }
+  return keys;
+}
+
+/**
+ * Accept both the legacy flat snake_case shape and the new nested camelCase
+ * shape produced by the configurable pipeline.
+ *
+ * Legacy: { final_prompt, negative_prompt, quality_score }
+ * New:    { finalPrompt: { prompt, negativePrompt, referenceImageUrls }, quality_score }
+ */
+function extractFinalPromptShape(content: unknown): {
+  finalPrompt: string;
+  negativePrompt: string;
+  qualityScore?: number;
+  referenceImageUrls?: string[];
+} {
+  const c = (content && typeof content === 'object' && !Array.isArray(content) ? content : {}) as Record<string, unknown>;
+
+  let finalPrompt = '';
+  let negativePrompt = '';
+  let referenceImageUrls: string[] | undefined;
+
+  const nested = c.finalPrompt;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    const obj = nested as Record<string, unknown>;
+    // Prompt text may live under a variety of keys depending on which prompt
+    // template the architect agent followed (canonical "prompt", legacy
+    // memory-style "M-PROMPT1", or a free-form key). We try the well-known
+    // names first then fall back to the longest descriptive string in the
+    // object.
+    const PROMPT_KEYS = ['prompt', 'M-PROMPT1', 'M_PROMPT1', 'final_prompt', 'finalPrompt'];
+    const NEGATIVE_KEYS = ['negativePrompt', 'negative_prompt', 'M-NEGATIVE'];
+    const REFERENCE_KEYS = ['referenceImageUrls', 'reference_image_urls'];
+
+    for (const key of PROMPT_KEYS) {
+      if (typeof obj[key] === 'string' && (obj[key] as string).trim()) {
+        finalPrompt = obj[key] as string;
+        break;
+      }
+    }
+    if (!finalPrompt) {
+      // Fallback: pick the longest string value that isn't a negative-prompt
+      // or reference-url field. Helps when the agent invents a custom key.
+      const reservedKeys = new Set<string>([...NEGATIVE_KEYS, ...REFERENCE_KEYS]);
+      let longest = '';
+      for (const [key, value] of Object.entries(obj)) {
+        if (reservedKeys.has(key)) continue;
+        if (typeof value === 'string' && value.length > longest.length) longest = value;
+      }
+      if (longest.trim().length >= 40) finalPrompt = longest;
+    }
+
+    for (const key of NEGATIVE_KEYS) {
+      if (typeof obj[key] === 'string' && (obj[key] as string).trim()) {
+        negativePrompt = obj[key] as string;
+        break;
+      }
+    }
+
+    for (const key of REFERENCE_KEYS) {
+      if (Array.isArray(obj[key])) {
+        referenceImageUrls = (obj[key] as unknown[]).filter((u): u is string => typeof u === 'string');
+        break;
+      }
+    }
+  } else {
+    // Flat shape. Accept canonical "prompt"/"negativePrompt", legacy snake
+    // "final_prompt"/"negative_prompt", and the earlier "finalPrompt" string.
+    finalPrompt =
+      typeof c.prompt === 'string'
+        ? c.prompt
+        : typeof c.final_prompt === 'string'
+          ? c.final_prompt
+          : typeof c.finalPrompt === 'string'
+            ? c.finalPrompt
+            : '';
+    negativePrompt =
+      typeof c.negativePrompt === 'string'
+        ? c.negativePrompt
+        : typeof c.negative_prompt === 'string'
+          ? c.negative_prompt
+          : '';
+    if (Array.isArray(c.referenceImageUrls)) {
+      referenceImageUrls = c.referenceImageUrls.filter((u): u is string => typeof u === 'string');
+    }
+  }
+
+  const qualityScoreRaw = c.quality_score ?? c.qualityScore ?? null;
+  const qualityScore = typeof qualityScoreRaw === 'number' ? qualityScoreRaw : undefined;
+
+  return { finalPrompt, negativePrompt, qualityScore, referenceImageUrls };
+}
+
+/**
+ * Look up the prompt-architect memory entry for a given travail.
+ *
+ * Resolves the memory key dynamically from the orchestrator pipeline config
+ * (falls back to legacy `M_PROMPT1` / `M-PROMPT1`). Accepts both the legacy
+ * flat shape and the new nested camelCase shape.
  */
 async function getPrompt1Content(travailId: string): Promise<{
   finalPrompt: string;
   negativePrompt?: string;
   qualityScore?: number;
+  referenceImageUrls?: string[];
 }> {
-  const def = await prisma.memoryDefinition.findUnique({ where: { key: 'M_PROMPT1' } });
-  if (!def) {
-    // Fallback historique (M-PROMPT1 tiret).
-    const altDef = await prisma.memoryDefinition.findUnique({ where: { key: 'M-PROMPT1' } });
-    if (!altDef) throw new AppError('Memory definition M_PROMPT1 not found. Run the orchestrator first.', 400);
-    return getPrompt1Entry(travailId, altDef.id);
-  }
-  return getPrompt1Entry(travailId, def.id);
-}
+  const candidateKeys = await resolvePromptMemoryKeys();
 
-async function getPrompt1Entry(travailId: string, definitionId: string) {
+  let resolvedKey: string | null = null;
+  let definitionId: string | null = null;
+  for (const key of candidateKeys) {
+    const def = await prisma.memoryDefinition.findUnique({ where: { key } });
+    if (def) {
+      resolvedKey = key;
+      definitionId = def.id;
+      break;
+    }
+  }
+  if (!definitionId || !resolvedKey) {
+    throw new AppError(
+      `Prompt memory not found. Expected one of: ${candidateKeys.join(', ')}. Run the orchestrator first.`,
+      400,
+    );
+  }
+
   const entry = await prisma.memoryEntry.findUnique({
     where: { travailId_memoryDefinitionId: { travailId, memoryDefinitionId: definitionId } },
   });
   if (!entry) {
-    throw new AppError('M_PROMPT1 entry not found for this travail. Generate the prompt first.', 400);
+    throw new AppError(`${resolvedKey} entry not found for this travail. Generate the prompt first.`, 400);
   }
-  const content = entry.content as Record<string, unknown>;
-  const finalPrompt = (content.final_prompt as string) ?? (content.finalPrompt as string) ?? '';
-  const negativePrompt = (content.negative_prompt as string) ?? (content.negativePrompt as string) ?? '';
-  const qualityScoreRaw = content.quality_score ?? content.qualityScore ?? null;
-  const qualityScore = typeof qualityScoreRaw === 'number' ? qualityScoreRaw : undefined;
-  if (!finalPrompt.trim()) {
-    throw new AppError('M_PROMPT1 contains no final_prompt text', 400);
+
+  const shape = extractFinalPromptShape(entry.content);
+  if (!shape.finalPrompt.trim()) {
+    throw new AppError(`${resolvedKey} contains no final prompt text`, 400);
   }
-  return { finalPrompt, negativePrompt, qualityScore };
+  return shape;
 }
 
 /**
@@ -237,12 +362,24 @@ export const imageGenService = {
           })
         );
 
+        // 2.bis) Compose overlay (title / subtitle / services / CTA) on top
+        // of the raw background if LAYOUT_OVERLAY_AGENT produced a M-OVERLAY
+        // entry for this travail. composeOverlayForTravail returns null when
+        // no overlay spec exists — we keep the raw URL in that case.
+        let finalUrl = uploaded.fileUrl;
+        try {
+          const composed = await composeOverlayForTravail(travail.id, uploaded.fileUrl, variationNumber);
+          if (composed) finalUrl = composed;
+        } catch {
+          // composeOverlayForTravail already logs internally — fail soft.
+        }
+
         // 3) Persist GeneratedPoster
         const poster = await prisma.generatedPoster.create({
           data: {
             userId:         travail.userId,
             travailId:      travail.id,
-            imageUrl:       uploaded.fileUrl,
+            imageUrl:       finalUrl,
             promptUsed:     finalPrompt,
             variationNumber,
             status:         'GENERATED',

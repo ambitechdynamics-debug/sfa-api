@@ -22,10 +22,27 @@ const RESPONSE_HEADERS_TO_DROP = new Set([
   'set-cookie',
   'transfer-encoding',
   'upgrade',
+  // Auth responses must never sit in a shared cache (Vercel/Next/CDN).
+  // We rewrite cache headers ourselves below, so drop whatever the
+  // upstream returned to avoid leaking another user's session.
+  'cache-control',
+  'cdn-cache-control',
+  'vercel-cdn-cache-control',
+  'surrogate-control',
+  'pragma',
+  'expires',
+  'etag',
+  'last-modified',
+  'age',
 ])
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+export const runtime = 'nodejs'
+
 type RouteContext = {
-  params: Promise<{ path?: string[] }> | { path?: string[] }
+  params: Promise<{ path?: string[] }>
 }
 
 function splitSetCookieHeader(value: string): string[] {
@@ -98,9 +115,15 @@ async function proxyAuth(request: NextRequest, context: RouteContext): Promise<R
     headers: buildRequestHeaders(request),
     body,
     redirect: 'manual',
+    cache: 'no-store',
   })
 
   const headers = buildResponseHeaders(upstream)
+  headers.set('cache-control', 'no-store, no-cache, max-age=0, must-revalidate, private')
+  headers.set('cdn-cache-control', 'no-store')
+  headers.set('vercel-cdn-cache-control', 'no-store')
+  headers.set('pragma', 'no-cache')
+  headers.set('vary', 'cookie, authorization')
   const rewrittenLocation = rewriteLocation(upstream.headers.get('location'), request)
   if (rewrittenLocation) headers.set('location', rewrittenLocation)
 

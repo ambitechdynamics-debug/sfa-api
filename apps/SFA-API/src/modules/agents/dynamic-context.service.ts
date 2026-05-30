@@ -1,6 +1,4 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
-import { upsertMemory } from './agents.service';
 
 import { AIProvider } from '../ai/ai.types';
 import {
@@ -175,21 +173,22 @@ export function buildMemorySnapshot(
   return snapshot;
 }
 
-export async function saveAgentOutputs(agentKey: string, travailId: string, aiResult: unknown): Promise<void> {
-  const agent = await prisma.agentDefinition.findUnique({
-    where: { key: agentKey },
-    include: {
-      memoryLinks: {
-        where: { usageType: { in: ['OUTPUT', 'BOTH'] } },
-        include: { memory: true }
-      }
-    }
-  });
-
-  if (!agent) return;
-
-  for (const link of agent.memoryLinks) {
-    // Si aiResult est un objet complexe (comme pour Planner), on le sauvegarde en entier dans la mémoire associée
-    await upsertMemory(travailId, link.memory.key, aiResult as Prisma.InputJsonValue);
-  }
+/**
+ * Legacy: writes the agent result to every memory wired in `/admin/agent-memory-links`
+ * with usageType OUTPUT/BOTH. This dual-wrote agent outputs alongside the
+ * orchestrator's own `persistStepMemory(step, step.outputMemoryKey, …)`
+ * call, leading to data corruption when the two sources disagreed (e.g.
+ * IDEATION_AGENT linked to M-BRAND but its pipeline output is M-CONCEPTS).
+ *
+ * The orchestrator pipeline (/admin/orchestrator) is now the SINGLE source
+ * of truth for per-step output memory keys. Keep the function exported as
+ * a no-op to preserve callers; the `/admin/agent-memory-links` page is
+ * effectively read-only / informational from now on.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function saveAgentOutputs(_agentKey: string, _travailId: string, _aiResult: unknown): Promise<void> {
+  // Intentionally a no-op. Original implementation read agent.memoryLinks
+  // and upserted the result into every linked OUTPUT/BOTH memory. See git
+  // history for the previous behaviour.
+  return;
 }

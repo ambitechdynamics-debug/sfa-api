@@ -35,6 +35,7 @@ import {
   runPromptArchitectAgent,
   runQualityAgent,
   runSafetyAgent,
+  runGenericAgent,
   upsertMemory,
   PlannerOutput,
   ImageAnalystOutput,
@@ -81,6 +82,22 @@ export interface OrchestrationResult {
 }
 
 const CRITICAL_AGENT_KEYS = new Set<string>(['PLANNER_AGENT', 'PROMPT_ARCHITECT_AGENT']);
+
+/**
+ * Agents avec leur logique métier typée dans agents.service.ts. Tout autre
+ * agentKey défini dans la pipeline (Ideation, Copywriter, StyleDirector,
+ * LayoutOverlay, VisualCritic, Learning, etc.) est exécuté via runGenericAgent.
+ */
+const CANONICAL_AGENT_KEYS = new Set<string>([
+  'IMAGE_ANALYST_AGENT',
+  'PLANNER_AGENT',
+  'TEXT_ANALYST_AGENT',
+  'BRAND_AGENT',
+  'ARTISTIC_BASE_AGENT',
+  'PROMPT_ARCHITECT_AGENT',
+  'SAFETY_AGENT',
+  'QUALITY_AGENT',
+]);
 
 function disabledStub(agentKey: string, label: string): OrchestratorPipelineStep {
   return {
@@ -249,6 +266,30 @@ async function validateActiveAgents(
   }
 
   return { skipped, skippedStepIds };
+}
+
+/**
+ * Run a "non-canonical" pipeline step via the generic runner. Used to invoke
+ * admin-defined agents (Ideation, Copywriter, StyleDirector, LayoutOverlay,
+ * VisualCritic, Learning, …) that don't have a typed function in
+ * agents.service.ts.
+ */
+async function runNonCanonicalStep(
+  step: OrchestratorPipelineStep,
+  travailId: string,
+  snapshot: MemorySnapshot,
+  options: OrchestrationOptions,
+): Promise<unknown> {
+  return runGenericAgent({
+    travailId,
+    agentKey: step.agentKey,
+    agentName: step.label,
+    provider: options.provider,
+    model: options.model,
+    memorySnapshot: snapshot,
+    inputMemoryKeys: step.inputMemoryKeys,
+    responseFormat: 'json',
+  });
 }
 
 export async function runFullOrchestration(options: OrchestrationOptions): Promise<OrchestrationResult> {
@@ -426,11 +467,18 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
   }
 
   // Sauvegarder M_QT1
-  await persistStepMemory(plannerStep, 'M_QT1', {
-    questions_to_user: plannerResult.questions_to_user,
-    missing_information: plannerResult.missing_information,
-    generated_at: new Date().toISOString()
-  } as unknown as Prisma.InputJsonValue);
+  // Persist the FULL planner output (project_summary, poster_type, category,
+  // objective, target_audience, main_message, format, style, …) — not just
+  // questions/missing — so downstream agents (Ideation, TextAnalyst,
+  // Copywriter) have a real planning context to read from M-PLAN.
+  await persistStepMemory(
+    plannerStep,
+    'M_QT1',
+    {
+      ...plannerResult,
+      generated_at: new Date().toISOString(),
+    } as unknown as Prisma.InputJsonValue,
+  );
   await refreshSnapshot();
 
   // Mettre à jour le projet avec les métadonnées extraites
@@ -456,8 +504,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       data: {
         travailId: options.travailId,
         status: 'QUESTIONING',
-        questions_to_user: plannerResult.questions_to_user,
-        missing_information: plannerResult.missing_information,
+        questions_to_user: plannerResult.questions_to_user ?? [],
+        missing_information: plannerResult.missing_information ?? [],
         ready_for_generation: false,
         agents_executed: agentsExecuted,
         agents_skipped: agentsSkipped.length ? agentsSkipped : undefined,
@@ -688,6 +736,12 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     }
   }
 
+  if (textStep.enabled && !skippedStepIds.has(textStep.id)) {
+    // TextAnalyst was not persisted before — its result only travelled in
+    // memory to PROMPT_ARCHITECT. Persisting it here lets downstream agents
+    // (Copywriter, LayoutOverlay, …) read M-TEXT-HIERARCHY from the snapshot.
+    await persistStepMemory(textStep, 'M_TEXT', textAnalystResult as unknown as Prisma.InputJsonValue);
+  }
   if (brandStep.enabled && !skippedStepIds.has(brandStep.id)) {
     await persistStepMemory(brandStep, 'M_ID', brandAgentResult as unknown as Prisma.InputJsonValue);
   }
@@ -695,6 +749,38 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     await persistStepMemory(artisticStep, 'M_BA', artisticBaseResult as unknown as Prisma.InputJsonValue);
   }
   await refreshSnapshot();
+
+  // ─── 8.bis. Agents admin non-canoniques (avant l'architect) ────────────
+  // Exécute en ordre tous les steps configurés dont l'agentKey n'est pas
+  // dans la liste canonique (Ideation, Copywriter, StyleDirector, …) ET dont
+  // l'ordre vient AVANT le step Prompt Architect. Leurs outputs (M-CONCEPTS,
+  // M-COPY, M-STYLE, …) deviennent disponibles pour le Prompt Architect via
+  // ses inputMemoryKeys.
+  const preArchitectExtras = pipelineConfig.steps
+    .filter((s) => !CANONICAL_AGENT_KEYS.has(s.agentKey) && s.enabled && s.order < promptStep.order)
+    .sort((a, b) => a.order - b.order);
+  for (const extra of preArchitectExtras) {
+    if (skippedStepIds.has(extra.id)) continue;
+    if (!shouldRunStep(extra, skippedStepIds, designContext)) {
+      agentsSkipped.push(`${extra.agentKey} (condition ${extra.condition} non remplie)`);
+      continue;
+    }
+    try {
+      const result = await withStepPolicy(extra, () =>
+        runNonCanonicalStep(extra, options.travailId, memorySnapshot, options),
+      );
+      if (extra.outputMemoryKey?.trim() && result) {
+        await persistStepMemory(extra, extra.outputMemoryKey.trim(), result as Prisma.InputJsonValue);
+      }
+      await refreshSnapshot();
+      agentsExecuted.push(extra.agentKey);
+    } catch (err) {
+      const msg = errorMessage(err);
+      if (extra.required) throw new AppError(`${extra.agentKey} échoué: ${msg}`, 500);
+      agentFailures.push({ agent: extra.agentKey, error: msg });
+      console.warn(`[orchestrator] ${extra.agentKey} failed (soft-fail):`, msg);
+    }
+  }
 
   // ─── 9. Prompt Architect → M-PROMPT1 ────────────────
 
@@ -871,6 +957,36 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
       } as unknown as Prisma.InputJsonValue,
     );
   }
+  await refreshSnapshot();
+
+  // ─── 11.bis. Agents admin non-canoniques (après quality) ──────────────
+  // LayoutOverlay, VisualCritic, Learning, etc. ont besoin de M-PROMPT-FINAL
+  // et du contexte complet. On les exécute après quality, en ordre de step.order.
+  const postQualityExtras = pipelineConfig.steps
+    .filter((s) => !CANONICAL_AGENT_KEYS.has(s.agentKey) && s.enabled && s.order >= promptStep.order)
+    .sort((a, b) => a.order - b.order);
+  for (const extra of postQualityExtras) {
+    if (skippedStepIds.has(extra.id)) continue;
+    if (!shouldRunStep(extra, skippedStepIds, { hasFiles: allFiles.length > 0, hasPrompt: true })) {
+      agentsSkipped.push(`${extra.agentKey} (condition ${extra.condition} non remplie)`);
+      continue;
+    }
+    try {
+      const result = await withStepPolicy(extra, () =>
+        runNonCanonicalStep(extra, options.travailId, memorySnapshot, options),
+      );
+      if (extra.outputMemoryKey?.trim() && result) {
+        await persistStepMemory(extra, extra.outputMemoryKey.trim(), result as Prisma.InputJsonValue);
+      }
+      await refreshSnapshot();
+      agentsExecuted.push(extra.agentKey);
+    } catch (err) {
+      const msg = errorMessage(err);
+      if (extra.required) throw new AppError(`${extra.agentKey} échoué: ${msg}`, 500);
+      agentFailures.push({ agent: extra.agentKey, error: msg });
+      console.warn(`[orchestrator] ${extra.agentKey} failed (soft-fail):`, msg);
+    }
+  }
 
   // ─── 12. Mise à jour Project.status ──────────────────
 
@@ -899,8 +1015,8 @@ export async function runFullOrchestration(options: OrchestrationOptions): Promi
     data: {
       travailId: options.travailId,
       status: finalStatus,
-      questions_to_user: plannerResult.questions_to_user.length > 0 ? plannerResult.questions_to_user : undefined,
-      missing_information: promptArchitectResult.missing_information.length > 0 ? promptArchitectResult.missing_information : undefined,
+      questions_to_user: (plannerResult.questions_to_user?.length ?? 0) > 0 ? plannerResult.questions_to_user : undefined,
+      missing_information: (promptArchitectResult.missing_information?.length ?? 0) > 0 ? promptArchitectResult.missing_information : undefined,
       final_prompt: promptArchitectResult.final_prompt,
       negative_prompt: promptArchitectResult.negative_prompt,
       layout_reference_url: artisticBaseResult.selected_model_url || null,

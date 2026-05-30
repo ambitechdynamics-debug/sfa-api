@@ -1,0 +1,14 @@
+
+> admin-dashboard@0.1.0 dev
+> next dev --webpack -p 3000 --webpack
+
+▲ Next.js 16.2.6 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://10.252.15.75:3000
+- Environments: .env.local
+✓ Ready in 10.5s
+
+○ Compiling /admin/orchestrator ...
+ GET /admin/orchestrator 200 in 13.9s (next.js: 12.8s, application-code: 1063ms)
+ GET /admin/orchestrator 200 in 1066ms (next.js: 331ms, application-code: 735ms)
+[?25h
