@@ -55,6 +55,12 @@ type AuthActionResult =
   | { success: true; verificationRequired: true; email: string }
   | { success: false; message: string }
 
+// Strategies Clerk supportées. Pour en ajouter, vérifier qu'elle est aussi
+// activée dans /apps → User & Authentication → Social Connections sur le
+// dashboard Clerk, sinon `authenticateWithRedirect` retourne
+// `oauth_provider_unavailable`.
+export type OAuthStrategy = "oauth_google" | "oauth_apple" | "oauth_github" | "oauth_facebook"
+
 type AuthContextValue = {
   user: User | null
   status: AuthStatus
@@ -64,7 +70,11 @@ type AuthContextValue = {
   isExpired: boolean
   error: string
   loginWithEmail: (input: LoginInput) => Promise<AuthActionResult>
+  loginWithOAuth: (strategy: OAuthStrategy, nextPath?: string | null) => Promise<AuthActionResult>
+  /** @deprecated utiliser loginWithOAuth("oauth_google") */
   loginWithGoogle: (nextPath?: string | null) => Promise<AuthActionResult>
+  /** @deprecated utiliser loginWithOAuth("oauth_apple") */
+  loginWithApple: (nextPath?: string | null) => Promise<AuthActionResult>
   registerWithEmail: (input: RegisterInput) => Promise<AuthActionResult>
   refreshSession: () => Promise<User | null>
   logout: (reason?: string) => Promise<void>
@@ -98,6 +108,16 @@ function mapClerkSignInError(err: unknown): string {
       return "Format d'email ou de mot de passe invalide."
     case "session_exists":
       return "Une session est déjà active. Rechargez la page."
+    // ─── OAuth-specific Clerk error codes ───────────────────────────────
+    case "oauth_provider_not_enabled":
+    case "oauth_provider_unavailable":
+      return "Ce mode de connexion n'est pas activé. Contactez le support."
+    case "oauth_access_denied":
+      return "Connexion annulée par le fournisseur."
+    case "oauth_email_domain_reserved_by_saml":
+      return "Cette adresse est gérée par votre organisation. Utilisez la connexion SSO."
+    case "external_account_not_found":
+      return "Aucun compte associé. Inscrivez-vous d'abord avec cette adresse."
     default:
       return first?.message || error?.message || "Connexion impossible. Veuillez réessayer."
   }
@@ -279,7 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [signInLoaded, signIn, setActiveSignIn, refreshSession, router])
 
-  const loginWithGoogle = useCallback(async (nextPath?: string | null): Promise<AuthActionResult> => {
+  const loginWithOAuth = useCallback(async (strategy: OAuthStrategy, nextPath?: string | null): Promise<AuthActionResult> => {
     if (!signInLoaded || !signIn) {
       return { success: false, message: "Service d'authentification non prêt. Réessayez dans une seconde." }
     }
@@ -287,7 +307,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const target = sanitizeNextPath(nextPath)
     try {
       await signIn.authenticateWithRedirect({
-        strategy: "oauth_google",
+        strategy,
         redirectUrl: `${window.location.origin}/sso-callback?next=${encodeURIComponent(target)}`,
         redirectUrlComplete: `${window.location.origin}${target}`,
       })
@@ -299,6 +319,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, message }
     }
   }, [signInLoaded, signIn])
+
+  const loginWithGoogle = useCallback(
+    (nextPath?: string | null) => loginWithOAuth("oauth_google", nextPath),
+    [loginWithOAuth],
+  )
+  const loginWithApple = useCallback(
+    (nextPath?: string | null) => loginWithOAuth("oauth_apple", nextPath),
+    [loginWithOAuth],
+  )
 
   const registerWithEmail = useCallback(async (input: RegisterInput): Promise<AuthActionResult> => {
     if (!signUpLoaded || !signUp) {
@@ -317,17 +346,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastName,
       })
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" })
-      // Verification continues on /verify-email — caller handles the redirect.
+      // setActiveSignUp is consumed by /check-email after the user submits the
+      // 6-digit code, not here. `target` is forwarded via the URL of /check-email.
+      void setActiveSignUp
+      void target
       return { success: true, verificationRequired: true, email: input.email.trim() }
     } catch (err) {
       const message = mapClerkSignUpError(err)
       setError(message)
       return { success: false, message }
     }
-    // setActiveSignUp is consumed by the verify-email page after the user
-    // submits the code, not here.
-    void setActiveSignUp
-    void target
   }, [signUpLoaded, signUp, setActiveSignUp])
 
   const value = useMemo<AuthContextValue>(() => ({
@@ -339,7 +367,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isExpired: status === "expired",
     error,
     loginWithEmail,
+    loginWithOAuth,
     loginWithGoogle,
+    loginWithApple,
     registerWithEmail,
     refreshSession,
     logout,
@@ -348,7 +378,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clerkUserLoaded,
     error,
     loginWithEmail,
+    loginWithOAuth,
     loginWithGoogle,
+    loginWithApple,
     logout,
     profileLoading,
     refreshSession,
