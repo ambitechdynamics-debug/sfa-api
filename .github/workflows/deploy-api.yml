@@ -5,6 +5,10 @@ on:
     branches: [master]
     paths:
       - 'apps/SFA-API/**'
+  # Permet un redéploiement manuel depuis GitHub → Actions → "Run workflow"
+  # (ex: après changement d'env var sur Render qui n'aurait pas auto-redéployé,
+  # ou pour rejouer un échec sans nouveau commit).
+  workflow_dispatch:
 
 jobs:
   deploy:
