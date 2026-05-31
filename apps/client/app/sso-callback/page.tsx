@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { AuthenticateWithRedirectCallback } from "@clerk/nextjs"
+import { AuthenticateWithRedirectCallback, useClerk } from "@clerk/nextjs"
 
 /**
  * Endpoint de retour OAuth pour Clerk (Google, Apple, etc.).
@@ -37,23 +37,39 @@ function LoadingScreen() {
   )
 }
 
+// Délai avant d'afficher le fallback "Connexion interrompue".
+//
+// Un round-trip OAuth complet peut prendre plus de 20 s sur un réseau mobile
+// lent ou un cold-start côté Clerk : token Google reçu → POST vers
+// clerk.com pour échanger le code → mint d'une session → écriture des
+// cookies. On laisse 60 s avant d'abandonner — si on coupe trop tôt, on
+// affiche une erreur alors que Clerk était sur le point de finir, et le
+// "Réessayer" reproduit le même problème.
+const SSO_FALLBACK_TIMEOUT_MS = 60_000
+
 function SSOCallbackInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { loaded: clerkLoaded } = useClerk()
   const [timedOut, setTimedOut] = useState(false)
 
   const errorCode = searchParams.get("error_code") ?? searchParams.get("__clerk_error_code")
   const errorMessage = searchParams.get("error_description") ?? searchParams.get("error")
   const nextPath = searchParams.get("next") ?? "/dashboard"
 
-  // Filet de sécurité : si après 15s on est toujours sur cette page sans
-  // redirection ni paramètre d'erreur, on bascule sur le fallback. Sans ça,
-  // l'utilisateur voit une page vide.
+  // Filet de sécurité : si après SSO_FALLBACK_TIMEOUT_MS on est toujours sur
+  // cette page sans redirection ni paramètre d'erreur, on bascule sur le
+  // fallback pour éviter une page vide.
+  //
+  // Important : on ne démarre le timer qu'une fois Clerk SDK chargé, sinon
+  // on coupe alors que la vérification n'a même pas pu commencer (cas réseau
+  // lent où le bundle Clerk met >10 s à arriver).
   useEffect(() => {
     if (errorCode || errorMessage) return
-    const t = window.setTimeout(() => setTimedOut(true), 15_000)
+    if (!clerkLoaded) return
+    const t = window.setTimeout(() => setTimedOut(true), SSO_FALLBACK_TIMEOUT_MS)
     return () => window.clearTimeout(t)
-  }, [errorCode, errorMessage])
+  }, [errorCode, errorMessage, clerkLoaded])
 
   if (errorCode || errorMessage || timedOut) {
     return (
@@ -72,7 +88,19 @@ function SSOCallbackInner() {
         <span className="anim-spin" style={{ width: 28, height: 28, borderRadius: 999, border: "2px solid var(--line-3)", borderTopColor: "var(--acc)" }} />
         Finalisation de la connexion…
       </div>
-      <AuthenticateWithRedirectCallback />
+      {/*
+        On passe explicitement les URL de fallback à Clerk pour qu'il sache où
+        renvoyer l'utilisateur s'il rencontre une erreur native (compte
+        inexistant pour sign-in, sign-up incomplet, etc.) plutôt que de
+        rester bloqué sur /sso-callback et déclencher notre timeout.
+      */}
+      <AuthenticateWithRedirectCallback
+        signInUrl="/login"
+        signUpUrl="/register"
+        signInFallbackRedirectUrl={nextPath}
+        signUpFallbackRedirectUrl={nextPath}
+        continueSignUpUrl="/register"
+      />
     </div>
   )
 }
@@ -144,7 +172,7 @@ function friendlyMessage(code: string | null, raw: string | null): string {
     default:
       return (
         raw ||
-        "La vérification a pris trop de temps ou a échoué. Vérifiez que les cookies tiers sont activés puis recommencez."
+        "La connexion n'a pas abouti. Vérifiez que les cookies tiers sont autorisés pour ce site, puis réessayez. Si le problème persiste, essayez l'inscription par e-mail."
       )
   }
 }
