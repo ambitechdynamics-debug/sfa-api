@@ -182,10 +182,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearWorkspaceState()
     setStatus("expired")
     setError(message)
-    toast.error(message)
     await signOutSession()
+    // L'expiration de session est un événement d'UX normal (token Clerk
+    // qui passe TTL, /api/users/me qui rend 401), pas une erreur logique.
+    // Sur une page protégée on redirige vers /login?reason=expired et le
+    // bandeau de la page de login affiche déjà le message — pas besoin de
+    // toast. Sur une page publique on émet un toast.warning (qui mappe sur
+    // console.warn dans le shim sonner — au lieu d'un console.error rouge).
     if (isProtectedPath(pathname)) {
       router.replace(buildLoginPath(pathname, "expired"))
+    } else {
+      toast.warning(message)
     }
   }, [clearWorkspaceState, pathname, router])
 
