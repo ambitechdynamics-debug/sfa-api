@@ -14,7 +14,8 @@
     "seed:forbidden-rules": "tsx prisma/seed-forbidden-rules.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "check:clerk": "node scripts/check-clerk-auth.mjs"
   },
   "dependencies": {
     "@clerk/backend": "^3.4.14",
