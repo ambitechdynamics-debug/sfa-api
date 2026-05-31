@@ -5,10 +5,6 @@ const API_URL = (
   process.env.NEXT_PUBLIC_API_URL ||
   (process.env.NODE_ENV !== "production" ? "http://localhost:5000" : "")
 ).replace(/\/+$/, "")
-const NEON_AUTH_URL = (
-  process.env.NEXT_PUBLIC_NEON_AUTH_URL ||
-  "https://ep-blue-night-akk7bv95.neonauth.c-3.us-west-2.aws.neon.tech/neondb/auth"
-).replace(/\/+$/, "")
 
 type ChatProxyResponse = {
   success?: boolean
@@ -56,33 +52,6 @@ type ChatProxyRequest = {
   history?: unknown
   visualConfig?: unknown
 }
-function findAuthToken(value: unknown, seen = new Set<unknown>(), acceptString = true): string {
-  if (typeof value === "string") return acceptString && value.trim() ? value.trim() : ""
-  if (!value || typeof value !== "object" || seen.has(value)) return ""
-  seen.add(value)
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const token = findAuthToken(item, seen, acceptString)
-      if (token) return token
-    }
-    return ""
-  }
-
-  const record = value as Record<string, unknown>
-  for (const key of ["token", "jwt", "idToken", "id_token", "accessToken", "access_token"]) {
-    const token = findAuthToken(record[key], seen, true)
-    if (token) return token
-  }
-
-  for (const item of Object.values(record)) {
-    const token = findAuthToken(item, seen, false)
-    if (token) return token
-  }
-
-  return ""
-}
-
 function normalizeOptionalString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined
 }
@@ -169,48 +138,12 @@ async function readChatBody(request: NextRequest) {
   }
 }
 
-async function getCookieAuthHeader(request: NextRequest) {
-  const cookie = request.headers.get("cookie")
-  if (!cookie) return undefined
-
-  const authEndpoints = [
-    { url: `${request.nextUrl.origin}/api/auth/token`, method: "GET" },
-    { url: `${request.nextUrl.origin}/api/auth/get-session`, method: "GET" },
-    { url: `${NEON_AUTH_URL}/token`, method: "GET" },
-    { url: `${NEON_AUTH_URL}/get-session`, method: "GET" },
-  ] satisfies Array<{ url: string; method: "GET" }>
-
-  for (const endpoint of authEndpoints) {
-    try {
-      const response = await fetch(endpoint.url, {
-        method: endpoint.method,
-        headers: {
-          Accept: "application/json",
-          Cookie: cookie,
-        },
-        cache: "no-store",
-      })
-
-      const headerToken = response.headers.get("set-auth-jwt") || response.headers.get("set-auth-token")
-      if (headerToken?.trim()) return `Bearer ${headerToken.trim()}`
-
-      const data = (await response.json().catch(() => null)) as unknown
-      const bodyToken = findAuthToken(data)
-      if (bodyToken) return `Bearer ${bodyToken}`
-    } catch {
-      // Try the next auth endpoint.
-    }
-  }
-
-  return undefined
-}
-
+// Le client envoie déjà le JWT Clerk via `Authorization: Bearer ...` (cf.
+// `lib/api.ts::apiFetch` + `services/auth.service.ts::getSessionToken`). Il
+// suffit donc de transférer l'en-tête tel quel vers le backend. L'ancien
+// fallback Better Auth/NeonAuth a été retiré.
 async function getAuthHeader(request: NextRequest) {
-  const cookieAuthorization = await getCookieAuthHeader(request)
-  if (cookieAuthorization) return cookieAuthorization
-
-  const authorization = request.headers.get("authorization")
-  return authorization ?? undefined
+  return request.headers.get("authorization") ?? undefined
 }
 
 export async function POST(request: NextRequest) {
