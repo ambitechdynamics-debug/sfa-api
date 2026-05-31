@@ -11,8 +11,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Render deploy
+        env:
+          HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+          if [ -z "$HOOK_URL" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK_URL secret is missing. Add it under GitHub → Settings → Secrets and variables → Actions."
+            exit 2
+          fi
+          BODY_FILE=$(mktemp)
+          STATUS=$(curl -sS -o "$BODY_FILE" -w "%{http_code}" -X POST "$HOOK_URL" || echo "000")
           echo "Render deploy hook response: $STATUS"
-          [ "$STATUS" = "201" ] && echo "Deploy triggered successfully" || exit 1
+          echo "Render response body:"
+          cat "$BODY_FILE" || true
+          case "$STATUS" in
+            200|201|202)
+              echo "Deploy triggered successfully"
+              ;;
+            *)
+              echo "::error::Render deploy hook returned unexpected status $STATUS"
+              exit 1
+              ;;
+          esac
