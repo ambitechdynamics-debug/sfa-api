@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthenticateWithRedirectCallback } from "@clerk/nextjs"
@@ -14,8 +14,30 @@ import { AuthenticateWithRedirectCallback } from "@clerk/nextjs"
  * cookie tiers bloqué, etc.), il dépose les paramètres d'erreur dans l'URL
  * sans naviguer. On les détecte ici pour afficher un fallback explicite
  * plutôt qu'un écran blanc.
+ *
+ * Next 15+ exige que `useSearchParams()` soit dans un boundary <Suspense>
+ * pour autoriser le pré-rendu statique de la page.
  */
 export default function SSOCallbackPage() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <SSOCallbackInner />
+    </Suspense>
+  )
+}
+
+function LoadingScreen() {
+  return (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg-0)", color: "var(--ink-2)" }}>
+      <div style={{ display: "grid", gap: 12, justifyItems: "center", fontSize: 14 }}>
+        <span className="anim-spin" style={{ width: 28, height: 28, borderRadius: 999, border: "2px solid var(--line-3)", borderTopColor: "var(--acc)" }} />
+        Finalisation de la connexion…
+      </div>
+    </div>
+  )
+}
+
+function SSOCallbackInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [timedOut, setTimedOut] = useState(false)
@@ -54,6 +76,7 @@ export default function SSOCallbackPage() {
     </div>
   )
 }
+
 
 function SsoError({
   code,
