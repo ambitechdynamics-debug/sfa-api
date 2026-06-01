@@ -1,6 +1,5 @@
 import { AdminUser } from '@/types/user'
 import { AdminApiError } from './api-error'
-import { getSession, signOut } from './authClient'
 
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL ||
@@ -13,103 +12,27 @@ type ApiResponse<T> = {
   data?: T
 }
 
-type LoginResponse = {
-  user: AdminUser
-  token: string
+type ClerkLike = {
+  session?: {
+    getToken: (options?: { skipCache?: boolean }) => Promise<string | null>
+  } | null
+  signOut?: () => Promise<unknown>
 }
 
-let cachedToken: string | null = null
+function getClerk(): ClerkLike | undefined {
+  if (typeof window === 'undefined') return undefined
+  return (window as unknown as { Clerk?: ClerkLike }).Clerk
+}
 
-/**
- * Resolve the Bearer token used to authenticate API calls.
- *
- * Source of truth: the active Better Auth session. The session token is the
- * Neon-Auth-issued JWT verified by the Express backend via JWKS.
- */
-export async function getToken(): Promise<string> {
-  if (typeof window === 'undefined') return ''
-  if (cachedToken) return cachedToken
+export async function getToken(options?: { skipCache?: boolean }): Promise<string> {
+  const clerk = getClerk()
+  if (!clerk?.session) return ''
 
-  // 1. Check the Better Auth session first (no network request to /api/auth/token
-  //    unless we actually have a session — avoids 401 console spam for legacy users).
   try {
-    const { data } = await getSession()
-    if (data) {
-      // We have a Better Auth session: try to extract the JWT from it.
-      const sessionToken = findAuthToken(data)
-      if (sessionToken) {
-        cachedToken = sessionToken
-        return sessionToken
-      }
-
-      // Session exists but token not in the session object — probe the auth endpoints.
-      const authEndpointToken = await fetchAuthJwt()
-      if (authEndpointToken) {
-        cachedToken = authEndpointToken
-        return authEndpointToken
-      }
-    }
+    return (await clerk.session.getToken(options)) ?? ''
   } catch {
-    // No Better Auth session — fall through to legacy token.
-  }
-
-  // 2. Legacy JWT stored by loginWithLegacyAdmin().
-  const legacyToken = localStorage.getItem('admin_token') || ''
-  if (legacyToken) {
-    cachedToken = legacyToken
-  }
-  return legacyToken
-}
-
-async function fetchAuthJwt(): Promise<string> {
-  for (const path of ['/api/auth/token', '/api/auth/get-session']) {
-    try {
-      const response = await fetch(path, {
-        credentials: 'include',
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-      })
-
-      const headerToken = response.headers.get('set-auth-jwt') || response.headers.get('set-auth-token')
-      if (headerToken?.trim()) return headerToken.trim()
-
-      const data = (await response.json().catch(() => null)) as unknown
-      const bodyToken = findAuthToken(data)
-      if (bodyToken) return bodyToken
-    } catch {
-      // Try the next auth endpoint.
-    }
-  }
-
-  return ''
-}
-
-function findAuthToken(value: unknown, seen = new Set<unknown>(), acceptString = true): string {
-  if (typeof value === 'string') return acceptString && value.trim() ? value.trim() : ''
-  if (!value || typeof value !== 'object' || seen.has(value)) return ''
-  seen.add(value)
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const token = findAuthToken(item, seen, acceptString)
-      if (token) return token
-    }
     return ''
   }
-
-  const record = value as Record<string, unknown>
-  const preferredKeys = ['jwt', 'idToken', 'id_token', 'accessToken', 'access_token', 'token']
-  for (const key of preferredKeys) {
-    const token = findAuthToken(record[key], seen, true)
-    if (token) return token
-  }
-
-  for (const item of Object.values(record)) {
-    const token = findAuthToken(item, seen, false)
-    if (token) return token
-  }
-
-  return ''
 }
 
 async function requestApi<T>(path: string, options?: RequestInit): Promise<T> {
@@ -117,92 +40,48 @@ async function requestApi<T>(path: string, options?: RequestInit): Promise<T> {
     throw new AdminApiError('URL API manquante. Configurez NEXT_PUBLIC_API_URL.', 0)
   }
 
-  const token = await getToken()
+  const send = async (token: string) => fetch(`${API_URL}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      ...(options?.headers ?? {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+
   let res: Response
   try {
-    res = await fetch(`${API_URL}${path}`, {
-      ...options,
-      credentials: 'include',
-      headers: {
-        ...(options?.headers ?? {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    })
+    const token = await getToken()
+    res = await send(token)
+
+    if (res.status === 401 || res.status === 403) {
+      const refreshedToken = await getToken({ skipCache: true })
+      if (refreshedToken && refreshedToken !== token) {
+        res = await send(refreshedToken)
+      }
+    }
   } catch {
     throw new AdminApiError('API indisponible. Vérifiez que le serveur backend est lancé.', 0)
   }
 
   const data = await res.json().catch(() => ({} as ApiResponse<T>))
   if (!res.ok || !data.success || data.data === undefined) {
-    if (res.status === 401) {
-      cachedToken = null
-    }
     throw new AdminApiError(data.message || 'Erreur API', res.status)
   }
 
   return data.data
 }
 
-/**
- * Fetch the local profile (with role + credits) from the backend.
- * Authentication itself is handled by Better Auth — this just enriches the
- * session with our business-data User row.
- */
 export async function getMe(): Promise<AdminUser> {
   return requestApi<AdminUser>('/api/users/me')
 }
 
-export function hasLegacySession(): boolean {
-  return typeof window !== 'undefined' && Boolean(localStorage.getItem('admin_token'))
-}
-
-export async function loginWithLegacyAdmin(email: string, password: string): Promise<AdminUser> {
-  if (!API_URL) {
-    throw new AdminApiError('URL API manquante. Configurez NEXT_PUBLIC_API_URL.', 0)
-  }
-
-  let res: Response
-  try {
-    res = await fetch(`${API_URL}/api/auth/login`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    })
-  } catch {
-    throw new AdminApiError('API indisponible. Vérifiez que le serveur backend est lancé.', 0)
-  }
-
-  const data = await res.json().catch(() => ({} as ApiResponse<LoginResponse>))
-  if (!res.ok || !data.success || !data.data?.token || !data.data.user) {
-    throw new AdminApiError(data.message || 'Invalid email or password', res.status)
-  }
-
-  if (data.data.user.role !== 'ADMIN') {
-    throw new AdminApiError("Ce compte n'a pas les droits administrateur.", 403)
-  }
-
-  localStorage.setItem('admin_token', data.data.token)
-  localStorage.setItem('admin_user', JSON.stringify(data.data.user))
-  cachedToken = data.data.token
-  return data.data.user
-}
-
-/**
- * Sign out: clears the Better Auth session cookie + local cache.
- */
 export async function logoutAdmin(): Promise<void> {
-  cachedToken = null
+  const clerk = getClerk()
   try {
-    await signOut()
+    await clerk?.signOut?.()
   } catch {
     /* noop */
-  }
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('admin_token')
-    localStorage.removeItem('admin_user') // Legacy cache from old JWT flow
   }
 }
 
@@ -210,13 +89,7 @@ export function isAdmin(user: AdminUser | null): boolean {
   return user?.role === 'ADMIN'
 }
 
-/**
- * @deprecated retained only for old call sites; new code should rely on the
- * Better Auth session cookie. No-op outside the browser.
- */
 export function clearSession() {
-  cachedToken = null
-  if (typeof window === 'undefined') return
-  localStorage.removeItem('admin_token')
-  localStorage.removeItem('admin_user')
+  // Clerk owns the browser session; this function is retained for existing
+  // invalid-auth call sites.
 }

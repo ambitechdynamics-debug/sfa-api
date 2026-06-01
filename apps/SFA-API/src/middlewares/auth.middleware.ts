@@ -5,8 +5,8 @@
  * @clerk/backend.verifyToken, then resolves/creates the local User row that
  * downstream controllers read as `req.user`.
  *
- * The User table's `stackUserId` column stores the Clerk user id (legacy name
- * kept from the prior Neon Auth integration to avoid a Prisma migration).
+ * The User table's `stackUserId` column stores the Clerk user id. The column
+ * keeps its legacy name to avoid a database migration.
  */
 
 import { NextFunction, Request, Response } from 'express';
@@ -23,8 +23,8 @@ type AuthedUser = {
   role: Role;
 };
 
-const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY ?? '';
-const CLERK_PUBLISHABLE_KEY = process.env.CLERK_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
+const CLERK_SECRET_KEY = env.CLERK_SECRET_KEY ?? '';
+const CLERK_PUBLISHABLE_KEY = env.CLERK_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 
 if (!CLERK_SECRET_KEY && env.NODE_ENV !== 'test') {
   logger.warn('[auth] CLERK_SECRET_KEY is not set — protected endpoints will reject every request.');

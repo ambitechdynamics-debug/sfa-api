@@ -17,8 +17,6 @@ primary_region = "cdg"          # Paris — closer to Africa/Europe users
   AI_DEFAULT_VISION_MODEL = "gpt-4o"
   IMAGE_GEN_PROVIDER = "mock"
   IMAGE_GEN_MODEL = "gemini-2.5-flash-image-preview"
-  NEON_AUTH_ENABLED = "true"
-  NEON_AUTH_AUDIENCE = ""
 
 [http_service]
   internal_port = 5000

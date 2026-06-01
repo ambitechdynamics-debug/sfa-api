@@ -3,20 +3,19 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { authClient } from '@/lib/authClient'
-import { getMe, loginWithLegacyAdmin } from '@/lib/auth'
+import { useClerk, useSignIn } from '@clerk/nextjs'
+import { getMe } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 
 /**
  * Admin sign-in page.
- *
- * Authentication flows through Neon Auth first. If the admin account still
- * exists only in the legacy backend user table, the page falls back to the
- * backend `/api/auth/login` endpoint and stores its JWT for the migration
- * window.
+ * Authentication is handled by Clerk. The backend only accepts Clerk session
+ * tokens, then checks the local User row for ADMIN privileges.
  */
 export default function LoginPage() {
   const router = useRouter()
+  const { signOut } = useClerk()
+  const { isLoaded: signInLoaded, signIn, setActive } = useSignIn()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -27,10 +26,21 @@ export default function LoginPage() {
     return value instanceof Error ? value.message : String(value)
   }
 
-  async function completeLoginWithLegacy() {
-    await authClient.signOut().catch(() => undefined)
-    await loginWithLegacyAdmin(email, password)
-    router.push('/admin')
+  function mapClerkError(value: unknown) {
+    const error = value as { errors?: Array<{ code?: string; message?: string }>; message?: string } | undefined
+    const first = error?.errors?.[0]
+    switch (first?.code) {
+      case 'form_identifier_not_found':
+      case 'form_password_incorrect':
+        return 'Email ou mot de passe incorrect.'
+      case 'form_param_format_invalid':
+      case 'form_param_nil':
+        return "Format d'email ou de mot de passe invalide."
+      case 'session_exists':
+        return 'Une session est déjà active. Rechargez la page.'
+      default:
+        return first?.message || error?.message || getErrorMessage(value)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -38,54 +48,33 @@ export default function LoginPage() {
     setError(null)
     setIsLoading(true)
     try {
-      const { error: authError } = await authClient.signIn.email({
-        email,
-        password,
-      })
-
-      if (authError) {
-        try {
-          await completeLoginWithLegacy()
-        } catch (legacyError) {
-          const msg = getErrorMessage(legacyError)
-          setError(
-            msg === 'Invalid email or password' || msg === 'Invalid credentials'
-              ? 'Email ou mot de passe incorrect.'
-              : msg
-          )
-          setIsLoading(false)
-        }
+      if (!signInLoaded || !signIn || !setActive) {
+        setError("Service d'authentification non prêt. Réessayez dans une seconde.")
         return
       }
 
-      // Verify the account has admin privileges before letting them in.
-      try {
-        const profile = await getMe()
-        if (profile.role !== 'ADMIN') {
-          await authClient.signOut()
-          setError("Ce compte n'a pas les droits administrateur.")
-          setIsLoading(false)
-          return
-        }
-      } catch {
-        try {
-          await completeLoginWithLegacy()
-          return
-        } catch (legacyError) {
-          const msg = getErrorMessage(legacyError)
-          setError(
-            msg === 'Invalid email or password' || msg === 'Invalid credentials'
-              ? 'Email ou mot de passe incorrect.'
-              : msg
-          )
-          setIsLoading(false)
-          return
-        }
+      const result = await signIn.create({
+        identifier: email.trim(),
+        password,
+      })
+
+      if (result.status !== 'complete' || !result.createdSessionId) {
+        setError('Authentification incomplète. Vérification supplémentaire requise.')
+        return
       }
 
-      router.push('/admin')
+      await setActive({ session: result.createdSessionId })
+
+      const profile = await getMe()
+      if (profile.role !== 'ADMIN') {
+        await signOut()
+        setError("Ce compte n'a pas les droits administrateur.")
+        return
+      }
+
+      router.replace('/admin')
     } catch (e: unknown) {
-      setError(`Erreur Catch: ${getErrorMessage(e)}`)
+      setError(mapClerkError(e))
     } finally {
       setIsLoading(false)
     }

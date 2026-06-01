@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const buildRoot = process.env.VERCEL
+const isVercelBuild = process.env.VERCEL === "1" && Boolean(process.env.VERCEL_URL);
+
+const buildRoot = isVercelBuild
   ? path.resolve(__dirname)
   : path.resolve(__dirname, "../../");
 

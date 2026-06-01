@@ -2,11 +2,11 @@
 
 Backend de départ pour le SaaS **STUDIO FLYER AI / POSTER AI**.
 
-Cette première phase met en place une API Express.js modulaire avec TypeScript, Prisma, PostgreSQL, JWT, bcrypt et Zod. Elle ne contient pas encore d'appel réel à Claude, ChatGPT, Gemini ou Nano Banana.
+Cette première phase met en place une API Express.js modulaire avec TypeScript, Prisma, PostgreSQL, Clerk et Zod. Elle ne contient pas encore d'appel réel à Claude, ChatGPT, Gemini ou Nano Banana.
 
 ## Fonctionnalités
 
-- Authentification JWT : register, login, me
+- Authentification Clerk : vérification des tokens de session et profil local
 - Gestion utilisateur connecté
 - CRUD projets protégés par propriétaire
 - CRUD des mémoires métier :
@@ -34,9 +34,9 @@ Copier `.env.example` vers `.env`, puis renseigner au minimum :
 ```env
 PORT=5000
 DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/studio_flyer_ai
-JWT_SECRET=replace-with-a-long-secret
-JWT_EXPIRES_IN=7d
 APP_URL=http://localhost:3000
+CLERK_SECRET_KEY=sk_...
+CLERK_PUBLISHABLE_KEY=pk_...
 ```
 
 ## Base de données
@@ -78,8 +78,6 @@ npm start
 
 ### Auth
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
 - `GET /api/auth/me`
 
 ### Users

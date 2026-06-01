@@ -8,10 +8,10 @@ import { isAuthError } from '@/lib/api-error'
 /**
  * Admin profile cache.
  *
- * Authentication itself is owned by Better Auth (`authClient.useSession()` in
- * the layout). This store holds the local admin profile retrieved from
- * `GET /api/users/me` — fields like `role`, `fullName` that live in our
- * Postgres `User` table and aren't part of the Neon Auth session.
+ * Authentication itself is owned by Clerk (`useUser()` in the layout). This
+ * store holds the local admin profile retrieved from `GET /api/users/me` —
+ * fields like `role`, `fullName` that live in our Postgres `User` table and
+ * aren't part of the Clerk session.
  *
  * Backward-compat note: the older API surface (`token`, `login`, `setToken`,
  * `initFromStorage`) is preserved as no-ops or thin wrappers so existing call
@@ -32,9 +32,9 @@ interface AdminStore {
 
   /** @deprecated kept for legacy call sites. Use {@link fetchProfile}. */
   initFromStorage: () => Promise<void>
-  /** @deprecated kept for legacy call sites. Better Auth manages tokens internally. */
+  /** @deprecated kept for legacy call sites. Clerk manages tokens internally. */
   token: string | null
-  /** @deprecated kept for legacy call sites. Better Auth handles login. */
+  /** @deprecated kept for legacy call sites. Clerk handles login. */
   login: (token: string, user: AdminUser) => void
   /** @deprecated. */
   setToken: (token: string) => void
@@ -95,6 +95,6 @@ export const useAdminStore = create<AdminStore>((set) => ({
   },
   login: (_token, user) => set({ user, isAuthenticated: !!user }),
   setToken: () => {
-    /* noop: Better Auth manages tokens via cookies + getSession(). */
+    /* noop: Clerk manages session tokens. */
   },
 }))

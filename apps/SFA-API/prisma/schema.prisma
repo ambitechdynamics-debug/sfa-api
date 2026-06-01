@@ -12,14 +12,15 @@ model User {
   fullName                     String
   email                        String              @unique
   phone                        String?
-  /// Conservé pour les comptes hérités (bcrypt). Stack gère les nouveaux mots de passe.
+  /// Ancien champ de mot de passe local. Clerk gère désormais toute
+  /// l'authentification; ce champ reste optionnel pour les données héritées.
   password                     String?
   role                         Role                @default(USER)
   credits                      Int                 @default(0)
   createdAt                    DateTime            @default(now())
   updatedAt                    DateTime            @updatedAt
-  /// Lien vers le compte Stack Auth (neon_auth.users_sync.id). Null pour les
-  /// utilisateurs hérités pas encore migrés.
+  /// Lien vers l'utilisateur Clerk. Nom de colonne conservé pour éviter une
+  /// migration de base, mais la valeur stockée est bien le Clerk user id.
   stackUserId                  String?             @unique
   stripeCustomerId             String?             @unique
   stripeSubscriptionId         String?             @unique

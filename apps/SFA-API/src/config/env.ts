@@ -32,9 +32,13 @@ if (process.env.NODE_ENV !== 'production') {
  */
 const emptyToUndefined = z.preprocess((val) => (val === '' ? undefined : val), z.string().optional());
 const emptyToUndefinedUrl = z.preprocess((val) => (val === '' ? undefined : val), z.string().url().optional());
-const DEFAULT_NEON_AUTH_ISSUER =
-  'https://ep-blue-night-akk7bv95.neonauth.c-3.us-west-2.aws.neon.tech/neondb/auth';
-const DEFAULT_NEON_AUTH_JWKS_URL = `${DEFAULT_NEON_AUTH_ISSUER}/.well-known/jwks.json`;
+const requiredInProduction = (name: string) =>
+  z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    process.env.NODE_ENV === 'production'
+      ? z.string().min(1, `${name} is required`)
+      : z.string().optional()
+  );
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -43,12 +47,16 @@ const envSchema = z.object({
     z.coerce.number().int().positive().default(5000)
   ),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
-  JWT_EXPIRES_IN: z.string().default('7d'),
   APP_URL: z.preprocess(
     (val) => (val === '' ? undefined : val),
     z.string().min(1).default('http://localhost:3000')
   ),
+
+  // Clerk is the single authentication provider. The frontend sends Clerk
+  // session JWTs in Authorization headers; the API verifies them with
+  // @clerk/backend in auth.middleware.ts.
+  CLERK_SECRET_KEY: requiredInProduction('CLERK_SECRET_KEY'),
+  CLERK_PUBLISHABLE_KEY: emptyToUndefined,
 
   // AI Providers — NB : ces variables ne sont plus lues au runtime (la source
   // unique est AppSetting, configurable dans /admin/settings). Conservées
@@ -70,33 +78,6 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
   CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
   CLOUDINARY_UPLOAD_FOLDER: z.string().default('studio-flyer-ai'),
-
-  // Neon Auth — JWT verification via JWKS (OIDC standard).
-  // Set NEON_AUTH_ENABLED=true and provide issuer + JWKS URL from your
-  // Neon project (console.neon.tech → Auth → endpoints).
-  NEON_AUTH_ENABLED: z
-    .preprocess(
-      (val) => {
-        if (val === undefined || val === '') {
-          return process.env.NODE_ENV === 'production' ? 'true' : 'false';
-        }
-        return typeof val === 'string' ? val.toLowerCase() : val;
-      },
-      z.enum(['true', 'false'])
-    )
-    .transform((v) => v === 'true'),
-  /** Issuer URL — value of the `iss` claim in tokens. Example:
-   *  https://ep-xxx.neonauth.<region>.aws.neon.tech/<db>/auth */
-  NEON_AUTH_ISSUER: z
-    .preprocess((val) => (val === '' ? undefined : val), z.string().url().optional())
-    .default(DEFAULT_NEON_AUTH_ISSUER),
-  /** JWKS URL — public keys used to verify token signatures. Example:
-   *  https://ep-xxx.neonauth.<region>.aws.neon.tech/<db>/auth/.well-known/jwks.json */
-  NEON_AUTH_JWKS_URL: z
-    .preprocess((val) => (val === '' ? undefined : val), z.string().url().optional())
-    .default(DEFAULT_NEON_AUTH_JWKS_URL),
-  /** Optional `aud` claim to enforce. */
-  NEON_AUTH_AUDIENCE: emptyToUndefined,
 
   // Stripe configurations
   STRIPE_SECRET_KEY: emptyToUndefined,

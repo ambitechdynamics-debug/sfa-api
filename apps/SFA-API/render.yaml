@@ -20,10 +20,13 @@ services:
       # ── Required secrets (fill in the Render dashboard) ─────────────────
       - key: DATABASE_URL
         sync: false
-      - key: JWT_SECRET
-        sync: false
       - key: APP_URL
         sync: false   # set to the deployed frontend URL(s), comma-separated
+      # ── Clerk auth ──────────────────────────────────────────────────────
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
       # ── Cloudinary ──────────────────────────────────────────────────────
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
@@ -33,15 +36,6 @@ services:
         sync: false
       - key: CLOUDINARY_UPLOAD_FOLDER
         value: studio-flyer-ai
-      # ── Neon Auth ───────────────────────────────────────────────────────
-      - key: NEON_AUTH_ENABLED
-        value: "true"
-      - key: NEON_AUTH_ISSUER
-        sync: false
-      - key: NEON_AUTH_JWKS_URL
-        sync: false
-      - key: NEON_AUTH_AUDIENCE
-        value: ""
       # ── AI providers ────────────────────────────────────────────────────
       - key: AI_DEFAULT_TEXT_PROVIDER
         value: mock
