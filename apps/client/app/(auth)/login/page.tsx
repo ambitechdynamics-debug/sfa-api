@@ -14,7 +14,7 @@ import { SESSION_EXPIRED_MESSAGE } from "@/lib/session-token"
 
 export default function LoginPage() {
   const searchParams = useSearchParams()
-  const { loginWithEmail } = useAuth()
+  const { loginWithEmail, signInReady } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPw, setShowPw] = useState(false)
@@ -71,7 +71,7 @@ export default function LoginPage() {
           )}
 
           {/* ── Social OAuth (Google + Apple via Clerk) ── */}
-          <OAuthButtons nextPath={nextPath} onError={setError} disabled={loading} />
+          <OAuthButtons nextPath={nextPath} onError={setError} disabled={loading || !signInReady} />
 
           {/* ── Divider ── */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
@@ -144,8 +144,8 @@ export default function LoginPage() {
               </div>
             )}
 
-            <Button type="submit" size="lg" full disabled={loading}>
-              {loading ? "Connexion en cours…" : "Se connecter"}
+            <Button type="submit" size="lg" full disabled={loading || !signInReady}>
+              {!signInReady ? "Préparation de la connexion…" : loading ? "Connexion en cours…" : "Se connecter"}
             </Button>
 
             <Link

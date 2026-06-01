@@ -79,7 +79,7 @@ const STYLES: Record<OAuthStrategy, { bg: string; border: string; hover: string 
 }
 
 export function OAuthButtons({ nextPath, onError, disabled, providers = ["oauth_google", "oauth_apple"] }: Props) {
-  const { loginWithOAuth } = useAuth()
+  const { loginWithOAuth, signInReady } = useAuth()
   const [pending, setPending] = useState<OAuthStrategy | null>(null)
 
   async function handleClick(strategy: OAuthStrategy) {
@@ -104,7 +104,7 @@ export function OAuthButtons({ nextPath, onError, disabled, providers = ["oauth_
         const Icon = ICONS[strategy]
         const style = STYLES[strategy]
         const isPending = pending === strategy
-        const isDisabled = Boolean(disabled) || (pending !== null && pending !== strategy)
+        const isDisabled = Boolean(disabled) || !signInReady || (pending !== null && pending !== strategy)
 
         return (
           <button

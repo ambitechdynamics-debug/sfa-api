@@ -64,6 +64,8 @@ export type OAuthStrategy = "oauth_google" | "oauth_apple" | "oauth_github" | "o
 type AuthContextValue = {
   user: User | null
   status: AuthStatus
+  signInReady: boolean
+  signUpReady: boolean
   sessionLoading: boolean
   profileLoading: boolean
   isAuthenticated: boolean
@@ -388,6 +390,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(() => ({
     user,
     status,
+    signInReady: Boolean(signInLoaded && signIn),
+    signUpReady: Boolean(signUpLoaded && signUp),
     sessionLoading: !clerkUserLoaded || status === "loading",
     profileLoading,
     isAuthenticated: status === "authenticated" && Boolean(user),
@@ -413,6 +417,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshSession,
     registerWithEmail,
     requireAuth,
+    signIn,
+    signInLoaded,
+    signUp,
+    signUpLoaded,
     status,
     user,
   ])
