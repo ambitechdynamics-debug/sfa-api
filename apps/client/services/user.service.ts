@@ -1,10 +1,16 @@
 import { ApiError, apiFetch } from "@/lib/api"
+import { waitForSessionToken } from "@/services/auth.service"
 import type { User } from "@/types/user"
 
 // Retry transient 5xx (Neon DB cold-pause, gateway hiccup) avec backoff
 // progressif. La vérification de session est sur le chemin critique du
 // dashboard — sans retry, un cold-start Neon de 10s casse tout le login.
 export async function getCurrentUser(): Promise<User> {
+  const token = await waitForSessionToken({ timeoutMs: 15_000 })
+  if (!token) {
+    throw new ApiError("Session Clerk en cours d'activation. Réessayez dans un instant.", 0, [], "CLERK_SESSION_PENDING")
+  }
+
   const delays = [1_500, 3_000, 6_000]
   let lastErr: unknown
   for (let i = 0; i <= delays.length; i++) {

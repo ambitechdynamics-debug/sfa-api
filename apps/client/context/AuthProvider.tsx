@@ -196,6 +196,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearWorkspaceState, pathname, router])
 
+  const handleBackendAuthRejection = useCallback(async (reason?: unknown) => {
+    const message =
+      reason instanceof Error && reason.message
+        ? reason.message
+        : "La session Clerk est active, mais l'API n'a pas encore pu la valider. Réessayez dans un instant."
+
+    if (clerkIsSignedIn) {
+      setError(message)
+      setStatus("error")
+      debugAuthTransition("backend auth rejected while Clerk is signed in", { message })
+      return
+    }
+
+    await expireSession(message || SESSION_EXPIRED_MESSAGE)
+  }, [clerkIsSignedIn, expireSession])
+
   const refreshSession = useCallback(async () => {
     setError("")
     lastRefreshErrorRef.current = ""
@@ -209,8 +225,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return currentUser
     } catch (reason) {
       if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) {
-        debugAuthTransition("expired", { status: reason.status })
-        await expireSession()
+        debugAuthTransition("backend auth rejected", { status: reason.status })
+        await handleBackendAuthRejection(reason)
         return null
       }
       const message = reason instanceof Error ? reason.message : "Impossible de vérifier votre session."
@@ -222,16 +238,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setProfileLoading(false)
     }
-  }, [expireSession, setUser])
+  }, [handleBackendAuthRejection, setUser])
 
   useEffect(() => {
     function onAuthExpired(event: Event) {
       const detail = readAuthExpiredDetail(event)
+      if (clerkIsSignedIn) {
+        void refreshSession()
+        return
+      }
       void expireSession(detail.message || SESSION_EXPIRED_MESSAGE)
     }
     window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
-  }, [expireSession])
+  }, [clerkIsSignedIn, expireSession, refreshSession])
 
   // Sync Clerk session state → backend profile.
   useEffect(() => {

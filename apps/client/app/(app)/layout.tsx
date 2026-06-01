@@ -10,9 +10,10 @@ import { useAuth } from "@/hooks/useAuth"
 import { useUiStore } from "@/store/ui-store"
 import { loadingScreen } from "@/context/AuthProvider"
 
-// Doit couvrir le pire cas réaliste : cold-start Neon (~5-15s) + retry budget
-// de getCurrentUser (~10s) + verifyToken Clerk + fetchClerkUserEmail.
-const DASHBOARD_SESSION_TIMEOUT_MS = 25_000
+// Doit couvrir le pire cas réaliste : activation Clerk côté navigateur,
+// cold-start Render/API, création ou liaison du profil local, puis retry
+// transitoire de getCurrentUser.
+const DASHBOARD_SESSION_TIMEOUT_MS = 60_000
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()

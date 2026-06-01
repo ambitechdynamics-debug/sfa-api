@@ -19,9 +19,15 @@ type ClerkLike = {
   signOut?: () => Promise<unknown>
 }
 
+const TOKEN_WAIT_STEP_MS = 250
+
 function getClerk(): ClerkLike | undefined {
   if (typeof window === 'undefined') return undefined
   return (window as unknown as { Clerk?: ClerkLike }).Clerk
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
 export async function getToken(options?: { skipCache?: boolean }): Promise<string> {
@@ -32,6 +38,16 @@ export async function getToken(options?: { skipCache?: boolean }): Promise<strin
     return (await clerk.session.getToken(options)) ?? ''
   } catch {
     return ''
+  }
+}
+
+async function waitForToken(timeoutMs: number): Promise<string> {
+  const deadline = Date.now() + timeoutMs
+  while (true) {
+    const token = await getToken()
+    if (token) return token
+    if (Date.now() >= deadline) return ''
+    await delay(Math.min(TOKEN_WAIT_STEP_MS, Math.max(0, deadline - Date.now())))
   }
 }
 
@@ -51,7 +67,7 @@ async function requestApi<T>(path: string, options?: RequestInit): Promise<T> {
 
   let res: Response
   try {
-    const token = await getToken()
+    const token = await waitForToken(15_000)
     res = await send(token)
 
     if (res.status === 401 || res.status === 403) {
