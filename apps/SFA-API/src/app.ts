@@ -35,6 +35,7 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:3010',
   'https://studio-flyer.vercel.app',
   'https://consilium.leboncoincg.store',
+  'https://www.consilium.leboncoincg.store',
   'https://admin-seven-teal-10.vercel.app',
   'https://studio-flyer-ai-admin.vercel.app',
   'https://studio-flyer-ai-client.vercel.app',
