@@ -1,0 +1,6 @@
+{
+  "name": "Consilium",
+  "description": "Consilium is a premium AI-driven visual design studio by AmbiTech Dynamics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

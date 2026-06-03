@@ -217,6 +217,172 @@ img { max-width: 100%; display: block; }
   0%, 100% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.35; }
   50%      { transform: translate(-50%, -50%) scale(1.15); opacity: 0.6; }
 }
+@keyframes consilium-prism-ping {
+  0% { transform: scale(1); opacity: 0.95; }
+  72%, 100% { transform: scale(1.95); opacity: 0; }
+}
+@keyframes consilium-prism-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.03); }
+}
+@keyframes csl-session-progress {
+  0% { transform: translateX(-100%); width: 28%; }
+  42% { width: 48%; }
+  100% { transform: translateX(360%); width: 28%; }
+}
+@keyframes csl-session-step {
+  0%, 100% { opacity: .42; }
+  45%, 70% { opacity: 1; }
+}
+.consilium-prism-logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(24,24,31,0.58);
+  padding: 2px;
+  filter: drop-shadow(0 0 8px rgba(139,92,246,0.3));
+  transition: border-color .3s ease, transform .3s ease, filter .3s ease;
+}
+.consilium-prism-logo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.consilium-prism-logo__triangle {
+  transform-origin: center;
+  transition: transform .5s ease;
+}
+.consilium-prism-logo:hover {
+  border-color: rgba(139,92,246,0.42);
+  filter: drop-shadow(0 0 14px rgba(236,72,153,0.34));
+}
+.group:hover .consilium-prism-logo {
+  border-color: rgba(139,92,246,0.42);
+  filter: drop-shadow(0 0 14px rgba(236,72,153,0.34));
+}
+.consilium-prism-logo:hover .consilium-prism-logo__triangle {
+  transform: rotate(12deg);
+}
+.group:hover .consilium-prism-logo .consilium-prism-logo__triangle {
+  transform: rotate(12deg);
+}
+.consilium-prism-logo.is-animated {
+  animation: consilium-prism-float 3.2s ease-in-out infinite;
+}
+.consilium-prism-logo.is-animated .consilium-prism-logo__pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: consilium-prism-ping 3s cubic-bezier(0, 0, .2, 1) infinite;
+}
+.csl-session-setup {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(760px 520px at 50% 20%, rgba(139,92,246,.18), transparent 64%),
+    radial-gradient(760px 520px at 82% 88%, rgba(34,211,238,.10), transparent 66%),
+    #08080c;
+  color: #fff;
+  padding: 32px;
+}
+.csl-session-setup::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size: 26px 26px;
+  opacity: .55;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at center, #000 0%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, transparent 78%);
+}
+.csl-session-setup-bg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(220px, 32vw, 460px) !important;
+  height: clamp(220px, 32vw, 460px) !important;
+  transform: translate(-50%, -50%) scale(1.2);
+  opacity: .12;
+  border: 0;
+  background: transparent;
+  filter: drop-shadow(0 0 60px rgba(139,92,246,.42));
+}
+.csl-session-setup-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  width: min(100%, 520px);
+  text-align: center;
+}
+.csl-session-setup-logo {
+  filter: drop-shadow(0 0 18px rgba(236,72,153,.36));
+}
+.csl-session-setup-copy {
+  display: grid;
+  gap: 8px;
+}
+.csl-session-setup-kicker {
+  margin: 0;
+  color: rgba(255,255,255,.48);
+  font: 700 10px/1 ui-monospace, Menlo, monospace;
+  letter-spacing: .18em;
+}
+.csl-session-setup h1 {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 42px);
+  line-height: 1.08;
+  letter-spacing: 0;
+  font-weight: 650;
+}
+.csl-session-setup p {
+  margin: 0;
+  color: rgba(255,255,255,.66);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.csl-session-setup-steps {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  color: rgba(255,255,255,.54);
+  font-size: 12px;
+}
+.csl-session-setup-steps span {
+  animation: csl-session-step 3.6s ease-in-out infinite;
+}
+.csl-session-setup-steps span:nth-child(2) {
+  animation-delay: .9s;
+}
+.csl-session-setup-steps span:nth-child(3) {
+  animation-delay: 1.8s;
+}
+.csl-session-setup-progress {
+  width: min(100%, 360px);
+  height: 4px;
+  overflow: hidden;
+  background: rgba(255,255,255,.10);
+  border-radius: 999px;
+}
+.csl-session-setup-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #8B5CF6, #EC4899 55%, #22D3EE);
+  border-radius: inherit;
+  animation: csl-session-progress 1.9s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+.cv-gen-prism {
+  z-index: 1;
+}
 .cv-gen-spinner {
   width: 40px;
   height: 40px;
@@ -241,7 +407,7 @@ img { max-width: 100%; display: block; }
   width: 280px;
   height: 280px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%);
+  background: radial-gradient(circle, rgba(139,92,246,0.24) 0%, rgba(236,72,153,0.12) 34%, rgba(34,211,238,0) 70%);
   animation: cv-gen-halo-pulse 2.4s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;

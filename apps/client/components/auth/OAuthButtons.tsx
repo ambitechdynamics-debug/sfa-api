@@ -15,13 +15,13 @@ type Props = {
 }
 
 const LABELS: Record<OAuthStrategy, string> = {
-  oauth_google: "Continuer avec Google",
-  oauth_apple: "Continuer avec Apple",
-  oauth_github: "Continuer avec GitHub",
-  oauth_facebook: "Continuer avec Facebook",
+  oauth_google: "Continue with Google",
+  oauth_apple: "Continue with Apple",
+  oauth_github: "Continue with GitHub",
+  oauth_facebook: "Continue with Facebook",
 }
 
-const LOADING_LABEL = "Redirection…"
+const LOADING_LABEL = "Redirecting…"
 
 function GoogleIcon() {
   return (
@@ -93,7 +93,7 @@ export function OAuthButtons({ nextPath, onError, disabled, providers = ["oauth_
       }
       // En cas de succès Clerk redirige, donc setPending(null) n'arrivera pas.
     } catch {
-      onError?.("Connexion impossible. Veuillez réessayer.")
+      onError?.("Unable to sign in. Please try again.")
       setPending(null)
     }
   }
@@ -121,7 +121,7 @@ export function OAuthButtons({ nextPath, onError, disabled, providers = ["oauth_
               padding: "11px 16px",
               background: style.bg,
               border: `1px solid ${style.border}`,
-              borderRadius: "var(--r-2)",
+              borderRadius: 12,
               fontSize: 14,
               fontWeight: 500,
               color: "#fff",

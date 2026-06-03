@@ -92,6 +92,17 @@
 .landing-page button { font-family: inherit; }
 .landing-page ::selection { background: var(--accent-glow); color: #fff; }
 
+/* Consilium home: frames are square by design, while real buttons keep radius. */
+.consilium-home :where(.rounded, .rounded-sm, .rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl) {
+  border-radius: 0 !important;
+}
+.consilium-home button:where(.rounded, .rounded-sm, .rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl, .rounded-full) {
+  border-radius: 999px !important;
+}
+.consilium-home button:where(.rounded, .rounded-sm, .rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl) {
+  border-radius: 8px !important;
+}
+
 /* Scrollbar Win11-style — scoped to landing */
 .landing-page ::-webkit-scrollbar { width: 12px; height: 12px; }
 .landing-page ::-webkit-scrollbar-track { background: transparent; }

@@ -7,12 +7,12 @@ import { Icon } from "@/components/ui/Icon"
 import { Input, Textarea } from "@/components/ui/Input"
 
 const FAQ = [
-  { q: "Comment fonctionne la génération par IA ?", a: "Décrivez simplement l'affiche à créer. L'IA transforme votre prompt en projet, applique les options utiles et vous envoie vers les variantes générées." },
-  { q: "Mes visuels sont-ils libres de droits ?", a: "Oui, tous les visuels générés via votre abonnement vous appartiennent et sont utilisables commercialement sans restriction." },
-  { q: "Puis-je guider le style de marque ?", a: "Oui. Ajoutez le nom de marque, le ton visuel et les contraintes dans le prompt ou dans les options simples de création." },
-  { q: "Comment se passent les retouches ?", a: "Sur chaque proposition, décrivez en quelques mots ce que vous souhaitez changer. L'IA régénère en gardant la composition." },
-  { q: "Puis-je annuler mon abonnement ?", a: "À tout moment, depuis la page Abonnement. Aucun engagement, aucun frais d'annulation." },
-  { q: "Quels formats d'export sont disponibles ?", a: "PNG haute résolution, PDF print (CMJN, 300 DPI), JPEG web et SVG." },
+  { q: "How does AI generation work?", a: "Simply describe the poster to create. AI turns your prompt into a project, applies useful options, and sends you to generated variations." },
+  { q: "Are my visuals royalty-free?", a: "Yes, all visuals generated through your subscription belong to you and can be used commercially without restriction." },
+  { q: "Can I guide the brand style?", a: "Yes. Add the brand name, visual tone, and constraints in the prompt or simple creation options." },
+  { q: "How do edits work?", a: "On each proposal, describe what you want to change in a few words. AI regenerates while keeping the composition." },
+  { q: "Can I cancel my subscription?", a: "At any time from the Subscription page. There is no commitment and no cancellation fee." },
+  { q: "Which export formats are available?", a: "High-resolution PNG, print PDF (CMYK, 300 DPI), web JPEG, and SVG." },
 ]
 
 export default function SupportPage() {
@@ -29,8 +29,8 @@ export default function SupportPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 880 }}>
       {/* FAQ */}
       <Card padding={28}>
-        <h2 className="display" style={{ fontSize: 22, margin: 0, marginBottom: 4 }}>Questions fréquentes</h2>
-        <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 16 }}>Trouvez vos réponses rapidement.</p>
+        <h2 className="display" style={{ fontSize: 22, margin: 0, marginBottom: 4 }}>Frequently asked questions</h2>
+        <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 16 }}>Find answers quickly.</p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {FAQ.map((it, i) => {
@@ -61,16 +61,16 @@ export default function SupportPage() {
 
       {/* Contact */}
       <Card padding={28}>
-        <h2 className="display" style={{ fontSize: 22, margin: 0, marginBottom: 4 }}>Contacter le support</h2>
+        <h2 className="display" style={{ fontSize: 22, margin: 0, marginBottom: 4 }}>Contact support</h2>
         <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 20 }}>
-          Notre équipe répond sous 24h ouvrées. Pour les plans Pro et Business, support prioritaire.
+          Our team replies within 24 business hours. Pro and Business plans get priority support.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Input label="Sujet" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Ex. : Problème lors d'une génération" />
-          <Textarea label="Message" rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Décrivez votre demande…" />
+          <Input label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Ex. Issue during a generation" />
+          <Textarea label="Message" rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Describe your request..." />
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <Button icon="send" onClick={sendMail}>Envoyer un e-mail</Button>
+            <Button icon="send" onClick={sendMail}>Send email</Button>
           </div>
         </div>
       </Card>

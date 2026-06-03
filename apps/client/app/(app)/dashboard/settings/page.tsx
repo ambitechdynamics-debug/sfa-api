@@ -12,33 +12,33 @@ export default function SettingsPage() {
   return (
     <PageContainer width={820}>
       <Card padding={28}>
-        <h2 className="display" style={{ fontSize: 20, margin: 0, marginBottom: 4 }}>Apparence</h2>
-        <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 24 }}>Personnalisez l&apos;apparence de l&apos;application.</p>
+        <h2 className="display" style={{ fontSize: 20, margin: 0, marginBottom: 4 }}>Appearance</h2>
+        <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 24 }}>Customize the application's appearance.</p>
 
-        <Setting label="Thème" hint="Sombre par défaut, clair pour les environnements lumineux">
+        <Setting label="Theme" hint="Dark by default, light for bright environments">
           <Segmented
             options={[
-              { value: "dark",  label: "Sombre" },
-              { value: "light", label: "Clair" },
+              { value: "dark",  label: "Dark" },
+              { value: "light", label: "Light" },
             ]}
             value={theme}
             onChange={(v) => setTheme(v as "dark" | "light")}
           />
         </Setting>
 
-        <Setting label="Densité" hint="Plus compact = plus d'informations à l'écran">
+        <Setting label="Density" hint="More compact means more information on screen">
           <Segmented
             options={[
               { value: "compact", label: "Compact" },
-              { value: "regular", label: "Confortable" },
-              { value: "comfy",   label: "Aéré" },
+              { value: "regular", label: "Comfortable" },
+              { value: "comfy",   label: "Airy" },
             ]}
             value={density}
             onChange={(v) => setDensity(v as "compact" | "regular" | "comfy")}
           />
         </Setting>
 
-        <Setting label="Couleur d'accent" hint="Palette principale de l'interface">
+        <Setting label="Accent color" hint="Main interface palette">
           <div style={{ display: "flex", gap: 10 }}>
             {Object.keys(ACCENT_PALETTES).map((c) => (
               <button
@@ -59,22 +59,22 @@ export default function SettingsPage() {
       </Card>
 
       <Card padding={28}>
-        <h2 className="display" style={{ fontSize: 20, margin: 0, marginBottom: 4 }}>Préférences IA</h2>
-        <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 16 }}>Paramètres appliqués aux nouveaux prompts.</p>
+        <h2 className="display" style={{ fontSize: 20, margin: 0, marginBottom: 4 }}>AI preferences</h2>
+        <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 16 }}>Settings applied to new prompts.</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <InfoRow label="Langue" hint="Français" icon="globe" />
-          <InfoRow label="Mode de génération" hint="Rapide par défaut, options avancées repliées" icon="sparkles" />
-          <InfoRow label="Notifications" hint="Activées pour générations, exports et billing" icon="bell" />
+          <InfoRow label="Language" hint="English" icon="globe" />
+          <InfoRow label="Generation mode" hint="Fast by default, advanced options collapsed" icon="sparkles" />
+          <InfoRow label="Notifications" hint="Enabled for generations, exports, and billing" icon="bell" />
         </div>
       </Card>
 
       <Card padding={28}>
-        <h2 className="display" style={{ fontSize: 20, margin: 0, marginBottom: 4 }}>Sécurité</h2>
-        <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 16 }}>Gestion du compte et accès.</p>
+        <h2 className="display" style={{ fontSize: 20, margin: 0, marginBottom: 4 }}>Security</h2>
+        <p style={{ fontSize: 13, color: "var(--ink-2)", marginBottom: 16 }}>Account and access management.</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <InfoRow label="Mot de passe" hint="Géré par le module d'authentification" icon="lock" />
-          <InfoRow label="Sessions actives" hint="Une session actuelle" icon="user" />
-          <InfoRow label="Suppression du compte" hint="Disponible via demande support vérifiée" icon="warn" danger />
+          <InfoRow label="Password" hint="Managed by the authentication module" icon="lock" />
+          <InfoRow label="Active sessions" hint="One current session" icon="user" />
+          <InfoRow label="Account deletion" hint="Available through a verified support request" icon="warn" danger />
         </div>
       </Card>
     </PageContainer>

@@ -8,6 +8,7 @@ import { useCreationOptionsStore } from "@/store/creation-options-store"
 import { createTravail, uploadProjectFile } from "@/lib/projects"
 import { getProjectWorkspacePath } from "@/lib/project-navigation"
 import type { Project } from "@/types/project"
+import { ConsiliumPrismLogo } from "@/components/brand/ConsiliumPrismLogo"
 import { AssetImportPanel, type PendingAsset } from "./AssetImportPanel"
 
 const USAGE_MAP: Record<PendingAsset["type"], string> = {
@@ -20,31 +21,30 @@ const USAGE_MAP: Record<PendingAsset["type"], string> = {
 }
 
 /**
- * Types de visuels par défaut — utilisés si le store CreationOption est vide
- * (ex : DB non seedée, API offline). Couvre les formats les plus courants
- * de Studio Flyer AI.
+ * Default visual types used when CreationOption is empty
+ * (for example: unseeded DB, offline API).
  */
 const DEFAULT_VISUAL_TYPES = [
   { id: "default-flyer",        slug: "flyer",        name: "Flyer" },
-  { id: "default-poster",       slug: "poster",       name: "Affiche" },
-  { id: "default-social-post",  slug: "social_post",  name: "Post réseaux sociaux" },
+  { id: "default-poster",       slug: "poster",       name: "Poster" },
+  { id: "default-social-post",  slug: "social_post",  name: "Social post" },
   { id: "default-social-story", slug: "story",        name: "Story Instagram / Reel" },
-  { id: "default-card",         slug: "business_card", name: "Carte de visite" },
-  { id: "default-banner",       slug: "banner",       name: "Bannière web" },
-  { id: "default-menu",         slug: "menu",         name: "Menu restaurant" },
+  { id: "default-card",         slug: "business_card", name: "Business card" },
+  { id: "default-banner",       slug: "banner",       name: "Web banner" },
+  { id: "default-menu",         slug: "menu",         name: "Restaurant menu" },
 ] as const
 
 /**
- * Formes (aspect ratios) d'affiche supportées. Le slug est passé tel quel à
- * `createTravail.format` et résolu côté backend par `ratioFromFormat`
+ * Supported poster shapes. The slug is passed to `createTravail.format`
+ * and resolved by the backend through `ratioFromFormat`
  * (apps/SFA-API/src/modules/image-generation/imageGen.service.ts).
  */
 const FORMAT_SHAPES = [
-  { slug: "3:4",  name: "Portrait — 3:4",  hint: "Flyer · Affiche · A4" },
-  { slug: "1:1",  name: "Carré — 1:1",     hint: "Instagram · Facebook" },
+  { slug: "3:4",  name: "Portrait — 3:4",  hint: "Flyer · Poster · A4" },
+  { slug: "1:1",  name: "Square — 1:1",    hint: "Instagram · Facebook" },
   { slug: "9:16", name: "Story — 9:16",    hint: "Story · Reels · TikTok" },
-  { slug: "16:9", name: "Bannière — 16:9", hint: "YouTube · Bannière web" },
-  { slug: "4:3",  name: "Paysage — 4:3",   hint: "Présentation · Pub" },
+  { slug: "16:9", name: "Banner — 16:9",   hint: "YouTube · Web banner" },
+  { slug: "4:3",  name: "Landscape — 4:3", hint: "Presentation · Ad" },
 ] as const
 
 /* ── Tiny icons (Lucide-style) ── */
@@ -63,7 +63,7 @@ const Ico = {
       <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
     </svg>
   ),
-  folder: ({ size = 36, color = "#A89E8C" }: { size?: number; color?: string }) => (
+  folder: ({ size = 36, color = "#8B5CF6" }: { size?: number; color?: string }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2h9A1.5 1.5 0 0 1 21 9.5V18a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18Z" />
     </svg>
@@ -110,29 +110,29 @@ function ShapeIcon({ slug }: { slug: string }) {
         width={w}
         height={h}
         rx="2"
-        stroke="#E89376"
+        stroke="#8B5CF6"
         strokeWidth="1.6"
-        fill="rgba(232,147,118,0.18)"
+        fill="rgba(139,92,246,0.18)"
       />
     </svg>
   )
 }
 
-function timeAgo(iso: string | undefined, lang: "fr" | "en" = "fr"): string {
+function timeAgo(iso: string | undefined): string {
   if (!iso) return ""
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return lang === "fr" ? "À l'instant" : "Just now"
+  if (mins < 1) return "Just now"
   if (mins < 60) return `${mins} min`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours} h`
   const days = Math.floor(hours / 24)
-  if (days === 1) return lang === "fr" ? "Hier" : "Yesterday"
-  if (days < 7) return `${days} j`
-  return new Date(iso).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-US", { day: "numeric", month: "short" })
+  if (days === 1) return "Yesterday"
+  if (days < 7) return `${days} d`
+  return new Date(iso).toLocaleDateString("en-US", { day: "numeric", month: "short" })
 }
 
-const TOP_TABS = ["Récent", "Vos créations", "Exemples", "Systèmes de conception"] as const
+const TOP_TABS = ["Recent", "Your creations", "Examples", "Design systems"] as const
 
 type TopTab = (typeof TOP_TABS)[number]
 
@@ -158,7 +158,7 @@ export function UserNewDashboard() {
     return () => window.removeEventListener("mousedown", onDown)
   }, [userMenuOpen])
 
-  const [topTab, setTopTab] = useState<TopTab>("Récent")
+  const [topTab, setTopTab] = useState<TopTab>("Recent")
   const [search, setSearch] = useState("")
   const [name, setName] = useState("")
   const [systemId, setSystemId] = useState<string>("")
@@ -171,12 +171,11 @@ export function UserNewDashboard() {
     void fetchOptions()
   }, [loadProjects, fetchOptions])
 
-  // Defensive : les stores peuvent renvoyer undefined transitoirement (boot, réponse API malformée).
+  // Defensive: stores can transiently return undefined during boot or malformed API responses.
   const safeOptions = Array.isArray(options) ? options : []
   const safeProjects = Array.isArray(projects) ? projects : []
 
-  // Fallback : si le backend ne renvoie aucun type, on utilise la liste par défaut
-  // pour que l'utilisateur puisse quand même créer un projet sans rester bloqué.
+  // Fallback: if the backend returns no type, keep project creation available.
   const visualTypes: Array<{ id: string; slug: string; name: string }> =
     safeOptions.length > 0
       ? safeOptions.map((o) => ({ id: o.id, slug: o.slug, name: o.name }))
@@ -241,7 +240,7 @@ export function UserNewDashboard() {
       }
     } catch (err) {
       console.error("[user-new dashboard] create failed", err)
-      setCreateError(err instanceof Error ? err.message : "Création impossible. Réessayez.")
+      setCreateError(err instanceof Error ? err.message : "Unable to create. Try again.")
     } finally {
       setIsCreating(false)
     }
@@ -265,50 +264,49 @@ export function UserNewDashboard() {
       <aside className="csl-sb">
         <div className="csl-sb-head">
           <div className="csl-sb-logo">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Studio Flyer AI" />
+            <ConsiliumPrismLogo size={38} />
           </div>
           <div style={{ flex: 1, paddingTop: 2 }}>
             <div className="csl-sb-brand-row">
-              <span>Consilium</span>
+              <span>CONSILIUM</span>
             </div>
-            <div className="csl-sb-brand-script">Design</div>
+            <div className="csl-sb-brand-script">BY AMBITECH</div>
           </div>
         </div>
 
         <div className="csl-sb-form">
-          <div className="csl-form-title">Nouveau projet</div>
+          <div className="csl-form-title">New project</div>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") void handleCreate() }}
-            placeholder="Nom du projet"
+            placeholder="Project name"
             className="csl-input"
             disabled={isCreating}
           />
 
-          <div className="csl-form-label">Type de visuel</div>
+          <div className="csl-form-label">Visual type</div>
           <button
             type="button"
             className="csl-form-picker"
             onClick={cycleSystem}
-            title="Cliquez pour changer de type"
+            title="Click to change type"
           >
             <span className="csl-form-picker-icon">
-              <Ico.folder size={16} color="#E89376" />
+              <Ico.folder size={16} color="#EC4899" />
             </span>
             <span style={{ flex: 1 }}>
-              <div className="csl-form-picker-label">{selectedSystem?.name ?? "Sélectionner…"}</div>
-              <div className="csl-form-picker-sub">Cliquer pour changer</div>
+              <div className="csl-form-picker-label">{selectedSystem?.name ?? "Select..."}</div>
+              <div className="csl-form-picker-sub">Click to change</div>
             </span>
           </button>
 
-          <div className="csl-form-label">Forme de l&apos;affiche</div>
+          <div className="csl-form-label">Poster shape</div>
           <button
             type="button"
             className="csl-form-picker"
             onClick={cycleShape}
-            title="Cliquez pour changer de forme"
+            title="Click to change shape"
           >
             <span className="csl-form-picker-icon">
               <ShapeIcon slug={selectedShape.slug} />
@@ -334,11 +332,11 @@ export function UserNewDashboard() {
             disabled={!name.trim() || isCreating}
           >
             {isCreating ? (
-              "Création…"
+              "Creating..."
             ) : (
               <>
                 <Ico.plus />
-                Créer
+                Create
               </>
             )}
           </button>
@@ -373,7 +371,7 @@ export function UserNewDashboard() {
                 onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sb-bg-hover)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                Profil
+                Profile
               </button>
               <button
                 type="button"
@@ -382,7 +380,7 @@ export function UserNewDashboard() {
                 onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sb-bg-hover)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                Paramètres
+                Settings
               </button>
               <button
                 type="button"
@@ -391,7 +389,7 @@ export function UserNewDashboard() {
                 onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sb-bg-hover)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                Facturation
+                Billing
               </button>
               <div style={{ height: 1, background: "var(--sb-border)", margin: "4px 6px" }} />
               <button
@@ -401,7 +399,7 @@ export function UserNewDashboard() {
                 onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(248,113,113,0.12)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                Se déconnecter
+                Sign out
               </button>
             </div>
           )}
@@ -426,7 +424,7 @@ export function UserNewDashboard() {
           >
             <span style={{
               width: 30, height: 30, borderRadius: "50%",
-              background: "linear-gradient(135deg, #E89376, #c66a45)",
+              background: "linear-gradient(135deg, #8B5CF6, #EC4899 58%, #22D3EE)",
               color: "#fff",
               fontSize: 11.5, fontWeight: 600,
               display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -434,7 +432,7 @@ export function UserNewDashboard() {
             }}>{initials}</span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--sb-ink-0)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {user?.fullName ?? "Compte"}
+                {user?.fullName ?? "Account"}
               </span>
               <span style={{ display: "block", fontSize: 11, color: "var(--sb-ink-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {user?.email ?? ""}
@@ -466,7 +464,7 @@ export function UserNewDashboard() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Chercher…"
+              placeholder="Search..."
               className="csl-input"
               style={{ paddingLeft: 32 }}
             />
@@ -486,7 +484,7 @@ export function UserNewDashboard() {
                   </div>
                   <div className="csl-card-meta">
                     <div className="csl-card-title">…</div>
-                    <div className="csl-card-sub">Chargement…</div>
+                    <div className="csl-card-sub">Loading...</div>
                   </div>
                 </div>
               ))}
@@ -494,8 +492,8 @@ export function UserNewDashboard() {
           ) : filteredProjects.length === 0 ? (
             <div className="csl-empty">
               {search
-                ? "Aucun projet ne correspond à votre recherche."
-                : "Aucun projet pour l'instant. Créez votre premier projet dans le panneau de gauche."}
+                ? "No project matches your search."
+                : "No projects yet. Create your first project from the left panel."}
             </div>
           ) : (
             <div className="csl-grid">
@@ -506,7 +504,7 @@ export function UserNewDashboard() {
                   featured={i === 0 && !search}
                   onOpen={() => void openProject(p)}
                   onDelete={() => {
-                    if (window.confirm(`Supprimer le projet "${p.title}" ?`)) {
+                    if (window.confirm(`Delete project "${p.title}"?`)) {
                       void removeProject(p.id)
                     }
                   }}
@@ -528,7 +526,7 @@ function ProjectCard({
   onOpen: () => void
   onDelete: () => void
 }) {
-  const sub = project.updatedAt ? `Votre design · ${timeAgo(project.updatedAt)}` : "Votre design"
+  const sub = project.updatedAt ? `Your design · ${timeAgo(project.updatedAt)}` : "Your design"
 
   return (
     <div className="csl-card" onClick={onOpen}>
@@ -538,19 +536,19 @@ function ProjectCard({
             type="button"
             className="csl-card-action"
             onClick={onDelete}
-            title="Supprimer"
-            aria-label="Supprimer"
+            title="Delete"
+            aria-label="Delete"
           >
             <Ico.x />
           </button>
         </div>
-        <Ico.folder size={featured ? 56 : 42} color={featured ? "#8B9DBA" : "#A89E8C"} />
+        <Ico.folder size={featured ? 56 : 42} color={featured ? "#22D3EE" : "#8B5CF6"} />
       </div>
       <div className="csl-card-meta">
-        <div className="csl-card-title">{project.title || "Projet sans titre"}</div>
+        <div className="csl-card-title">{project.title || "Untitled project"}</div>
         <div className="csl-card-row">
           <div className="csl-card-sub">{sub}</div>
-          <span className="csl-card-chip">Propriétaire</span>
+          <span className="csl-card-chip">Owner</span>
         </div>
       </div>
     </div>

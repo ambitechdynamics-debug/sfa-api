@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Icon } from "@/components/ui/Icon"
 import { useAuth } from "@/hooks/useAuth"
-import { SESSION_EXPIRED_MESSAGE } from "@/lib/session-token"
 
 export default function LoginPage() {
   const searchParams = useSearchParams()
@@ -35,9 +34,9 @@ export default function LoginPage() {
         return
       }
 
-      toast.success("Connexion réussie")
+      toast.success("Signed in")
     } catch {
-      setError("Erreur de connexion au service d'authentification.")
+      setError("Unable to reach the authentication service.")
     } finally {
       setLoading(false)
     }
@@ -48,9 +47,9 @@ export default function LoginPage() {
       left={<AuthLeftPitch />}
       right={
         <div className="anim-fade-up">
-          <h1 className="display" style={{ fontSize: 36, marginBottom: 8 }}>Bon retour.</h1>
+          <h1 className="display" style={{ fontSize: 36, marginBottom: 8 }}>Welcome back.</h1>
           <p style={{ color: "var(--ink-2)", fontSize: 14, marginBottom: 32 }}>
-            Connectez-vous pour accéder à vos projets et continuer à créer.
+            Sign in to access your projects and keep creating.
           </p>
 
           {(reason === "expired" || verified === "1") && (
@@ -66,7 +65,7 @@ export default function LoginPage() {
                 marginBottom: 18,
               }}
             >
-              {reason === "expired" ? SESSION_EXPIRED_MESSAGE : "Adresse e-mail confirmée. Vous pouvez vous connecter."}
+              {reason === "expired" ? "Your session has expired. Please sign in again." : "Email address confirmed. You can now sign in."}
             </div>
           )}
 
@@ -76,18 +75,18 @@ export default function LoginPage() {
           {/* ── Divider ── */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
             <div style={{ flex: 1, height: 1, background: "var(--line-1)" }} />
-            <span style={{ fontSize: 12, color: "var(--ink-3)", whiteSpace: "nowrap" }}>ou par e-mail</span>
+            <span style={{ fontSize: 12, color: "var(--ink-3)", whiteSpace: "nowrap" }}>or with email</span>
             <div style={{ flex: 1, height: 1, background: "var(--line-1)" }} />
           </div>
 
           <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Input
-              label="Adresse e-mail"
+              label="Email address"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               icon="user"
-              placeholder="Saisissez votre adresse e-mail"
+              placeholder="Enter your email address"
               required
               autoFocus
               autoComplete="email"
@@ -95,12 +94,12 @@ export default function LoginPage() {
 
             <div style={{ position: "relative" }}>
               <Input
-                label="Mot de passe"
+                label="Password"
                 type={showPw ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 icon="lock"
-                placeholder="Saisissez votre mot de passe"
+                placeholder="Enter your password"
                 required
                 minLength={8}
                 autoComplete="current-password"
@@ -108,7 +107,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPw((v) => !v)}
-                aria-label={showPw ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                aria-label={showPw ? "Hide password" : "Show password"}
                 style={{
                   position: "absolute",
                   right: 10,
@@ -145,7 +144,7 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" size="lg" full disabled={loading || !signInReady}>
-              {!signInReady ? "Préparation de la connexion…" : loading ? "Connexion en cours…" : "Se connecter"}
+              {!signInReady ? "Preparing sign in…" : loading ? "Signing in…" : "Sign in"}
             </Button>
 
             <Link
@@ -157,7 +156,7 @@ export default function LoginPage() {
                 marginTop: 4,
               }}
             >
-              Mot de passe oublié ?
+              Forgot password?
             </Link>
           </form>
 
@@ -171,9 +170,9 @@ export default function LoginPage() {
               color: "var(--ink-2)",
             }}
           >
-            Pas encore de compte ?{" "}
+            New here?{" "}
             <Link href="/register" style={{ color: "var(--acc)", fontWeight: 500 }}>
-              Créer un compte
+              Create an account
             </Link>
           </div>
         </div>

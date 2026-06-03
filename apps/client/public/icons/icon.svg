@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="prism" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="50%" stop-color="#EC4899"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <polygon points="256,80 432,400 80,400" stroke="url(#prism)" stroke-width="32" fill="none" stroke-linejoin="round"/>
+  <circle cx="256" cy="270" r="52" fill="#EC4899"/>
+</svg>

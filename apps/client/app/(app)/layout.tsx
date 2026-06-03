@@ -10,9 +10,8 @@ import { useAuth } from "@/hooks/useAuth"
 import { useUiStore } from "@/store/ui-store"
 import { loadingScreen } from "@/context/AuthProvider"
 
-// Doit couvrir le pire cas réaliste : activation Clerk côté navigateur,
-// cold-start Render/API, création ou liaison du profil local, puis retry
-// transitoire de getCurrentUser.
+// Covers realistic slow paths: Clerk activation, Render/API cold start,
+// local profile creation/linking, and transient getCurrentUser retry.
 const DASHBOARD_SESSION_TIMEOUT_MS = 60_000
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -53,25 +52,25 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const sessionUnavailable = (message: string) => (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg-0)", color: "var(--ink-0)", padding: 24 }}>
       <div style={{ maxWidth: 420, display: "grid", gap: 16, textAlign: "center" }}>
-        <h1 className="display" style={{ margin: 0, fontSize: 28 }}>Session indisponible</h1>
+        <h1 className="display" style={{ margin: 0, fontSize: 28 }}>Session unavailable</h1>
         <p style={{ margin: 0, color: "var(--ink-2)", lineHeight: 1.6 }}>{message}</p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-          <Button onClick={retrySession} icon="refresh">Réessayer</Button>
-          <Button variant="outline" onClick={() => void logout()} icon="logout">Se reconnecter</Button>
+          <Button onClick={retrySession} icon="refresh">Try again</Button>
+          <Button variant="outline" onClick={() => void logout()} icon="logout">Sign in again</Button>
         </div>
       </div>
     </div>
   )
 
   if (status === "error") {
-    return sessionUnavailable(error || "Impossible de vérifier votre session. Vérifiez votre connexion puis réessayez.")
+    return sessionUnavailable(error || "Unable to verify your session. Check your connection and try again.")
   }
 
   if (loadingTimedOut) {
-    return sessionUnavailable("La vérification de votre session prend trop de temps. Réessayez ou reconnectez-vous.")
+    return sessionUnavailable("Session setup is taking too long. Try again or sign in again.")
   }
 
-  if (isCheckingSession) return loadingScreen("Vérification de votre session...")
+  if (isCheckingSession) return loadingScreen("Setting up your Consilium workspace...")
   if (!isAuthenticated) return null
 
   return (

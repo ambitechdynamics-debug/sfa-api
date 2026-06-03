@@ -15,10 +15,10 @@ import type { Project } from "@/types/project"
 import type { UxMetricSummary } from "@/types/ux-metrics"
 
 const SCORE_LABELS: Record<number, string> = {
-  1: "Bloquant",
-  2: "Difficile",
-  3: "Correct",
-  4: "Fluide",
+  1: "Blocked",
+  2: "Difficult",
+  3: "Okay",
+  4: "Smooth",
   5: "Excellent",
 }
 
@@ -40,7 +40,7 @@ export default function MetricsPage() {
       setSummary(data)
       setProjects(projectData)
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : "Métriques indisponibles"
+      const msg = e instanceof ApiError ? e.message : "Metrics unavailable"
       toast.error(msg)
     } finally {
       setLoading(false)
@@ -56,11 +56,11 @@ export default function MetricsPage() {
     setSubmitting(true)
     try {
       await submitSatisfaction(score, { surface: "metrics-page" })
-      toast.success("Score enregistré")
+      toast.success("Score saved")
       setScore(null)
       await loadSummary()
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : "Enregistrement impossible"
+      const msg = e instanceof ApiError ? e.message : "Unable to save"
       toast.error(msg)
     } finally {
       setSubmitting(false)
@@ -68,8 +68,8 @@ export default function MetricsPage() {
   }
 
   const topRoute = useMemo(() => summary?.routeBreakdown[0], [summary])
-  // Travail status est désormais l'unité de mesure (Project = container marque, sans statut).
-  // On agrège les statuts à travers tous les travaux de tous les projets.
+  // Travail status is the metric unit (Project is a brand container without status).
+  // Aggregate statuses across all travaux in all projects.
   const allTravaux = projects.flatMap((project) => project.travaux ?? [])
   const activeProjects = allTravaux.filter((t) => t.status !== "GENERATED" && t.status !== "FAILED").length
   const generatedProjects = allTravaux.filter((t) => t.status === "GENERATED").length
@@ -82,31 +82,31 @@ export default function MetricsPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 1120, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <Badge tone="acc" icon="trend" style={{ marginBottom: 10 }}>Fenêtre {summary?.windowDays ?? 30} jours</Badge>
-          <h2 className="display" style={{ fontSize: 30, margin: 0, letterSpacing: 0 }}>Vos métriques</h2>
+          <Badge tone="acc" icon="trend" style={{ marginBottom: 10 }}>{summary?.windowDays ?? 30}-day window</Badge>
+          <h2 className="display" style={{ fontSize: 30, margin: 0, letterSpacing: 0 }}>Your metrics</h2>
           <p style={{ fontSize: 14, color: "var(--ink-2)", margin: "8px 0 0", maxWidth: 620, lineHeight: 1.55 }}>
-            Activité personnelle, crédits, créations et satisfaction. Les métriques globales restent dans l&apos;admin.
+            Personal activity, credits, creations, and satisfaction. Global metrics stay in admin.
           </p>
         </div>
         <Button variant="outline" icon="refresh" onClick={loadSummary} disabled={loading}>
-          {loading ? "Actualisation…" : "Actualiser"}
+          {loading ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-        <MetricCard icon="folder" label="Créations" value={projects.length} hint={`${activeProjects} projet(s) actif(s)`} />
-        <MetricCard icon="check" label="Succès génération" value={successRate == null ? "—" : `${successRate}%`} hint={`${generatedProjects} finalisée(s)`} />
-        <MetricCard icon="download" label="Exports réalisés" value={summary?.exportCount ?? 0} hint="Téléchargements suivis" />
-        <MetricCard icon="credit" label="Crédits restants" value={user?.credits ?? "—"} hint="Solde utilisateur" />
-        <MetricCard icon="heart" label="Satisfaction" value={summary?.satisfactionRate == null ? "—" : `${summary.satisfactionRate}%`} hint={summary?.satisfactionAverage == null ? "Aucun score" : `${summary.satisfactionAverage}/5 sur ${summary.satisfactionCount} vote(s)`} />
+        <MetricCard icon="folder" label="Creations" value={projects.length} hint={`${activeProjects} active project(s)`} />
+        <MetricCard icon="check" label="Generation success" value={successRate == null ? "—" : `${successRate}%`} hint={`${generatedProjects} finalized`} />
+        <MetricCard icon="download" label="Exports completed" value={summary?.exportCount ?? 0} hint="Tracked downloads" />
+        <MetricCard icon="credit" label="Remaining credits" value={user?.credits ?? "—"} hint="User balance" />
+        <MetricCard icon="heart" label="Satisfaction" value={summary?.satisfactionRate == null ? "—" : `${summary.satisfactionRate}%`} hint={summary?.satisfactionAverage == null ? "No score" : `${summary.satisfactionAverage}/5 from ${summary.satisfactionCount} vote(s)`} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 360px", gap: 18 }} className="max-md:!grid-cols-1">
         <Card padding={0} style={{ overflow: "hidden" }}>
           <div style={{ padding: 20, borderBottom: "1px solid var(--line-1)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <div>
-              <h3 className="display" style={{ fontSize: 19, margin: 0, letterSpacing: 0 }}>Routes consultées</h3>
-              <p style={{ fontSize: 12, color: "var(--ink-3)", margin: "4px 0 0" }}>{summary?.totalEvents ?? 0} événement(s) enregistrés</p>
+              <h3 className="display" style={{ fontSize: 19, margin: 0, letterSpacing: 0 }}>Visited routes</h3>
+              <p style={{ fontSize: 12, color: "var(--ink-3)", margin: "4px 0 0" }}>{summary?.totalEvents ?? 0} event(s) recorded</p>
             </div>
           </div>
           <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -121,11 +121,11 @@ export default function MetricsPage() {
                       <div style={{ width: `${Math.min(100, (route.count / Math.max(1, summary.routeBreakdown[0].count)) * 100)}%`, height: "100%", background: "linear-gradient(90deg, var(--acc-bright), var(--acc-deep))" }} />
                     </div>
                   </div>
-                  <span style={{ justifySelf: "end", fontSize: 12, color: "var(--ink-2)", fontFamily: "var(--font-mono)" }}>{route.count} vue(s)</span>
+                  <span style={{ justifySelf: "end", fontSize: 12, color: "var(--ink-2)", fontFamily: "var(--font-mono)" }}>{route.count} view(s)</span>
                 </div>
               ))
             ) : (
-              <EmptyState icon="trend" text="Aucune route enregistrée pour le moment." />
+              <EmptyState icon="trend" text="No routes recorded yet." />
             )}
           </div>
         </Card>
@@ -134,7 +134,7 @@ export default function MetricsPage() {
           <Card padding={20}>
             <h3 className="display" style={{ fontSize: 19, margin: 0, letterSpacing: 0 }}>Satisfaction</h3>
             <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5, margin: "8px 0 14px" }}>
-              Évaluez la fluidité de navigation actuelle.
+              Rate the current navigation flow.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
               {[1, 2, 3, 4, 5].map((value) => {
@@ -162,16 +162,16 @@ export default function MetricsPage() {
               })}
             </div>
             <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{score ? SCORE_LABELS[score] : "Choisir un score"}</span>
+              <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{score ? SCORE_LABELS[score] : "Choose a score"}</span>
               <Button size="sm" icon="send" onClick={submitScore} disabled={!score || submitting}>
-                {submitting ? "Envoi…" : "Envoyer"}
+                {submitting ? "Sending..." : "Send"}
               </Button>
             </div>
           </Card>
 
           <Card padding={0} style={{ overflow: "hidden" }}>
             <div style={{ padding: 18, borderBottom: "1px solid var(--line-1)" }}>
-              <h3 className="display" style={{ fontSize: 18, margin: 0, letterSpacing: 0 }}>Événements récents</h3>
+              <h3 className="display" style={{ fontSize: 18, margin: 0, letterSpacing: 0 }}>Recent events</h3>
             </div>
             <div style={{ maxHeight: 360, overflow: "auto" }}>
               {loading ? (
@@ -189,7 +189,7 @@ export default function MetricsPage() {
                   </div>
                 ))
               ) : (
-                <EmptyState icon="history" text="Aucun événement récent." />
+                <EmptyState icon="history" text="No recent events." />
               )}
             </div>
           </Card>

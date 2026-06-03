@@ -13,9 +13,8 @@ import {
 import { ApiError } from "@/lib/api"
 import { fetchChatOpening } from "@/lib/chat"
 import type { GeneratedPoster } from "@/types/project"
+import { ConsiliumPrismLogo } from "@/components/brand/ConsiliumPrismLogo"
 import { WorkspaceAssetPanel } from "./WorkspaceAssetPanel"
-
-const FONT_SERIF = "'Source Serif 4', serif"
 
 /* ── Tiny icons ── */
 const Ico = {
@@ -104,20 +103,20 @@ function parseChoices(content: string): { text: string; choices: string[] } {
 
 const VISUAL_TYPE_LABELS: Record<string, string> = {
   flyer: "Flyer",
-  poster: "Affiche",
-  social_post: "Post réseaux sociaux",
+  poster: "Poster",
+  social_post: "Social post",
   story: "Story Instagram / Reel",
-  business_card: "Carte de visite",
-  banner: "Bannière web",
-  menu: "Menu restaurant",
+  business_card: "Business card",
+  banner: "Web banner",
+  menu: "Restaurant menu",
 }
 
 const FORMAT_SHAPES: Record<string, { name: string; hint: string }> = {
-  "3:4": { name: "Portrait — 3:4", hint: "Flyer · Affiche · A4" },
-  "1:1": { name: "Carré — 1:1", hint: "Instagram · Facebook" },
+  "3:4": { name: "Portrait — 3:4", hint: "Flyer · Poster · A4" },
+  "1:1": { name: "Square — 1:1", hint: "Instagram · Facebook" },
   "9:16": { name: "Story — 9:16", hint: "Story · Reels · TikTok" },
-  "16:9": { name: "Bannière — 16:9", hint: "YouTube · Bannière web" },
-  "4:3": { name: "Paysage — 4:3", hint: "Présentation · Pub" },
+  "16:9": { name: "Banner — 16:9", hint: "YouTube · Web banner" },
+  "4:3": { name: "Landscape — 4:3", hint: "Presentation · Ad" },
 }
 
 type WorkspaceVisualSource = {
@@ -274,17 +273,17 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
 
   const messages = (activeTravail?.messages ?? []).filter((m) => m.role !== "system")
   const projectId = activeTravail?.projectId
-  const title = activeTravail?.title || "Nouveau projet"
+  const title = activeTravail?.title || "New project"
   const sidebarBriefItems = [
     {
-      label: "Type de visuel",
-      value: workspaceVisualConfig.posterTypeLabel || "À définir",
-      detail: workspaceVisualConfig.posterType || "Le provider le demandera si nécessaire",
+      label: "Visual type",
+      value: workspaceVisualConfig.posterTypeLabel || "To define",
+      detail: workspaceVisualConfig.posterType || "The provider will ask if needed",
     },
     {
-      label: "Forme de l’affiche",
-      value: workspaceVisualConfig.formatLabel || "À définir",
-      detail: workspaceVisualConfig.formatHint || workspaceVisualConfig.format || "Format non sélectionné",
+      label: "Poster shape",
+      value: workspaceVisualConfig.formatLabel || "To define",
+      detail: workspaceVisualConfig.formatHint || workspaceVisualConfig.format || "No format selected",
     },
   ]
   const sidebarBriefPanel = (
@@ -293,7 +292,7 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
         <div key={item.label} className="csl-ctx-card" style={{ cursor: "default" }}>
           <span
             className="csl-ctx-icon"
-            style={{ background: "rgba(232,147,118,0.16)", color: "#E89376" }}
+            style={{ background: "rgba(139,92,246,0.16)", color: "#8B5CF6" }}
           >
             <Ico.file />
           </span>
@@ -316,7 +315,7 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
     if (!clean || !user?.id || isSending) return
     setPrompt("")
 
-    const isVisualTrigger = /g[eé]r[eé]r.*visuel|g[eé]n[eé]r[eé]r.*visuel/i.test(clean)
+    const isVisualTrigger = /g[eé]r[eé]r.*visuel|g[eé]n[eé]r[eé]r.*visuel|generate.*visual|create.*visual/i.test(clean)
     await sendMessage(clean, user.id, travailId, workspaceVisualConfig)
 
     if (isVisualTrigger) {
@@ -329,9 +328,8 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
     setIsGenerating(true)
     setGenError(null)
 
-    // Retry transient 503/502/504 (DB cold-pause Neon, Gemini overload) avec
-    // backoff exponentiel. Le pipeline d'orchestration peut prendre plusieurs
-    // minutes, donc on retry plutôt que d'échouer immédiatement.
+    // Retry transient 503/502/504 (DB cold start, provider overload) with
+    // exponential backoff because orchestration can take several minutes.
     const isTransient = (e: unknown) =>
       e instanceof ApiError && (e.status === 503 || e.status === 502 || e.status === 504)
     const retry = async <T,>(fn: () => Promise<T>, label: string): Promise<T> => {
@@ -353,7 +351,7 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
     try {
       const result = await retry(() => generateFinalPrompt(travailId, { force: true }), 'generateFinalPrompt')
       if (!result?.data?.ready_for_generation) {
-        setGenError("Le prompt n'est pas encore prêt. Continuez le chat pour préciser le brief.")
+        setGenError("The prompt is not ready yet. Continue the chat to clarify the brief.")
         return
       }
       await retry(() => generateImages(travailId, { variations: 3 }), 'generateImages')
@@ -363,8 +361,8 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
       console.error("[user-new workspace] generation failed", err)
       const msg =
         isTransient(err)
-          ? "Service temporairement indisponible (base de données ou provider d'image). Veuillez réessayer dans un instant."
-          : err instanceof Error ? err.message : "Génération impossible."
+          ? "Service temporarily unavailable (database or image provider). Try again in a moment."
+          : err instanceof Error ? err.message : "Generation unavailable."
       setGenError(msg)
     } finally {
       setIsGenerating(false)
@@ -405,8 +403,7 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
       {/* TOP BAR */}
       <header className="csl-ws-top">
         <div className="csl-ws-brand">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="csl-ws-brand-logo" src="/logo.png" alt="Studio Flyer AI" />
+          <ConsiliumPrismLogo size={26} className="csl-ws-brand-logo" />
           <span className="csl-ws-title">{title}</span>
           <button
             type="button"
@@ -420,12 +417,12 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
         <div className="csl-ws-tabbar">
           <div className="csl-ws-tab">
             <Ico.file />
-            Fichiers de conception
+            Design files
           </div>
         </div>
 
         <div className="csl-ws-actions">
-          <button className="csl-ws-share">Partager</button>
+          <button className="csl-ws-share">Share</button>
           <div className="csl-ws-avatar">{userInitials}</div>
         </div>
       </header>
@@ -437,9 +434,9 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
           <div className="csl-ws-left-top">
             {messages.length === 0 ? (
               <>
-                <h1 className="csl-ws-h1">Commencez par le contexte</h1>
+                <h1 className="csl-ws-h1">Start with context</h1>
                 <p className="csl-ws-h1-sub">
-                  Décrivez votre projet ci-dessous et importez vos éléments dans le panneau du canvas.
+                  Describe your project below and upload key assets in the canvas panel.
                 </p>
                 {sidebarBriefPanel}
               </>
@@ -507,7 +504,7 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
                   void handleSend()
                 }
               }}
-              placeholder="Décrivez ce que vous voulez créer…"
+              placeholder="Describe what you want to create..."
               className="csl-ws-chat-textarea"
               disabled={loadingConv || isSending}
             />
@@ -517,7 +514,7 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
                   type="button"
                   className="csl-icon-btn"
                   onClick={() => openFilePicker("REFERENCE_IMAGE")}
-                  aria-label="Joindre un fichier"
+                  aria-label="Attach a file"
                 >
                   <Ico.paperclip />
                 </button>
@@ -529,7 +526,7 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
                 disabled={!prompt.trim() || isSending || loadingConv}
               >
                 <Ico.send />
-                Envoyer
+                Send
               </button>
             </div>
           </div>
@@ -539,10 +536,10 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
         <section className="csl-canvas">
           <div className="csl-canvas-tools">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button type="button" className="csl-icon-btn" aria-label="Précédent">
+              <button type="button" className="csl-icon-btn" aria-label="Previous">
                 <Ico.arrowUp />
               </button>
-              <button type="button" className="csl-icon-btn" aria-label="Recharger">
+              <button type="button" className="csl-icon-btn" aria-label="Reload">
                 <Ico.refresh />
               </button>
               <span style={{ color: "var(--csl-ink-0)", marginLeft: 4 }}>{title}</span>
@@ -561,7 +558,7 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
                 }}
               >
                 <Ico.paperclip />
-                {isGenerating ? "Génération…" : "Générer le visuel"}
+                {isGenerating ? "Generating..." : "Generate visual"}
               </button>
             </div>
           </div>
@@ -569,8 +566,11 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
           <div className="csl-canvas-area">
             {posters.length === 0 ? (
               <div className="csl-canvas-empty">
+                {isGenerating && (
+                  <ConsiliumPrismLogo size={58} className="csl-generation-logo" />
+                )}
                 <div className="csl-canvas-empty-title">
-                  {isGenerating ? "Génération en cours…" : "Les créations apparaîtront ici"}
+                  {isGenerating ? "Generating..." : "Your creations will appear here"}
                 </div>
               </div>
             ) : (
@@ -583,7 +583,8 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
                 ))}
                 {isGenerating && Array.from({ length: 3 }).map((_, i) => (
                   <div key={`loading-${i}`} className="csl-poster csl-poster-loading">
-                    Génération…
+                    <ConsiliumPrismLogo size={34} className="csl-poster-loading-logo" />
+                    <span>Generating...</span>
                   </div>
                 ))}
               </div>

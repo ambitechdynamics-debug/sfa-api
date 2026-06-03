@@ -187,8 +187,8 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      aria-label={theme === "dark" ? "Activer le mode clair" : "Activer le mode sombre"}
-      title={theme === "dark" ? "Mode clair" : "Mode sombre"}
+      aria-label={theme === "dark" ? "Enable light mode" : "Enable dark mode"}
+      title={theme === "dark" ? "Light mode" : "Dark mode"}
       style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--line-2)", background: "var(--bg-2)", color: "var(--ink-1)", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
     >
       <Icon name={theme === "dark" ? "eye" : "eyeOff"} size={15} />

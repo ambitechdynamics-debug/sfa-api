@@ -6,10 +6,10 @@ import { Badge, type BadgeTone } from "@/components/ui/Badge"
 import { Icon, type IconName } from "@/components/ui/Icon"
 
 const NOTIFS: Array<{ id: string; title: string; body: string; time: string; unread: boolean; icon: IconName | string; tone: BadgeTone }> = [
-  { id: "n1", title: "Génération terminée", body: "Votre visuel « Drop Été '25 » est prêt.", time: "il y a 8 min", unread: true,  icon: "sparkles", tone: "acc" },
-  { id: "n2", title: "Retouche envoyée",    body: "L'IA a appliqué vos remarques sur Soldes -40%.", time: "il y a 1 h", unread: true,  icon: "wand", tone: "plum" },
-  { id: "n3", title: "Crédits ajoutés",     body: "+50 crédits IA ont été ajoutés à votre compte.", time: "hier", unread: false, icon: "credit", tone: "sage" },
-  { id: "n4", title: "Nouvelle fonctionnalité", body: "Les mémoires de marque sont disponibles.", time: "il y a 3 j", unread: false, icon: "rocket", tone: "gold" },
+  { id: "n1", title: "Generation complete", body: "Your \"Summer Drop '25\" visual is ready.", time: "8 min ago", unread: true,  icon: "sparkles", tone: "acc" },
+  { id: "n2", title: "Edit sent", body: "AI applied your feedback on Sale -40%.", time: "1 h ago", unread: true,  icon: "wand", tone: "plum" },
+  { id: "n3", title: "Credits added", body: "+50 AI credits were added to your account.", time: "Yesterday", unread: false, icon: "credit", tone: "sage" },
+  { id: "n4", title: "New feature", body: "Brand memories are now available.", time: "3 d ago", unread: false, icon: "rocket", tone: "gold" },
 ]
 
 export default function NotificationsPage() {
@@ -21,8 +21,8 @@ export default function NotificationsPage() {
       <Card padding={0} style={{ overflow: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottom: "1px solid var(--line-1)" }}>
           <div>
-            <h2 className="display" style={{ fontSize: 20, margin: 0 }}>Activité récente</h2>
-            <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 4 }}>{unreadCount} non lue(s)</p>
+            <h2 className="display" style={{ fontSize: 20, margin: 0 }}>Recent activity</h2>
+            <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 4 }}>{unreadCount} unread</p>
           </div>
           <button
             type="button"
@@ -30,7 +30,7 @@ export default function NotificationsPage() {
             disabled={unreadCount === 0}
             style={{ background: "transparent", border: 0, color: unreadCount === 0 ? "var(--ink-3)" : "var(--acc)", fontSize: 13, fontWeight: 500, cursor: unreadCount === 0 ? "default" : "pointer" }}
           >
-            Tout marquer comme lu
+            Mark all as read
           </button>
         </div>
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -57,7 +57,7 @@ export default function NotificationsPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                   <span style={{ fontSize: 14, fontWeight: 600 }}>{n.title}</span>
-                  {n.unread && <Badge size="sm" tone="acc" dot>Nouveau</Badge>}
+                  {n.unread && <Badge size="sm" tone="acc" dot>New</Badge>}
                 </div>
                 <p style={{ fontSize: 13, color: "var(--ink-2)", margin: 0 }}>{n.body}</p>
                 <span style={{ fontSize: 11, color: "var(--ink-3)", fontFamily: "var(--font-mono)", display: "block", marginTop: 6 }}>{n.time}</span>

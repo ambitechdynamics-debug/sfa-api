@@ -61,18 +61,18 @@ export default function DashboardProjectsPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <div>
             <h1 style={{ margin: 0, fontSize: "clamp(24px, 3vw, 32px)", letterSpacing: "-0.02em", fontWeight: 600, color: "var(--ink-0)" }}>
-              Vos Marques
+              Your Brands
             </h1>
             <p style={{ margin: "6px 0 0", color: "rgba(255,255,255,0.4)", fontSize: 14, maxWidth: 540 }}>
-              Chaque marque regroupe ses livrables (travaux) — flyers, stories, menus… Ouvrez une marque pour voir et créer ses travaux.
+              Each brand groups its deliverables: flyers, stories, menus, and more. Open a brand to view and create its work.
             </p>
           </div>
           <Button icon="plus" onClick={() => setCreateOpen(true)} style={{ borderRadius: 999, padding: "0 20px" }}>
-            Nouvelle marque
+            New brand
           </Button>
         </div>
 
-        {/* Barre de filtres et recherche */}
+        {/* Filters and search */}
         <div
           style={{
             display: "flex",
@@ -88,13 +88,13 @@ export default function DashboardProjectsPage() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <FilterChip active={countFilter === "all"} onClick={() => setCountFilter("all")}>
-              Toutes
+              All
             </FilterChip>
             <FilterChip active={countFilter === "with_travaux"} onClick={() => setCountFilter("with_travaux")}>
-              Avec travaux
+              With work
             </FilterChip>
             <FilterChip active={countFilter === "empty"} onClick={() => setCountFilter("empty")}>
-              Vides
+              Empty
             </FilterChip>
           </div>
 
@@ -112,7 +112,7 @@ export default function DashboardProjectsPage() {
             <Icon name="search" size={16} style={{ color: "rgba(255,255,255,0.3)" }} />
             <input
               type="text"
-              placeholder="Rechercher une marque..."
+              placeholder="Search a brand..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
@@ -132,11 +132,11 @@ export default function DashboardProjectsPage() {
       {error ? (
         <PremiumEmptyState
           icon="warn"
-          title="Erreur de chargement"
+          title="Loading error"
           body={error}
           action={
             <Button variant="outline" icon="refresh" onClick={() => void loadProjects()}>
-              Réessayer
+              Try again
             </Button>
           }
         />
@@ -149,16 +149,16 @@ export default function DashboardProjectsPage() {
       ) : filteredProjects.length === 0 ? (
         <PremiumEmptyState
           icon="folder"
-          title={searchQuery ? "Aucune marque trouvée" : "Vous n'avez aucune marque"}
+          title={searchQuery ? "No brand found" : "You do not have any brands"}
           body={
             searchQuery
-              ? `Aucun résultat pour "${searchQuery}" avec ces filtres.`
-              : "Commencez par créer votre première marque — vous y rattacherez ensuite vos livrables (flyers, stories, menus…)."
+              ? `No results for "${searchQuery}" with these filters.`
+              : "Start by creating your first brand. You will attach deliverables such as flyers, stories, and menus to it."
           }
           action={
             !searchQuery && countFilter === "all" ? (
               <Button icon="plus" onClick={() => setCreateOpen(true)} style={{ borderRadius: 999 }}>
-                Créer une marque
+                Create a brand
               </Button>
             ) : (
               <Button
@@ -169,7 +169,7 @@ export default function DashboardProjectsPage() {
                 }}
                 style={{ borderRadius: 999 }}
               >
-                Réinitialiser les filtres
+                Reset filters
               </Button>
             )
           }

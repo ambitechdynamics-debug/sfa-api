@@ -1,5 +1,5 @@
-import { CslLanding } from "@/components/marketing/csl/Landing"
+import { ConsiliumHome } from "@/components/marketing/consilium-home/ConsiliumHome"
 
 export default function HomePage() {
-  return <CslLanding />
+  return <ConsiliumHome />
 }

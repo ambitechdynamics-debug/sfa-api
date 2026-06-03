@@ -11,7 +11,7 @@ export default function ProjectOverviewPage({ params }: { params: Promise<{ id: 
 
   useEffect(() => {
     let cancelled = false
-    void getProjectWorkspacePath({ id, title: "Nouveau livrable" })
+    void getProjectWorkspacePath({ id, title: "New deliverable" })
       .then((path) => {
         if (!cancelled) router.replace(path)
       })

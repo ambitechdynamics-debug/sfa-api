@@ -1,7 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { AuthProvider } from "@/context/AuthProvider";
+import { ChunkReloadGuard } from "@/components/app/ChunkReloadGuard";
+import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import "./globals.css";
 import "./landing.css";
 import "./auth.css";
@@ -21,20 +24,49 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Studio Flyer AI — Créez des affiches professionnelles avec l'IA",
-  description: "Générez des visuels publicitaires sur-mesure en quelques minutes grâce à l'IA. Affiches, flyers, stories, bannières — tous formats, tous styles.",
-  icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+  title: "Studio Flyer AI — Create professional visuals with AI",
+  description: "Generate custom advertising visuals in minutes with AI. Posters, flyers, stories, banners, every format and every style.",
+  applicationName: "Studio Flyer AI",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "StudioFlyer",
   },
+  icons: {
+    icon: [
+      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <html lang="fr" data-theme="dark" data-density="regular">
+      <html lang="en" data-theme="dark" data-density="regular">
         <body className={`${inter.variable} ${playfair.variable}`}>
+          <ChunkReloadGuard />
+          <ServiceWorkerRegister />
           <AuthProvider>{children}</AuthProvider>
+          <InstallPrompt />
         </body>
       </html>
     </ClerkProvider>

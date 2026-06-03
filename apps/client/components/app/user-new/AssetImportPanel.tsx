@@ -15,11 +15,11 @@ export interface PendingAsset {
 
 const ASSET_LABELS: Record<AssetType, string> = {
   logo: "Logo",
-  product: "Produit",
+  product: "Product",
   reference: "Inspiration",
-  poster: "Affiche",
-  character: "Personnage",
-  other: "Autre",
+  poster: "Poster",
+  character: "Character",
+  other: "Other",
 }
 
 const ASSET_TYPES: AssetType[] = ["logo", "product", "reference", "poster", "character", "other"]
@@ -34,10 +34,8 @@ interface Props {
 }
 
 /**
- * AssetImportPanel — petite zone d'import d'éléments importants (logo, produit,
- * inspiration, etc.) à intégrer dans la sidebar du Dashboard. Les fichiers
- * sont conservés en mémoire (objets File + objectURL pour les thumbnails) ;
- * le parent les uploade sur le serveur au moment de la création du projet.
+ * AssetImportPanel keeps pending important files in memory until the parent
+ * uploads them while creating the project.
  */
 export function AssetImportPanel({ assets, onChange, disabled = false }: Props) {
   const [dragOver, setDragOver] = useState(false)
@@ -107,7 +105,7 @@ export function AssetImportPanel({ assets, onChange, disabled = false }: Props) 
   return (
     <div>
       <div style={{ fontSize: 12.5, color: "var(--sb-ink-1, var(--csl-ink-1))", marginBottom: 8 }}>
-        Éléments importants
+        Important assets
       </div>
 
       <div
@@ -128,10 +126,10 @@ export function AssetImportPanel({ assets, onChange, disabled = false }: Props) 
           padding: 8,
           border: `1.5px dashed ${dragOver ? "var(--csl-accent)" : "var(--sb-border-2, var(--csl-border-2))"}`,
           borderRadius: 12,
-          background: dragOver ? "rgba(232,147,118,0.08)" : "transparent",
+          background: dragOver ? "rgba(139,92,246,0.10)" : "transparent",
           transition: "background .15s, border-color .15s",
           /* Cap the frame so many uploads scroll INSIDE instead of pushing
-             the rest of the sidebar (form, créer button, user menu). */
+             the rest of the sidebar (form, create button, user menu). */
           maxHeight: 280,
           overflowY: "auto",
         }}
@@ -160,18 +158,18 @@ export function AssetImportPanel({ assets, onChange, disabled = false }: Props) 
               style={{
                 display: "flex",
                 alignItems: "center",
-                borderTop: `1px solid ${a.isPrimary ? "rgba(232,147,118,0.30)" : "var(--sb-border-2, var(--csl-border-2))"}`,
-                background: a.isPrimary ? "rgba(232,147,118,0.10)" : "var(--sb-bg-elev, var(--csl-bg))",
+                borderTop: `1px solid ${a.isPrimary ? "rgba(139,92,246,0.34)" : "var(--sb-border-2, var(--csl-border-2))"}`,
+                background: a.isPrimary ? "rgba(139,92,246,0.12)" : "var(--sb-bg-elev, var(--csl-bg))",
                 height: 30,
               }}
             >
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setPrimary(a.id) }}
-                title={a.isPrimary ? "Élément principal" : "Définir comme principal"}
+                title={a.isPrimary ? "Primary asset" : "Set as primary"}
                 style={{
                   border: 0,
-                  borderRight: `1px solid ${a.isPrimary ? "rgba(232,147,118,0.30)" : "var(--sb-border-2, var(--csl-border-2))"}`,
+                  borderRight: `1px solid ${a.isPrimary ? "rgba(139,92,246,0.34)" : "var(--sb-border-2, var(--csl-border-2))"}`,
                   background: "transparent",
                   color: a.isPrimary ? "var(--csl-accent)" : "var(--sb-ink-3, var(--csl-ink-3))",
                   width: 30,
@@ -187,7 +185,7 @@ export function AssetImportPanel({ assets, onChange, disabled = false }: Props) 
               <button
                 type="button"
                 onClick={() => cycleType(a.id)}
-                title="Changer le type"
+                title="Change type"
                 style={{
                   border: 0,
                   background: "transparent",
@@ -211,7 +209,7 @@ export function AssetImportPanel({ assets, onChange, disabled = false }: Props) 
               <button
                 type="button"
                 onClick={() => remove(a.id)}
-                aria-label="Supprimer"
+                aria-label="Delete"
                 style={{
                   border: 0,
                   borderLeft: "1px solid var(--sb-border-2, var(--csl-border-2))",
@@ -265,7 +263,7 @@ export function AssetImportPanel({ assets, onChange, disabled = false }: Props) 
             <path d="M12 3v12" />
           </svg>
           <span style={{ fontSize: 9, marginTop: 4, lineHeight: 1.2, textAlign: "center", padding: "0 4px" }}>
-            Importer
+            Upload
           </span>
         </button>
       </div>
@@ -281,7 +279,7 @@ export function AssetImportPanel({ assets, onChange, disabled = false }: Props) 
 
       {assets.length > 0 && (
         <div style={{ fontSize: 11, color: "var(--sb-ink-2, var(--csl-ink-2))", marginTop: 6 }}>
-          {assets.length} fichier{assets.length > 1 ? "s" : ""} prêt{assets.length > 1 ? "s" : ""} à attacher
+          {assets.length} file{assets.length > 1 ? "s" : ""} ready to attach
         </div>
       )}
     </div>

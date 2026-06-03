@@ -30,6 +30,10 @@
   --acc-soft:   rgba(76,194,255,.14);
   --acc-line:   rgba(76,194,255,.32);
   --acc-ink:    #000000;
+  --r-1: 0px;
+  --r-2: 0px;
+  --r-3: 0px;
+  --r-4: 0px;
 
   position: relative;
   min-height: 100vh;
@@ -53,6 +57,25 @@
   z-index: 0;
   mask-image: radial-gradient(ellipse at center, #000 0%, transparent 80%);
   -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, transparent 80%);
+}
+
+.auth-bg-prism {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: .34;
+}
+
+.auth-bg-prism .consilium-prism-logo {
+  width: clamp(360px, 56vw, 760px) !important;
+  height: clamp(360px, 56vw, 760px) !important;
+  border: 0;
+  background: transparent;
+  padding: 18px;
+  filter: drop-shadow(0 0 90px rgba(139,92,246,.62));
 }
 
 /* ─── Top bar ────────────────────────────────────────────────────── */
@@ -99,13 +122,14 @@
   backdrop-filter: blur(40px) saturate(160%);
   -webkit-backdrop-filter: blur(40px) saturate(160%);
   border: 1px solid rgba(255,255,255,.09);
-  border-radius: 14px;
+  border-radius: 0;
   box-shadow:
     0 1px 0 rgba(255,255,255,.06) inset,
     0 40px 100px rgba(0,0,0,.55),
     0 0 0 1px rgba(0,0,0,.4);
   padding: 36px 36px 28px;
   position: relative;
+  z-index: 2;
   overflow: hidden;
   animation: csl-auth-rise .5s cubic-bezier(.16,1,.3,1) both;
 }
@@ -141,7 +165,7 @@
 .auth-legal-links a:hover { color: #ffffff; }
 
 @media (max-width: 520px) {
-  .auth-page .auth-card { padding: 28px 22px 22px; border-radius: 12px; }
+  .auth-page .auth-card { padding: 28px 22px 22px; border-radius: 0; }
   .auth-top { padding: 16px 18px; }
   .auth-legal { padding: 14px 18px 20px; }
 }

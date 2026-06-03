@@ -30,6 +30,7 @@ import {
 import { signOutSession } from "@/services/auth.service"
 import { getCurrentUser } from "@/services/user.service"
 import { ApiError } from "@/lib/api"
+import { ConsiliumPrismLogo } from "@/components/brand/ConsiliumPrismLogo"
 import { useAuthStore } from "@/store/auth-store"
 import { useChatStore } from "@/store/chat-store"
 import { useProjectStore } from "@/store/project-store"
@@ -143,12 +144,25 @@ function mapClerkSignUpError(err: unknown): string {
   }
 }
 
-function loadingScreen(message = "Chargement de la session...") {
+function loadingScreen(message = "Setting up your Consilium workspace...") {
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg-0)", color: "var(--ink-2)" }}>
-      <div style={{ display: "grid", gap: 12, justifyItems: "center", fontSize: 14 }}>
-        <span className="anim-spin" style={{ width: 28, height: 28, borderRadius: 999, border: "2px solid var(--line-3)", borderTopColor: "var(--acc)" }} />
-        {message}
+    <div className="csl-session-setup" role="status" aria-live="polite">
+      <ConsiliumPrismLogo size={280} className="csl-session-setup-bg" animated={false} label="" />
+      <div className="csl-session-setup-panel">
+        <ConsiliumPrismLogo size={62} className="csl-session-setup-logo" />
+        <div className="csl-session-setup-copy">
+          <p className="csl-session-setup-kicker">CONSILIUM</p>
+          <h1>{message}</h1>
+          <p>Preparing your secure session and creative tools. This may take a moment.</p>
+        </div>
+        <div className="csl-session-setup-steps" aria-hidden="true">
+          <span className="is-active">Verifying identity</span>
+          <span>Syncing workspace</span>
+          <span>Opening dashboard</span>
+        </div>
+        <div className="csl-session-setup-progress" aria-hidden="true">
+          <span />
+        </div>
       </div>
     </div>
   )

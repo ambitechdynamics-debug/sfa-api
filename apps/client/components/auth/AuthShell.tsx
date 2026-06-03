@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import type { ReactNode } from "react"
-import { BrandMark } from "@/components/marketing/csl/icons"
+import { ConsiliumPrismLogo } from "@/components/brand/ConsiliumPrismLogo"
 
 interface AuthShellProps {
   /** Legacy split-pane prop — kept for compatibility, ignored in the new design. */
@@ -23,31 +23,32 @@ interface AuthShellProps {
 export function AuthShell({ right }: AuthShellProps) {
   return (
     <div className="auth-page">
+      <div className="auth-bg-prism" aria-hidden="true">
+        <ConsiliumPrismLogo size={360} label="" />
+      </div>
+
       <div className="auth-top">
         <Link href="/" className="brand">
-          <BrandMark size={28} />
-          <span>Studio Flyer AI</span>
+          <ConsiliumPrismLogo size={28} />
+          <span>CONSILIUM</span>
         </Link>
         <div className="top-right">
-          <Link href="/">← Retour à l&apos;accueil</Link>
+          <Link href="/">Back home</Link>
         </div>
       </div>
 
       <div className="auth-body">
         <div className="auth-card">
-          <div className="auth-card-brand">
-            <BrandMark size={44} />
-          </div>
           {right}
         </div>
       </div>
 
       <div className="auth-legal">
-        <span>© 2026 Studio Flyer AI · Ambitech Dynamics</span>
+        <span>© 2026 Consilium · Ambitech Dynamics</span>
         <div className="auth-legal-links">
-          <a href="#">Mentions</a>
-          <a href="#">Confidentialité</a>
-          <a href="#">Aide</a>
+          <a href="#">Legal</a>
+          <a href="#">Privacy</a>
+          <a href="#">Help</a>
         </div>
       </div>
     </div>

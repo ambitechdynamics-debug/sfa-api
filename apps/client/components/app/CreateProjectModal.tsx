@@ -31,7 +31,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
       onClose()
       router.push(await getProjectWorkspacePath(project))
     } catch {
-      setError("Impossible de créer le projet. Vérifiez votre connexion.")
+      setError("Unable to create the project. Check your connection.")
     } finally {
       setIsSubmitting(false)
     }
@@ -71,13 +71,13 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "var(--ink-0)", margin: 0 }}>
-            Créer un projet
+            Create project
           </h2>
           <div style={{ display: "flex", gap: 12 }}>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Fermer"
+              aria-label="Close"
               style={{ background: "transparent", border: 0, color: "var(--ink-3)", cursor: "pointer" }}
               className="hover:text-[var(--ink-1)]"
             >
@@ -90,7 +90,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <label htmlFor="project-name" style={{ fontSize: 14, fontWeight: 500, color: "var(--ink-0)" }}>
-              Nom du projet
+              Project name
             </label>
             <div
               style={{
@@ -109,7 +109,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
               <input
                 id="project-name"
                 type="text"
-                placeholder="Nom du projet..."
+                placeholder="Project name..."
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
                 autoFocus
@@ -143,9 +143,8 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
           >
             <Icon name="info" size={20} color="var(--ink-2)" style={{ flexShrink: 0, marginTop: 2 }} />
             <p style={{ margin: 0, fontSize: 13, color: "var(--ink-1)", lineHeight: 1.5 }}>
-              Les projets permettent de regrouper les chats, les fichiers et les instructions
-              personnalisées en un seul endroit. Utilisez-les pour accéder facilement aux travaux en
-              cours ou pour organiser vos tâches.
+              Projects group chats, files, and custom instructions in one place. Use them to
+              access work in progress quickly or organize your tasks.
             </p>
           </div>
 
@@ -170,7 +169,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
               }}
             >
               {isSubmitting && <Icon name="spinner" size={14} className="animate-spin" />}
-              {isSubmitting ? "Création..." : "Créer un projet"}
+              {isSubmitting ? "Creating..." : "Create project"}
             </button>
           </div>
         </form>

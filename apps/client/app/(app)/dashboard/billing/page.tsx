@@ -15,63 +15,63 @@ import { toast } from "sonner"
 const PLANS = [
   {
     key: "free",
-    name: "Découverte",
-    desc: "Pour tester l'outil",
+    name: "Discovery",
+    desc: "For testing the tool",
     monthlyPrice: 0,
     yearlyPrice: 0,
-    credits: "5 générations / mois",
+    credits: "5 generations / month",
     features: [
-      "Format unique 1080×1080",
-      "Filigrane Studio Flyer",
+      "Single 1080x1080 format",
+      "Studio Flyer watermark",
       "Export PNG standard",
-      "Assistance par e-mail"
+      "Email support"
     ]
   },
   {
     key: "starter",
     name: "Starter",
-    desc: "Pour les indépendants",
+    desc: "For independents",
     monthlyPrice: 9,
     yearlyPrice: 90,
-    credits: "20 générations / mois",
+    credits: "20 generations / month",
     features: [
-      "Tous les formats de visuels",
-      "Sans filigrane",
+      "All visual formats",
+      "No watermark",
       "Export HD (PNG, JPG, PDF)",
-      "Mémoires de marque (1)",
-      "Historique 30 jours"
+      "Brand memories (1)",
+      "30-day history"
     ]
   },
   {
     key: "pro",
     name: "Pro",
-    desc: "Pour les pros & créateurs",
+    desc: "For pros and creators",
     monthlyPrice: 19,
     yearlyPrice: 190,
-    credits: "100 générations / mois",
+    credits: "100 generations / month",
     features: [
-      "Retouches IA illimitées",
-      "Sans filigrane",
-      "Export HD + vectoriel SVG",
-      "Mémoires de marque (5)",
-      "Historique illimité",
-      "Support prioritaire"
+      "Unlimited AI edits",
+      "No watermark",
+      "HD export + SVG vector",
+      "Brand memories (5)",
+      "Unlimited history",
+      "Priority support"
     ],
     featured: true
   },
   {
     key: "business",
     name: "Business",
-    desc: "Pour les agences",
+    desc: "For agencies",
     monthlyPrice: 49,
     yearlyPrice: 490,
-    credits: "400 générations / mois",
+    credits: "400 generations / month",
     features: [
-      "Générations IA avancées",
-      "Export tous formats",
-      "Marques illimitées",
-      "Support dédié 24/7",
-      "Account Manager personnel"
+      "Advanced AI generations",
+      "All-format export",
+      "Unlimited brands",
+      "Dedicated 24/7 support",
+      "Personal account manager"
     ]
   }
 ]
@@ -98,7 +98,7 @@ export default function BillingPage() {
     if (!dateStr) return ""
     try {
       const d = new Date(dateStr)
-      return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
+      return d.toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", year: "numeric" })
     } catch {
       return ""
     }
@@ -107,7 +107,7 @@ export default function BillingPage() {
   // Handle Stripe Checkout
   const handleSubscribe = async (planKey: string) => {
     if (planKey === "free") {
-      toast.info("Le plan Découverte est déjà actif par défaut.")
+      toast.info("The Discovery plan is already active by default.")
       return
     }
 
@@ -123,11 +123,11 @@ export default function BillingPage() {
       if (res && res.url) {
         window.location.assign(res.url)
       } else {
-        toast.error("Erreur de redirection vers Stripe Checkout")
+        toast.error("Stripe Checkout redirect failed.")
       }
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || "Impossible de démarrer la session d'abonnement.")
+      toast.error(err.message || "Unable to start the subscription session.")
     } finally {
       setLoadingPlan(null)
     }
@@ -143,11 +143,11 @@ export default function BillingPage() {
       if (res && res.url) {
         window.location.href = res.url
       } else {
-        toast.error("Erreur de redirection vers le portail client")
+        toast.error("Customer portal redirect failed.")
       }
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || "Impossible d'accéder au portail Stripe.")
+      toast.error(err.message || "Unable to access the Stripe portal.")
     } finally {
       setLoadingPortal(false)
     }
@@ -159,19 +159,19 @@ export default function BillingPage() {
       <Card padding={28} style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.04), transparent 80%)", borderColor: "rgba(255,255,255,0.1)", position: "relative" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 24 }}>
           <div>
-            <Badge tone="acc" icon="zap">Plan actuel · {currentPlanObj.name}</Badge>
+            <Badge tone="acc" icon="zap">Current plan · {currentPlanObj.name}</Badge>
             <div className="display" style={{ fontSize: 32, marginTop: 12, letterSpacing: "-0.02em" }}>
-              {used} / {totalCredits} crédits IA
+              {used} / {totalCredits} AI credits
             </div>
             
             {isPaidUser ? (
               <div style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 4 }}>
-                Abonnement {user?.subscriptionStatus === "canceled" ? "résilié" : "actif"} ·
-                {user?.subscriptionCurrentPeriodEnd && ` Renouvellement le ${formatDate(user.subscriptionCurrentPeriodEnd)}`}
+                Subscription {user?.subscriptionStatus === "canceled" ? "canceled" : "active"} ·
+                {user?.subscriptionCurrentPeriodEnd && ` Renews on ${formatDate(user.subscriptionCurrentPeriodEnd)}`}
               </div>
             ) : (
               <div style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 4 }}>
-                Version d'essai gratuite · Mettez à niveau votre compte pour débloquer plus de crédits
+                Free trial · Upgrade your account to unlock more credits
               </div>
             )}
             
@@ -183,11 +183,11 @@ export default function BillingPage() {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {isPaidUser && (
               <Button variant="outline" icon={loadingPortal ? undefined : "credit"} onClick={handleManageBilling} disabled={loadingPortal}>
-                {loadingPortal ? "Chargement..." : "Gérer mon abonnement"}
+                {loadingPortal ? "Loading..." : "Manage subscription"}
               </Button>
             )}
             <a href="#plans-selection">
-              <Button icon="trend">Changer de plan</Button>
+              <Button icon="trend">Change plan</Button>
             </a>
           </div>
         </div>
@@ -195,8 +195,8 @@ export default function BillingPage() {
 
       {/* Plans selector controls */}
       <div id="plans-selection" style={{ textAlign: "center", margin: "40px 0 20px" }}>
-        <h2 className="display" style={{ fontSize: 28, marginBottom: 8 }}>Choisissez le plan adapté à vos besoins</h2>
-        <p style={{ color: "var(--ink-2)", fontSize: 14, marginBottom: 24 }}>Sans engagement. Modifiez ou annulez votre formule à tout moment.</p>
+        <h2 className="display" style={{ fontSize: 28, marginBottom: 8 }}>Choose the plan that fits your needs</h2>
+        <p style={{ color: "var(--ink-2)", fontSize: 14, marginBottom: 24 }}>No commitment. Change or cancel your plan at any time.</p>
         
         {/* Toggle Switch */}
         <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "var(--bg-2)", padding: "4px 8px", borderRadius: 100, border: "1px solid var(--line-1)" }}>
@@ -215,7 +215,7 @@ export default function BillingPage() {
               transition: "all 0.2s ease"
             }}
           >
-            Mensuel
+            Monthly
           </button>
           <button
             onClick={() => setIsYearly(true)}
@@ -235,7 +235,7 @@ export default function BillingPage() {
               gap: 6
             }}
           >
-            Annuel <Badge size="sm" tone="acc" style={{ fontSize: 10, padding: "2px 6px" }}>-20%</Badge>
+            Yearly <Badge size="sm" tone="acc" style={{ fontSize: 10, padding: "2px 6px" }}>-20%</Badge>
           </button>
         </div>
       </div>
@@ -245,7 +245,7 @@ export default function BillingPage() {
         {PLANS.map((p) => {
           const isCurrent = userPlan === p.key
           const price = isYearly ? p.yearlyPrice : p.monthlyPrice
-          const unit = isYearly ? "/an" : "/mois"
+          const unit = isYearly ? "/year" : "/month"
           
           return (
             <Card
@@ -264,14 +264,14 @@ export default function BillingPage() {
             >
               {p.featured && (
                 <Badge tone="acc" style={{ position: "absolute", top: -10, right: 16 }}>
-                  Recommandé
+                  Recommended
                 </Badge>
               )}
               
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: 600, fontSize: 16 }}>{p.name}</span>
-                  {isCurrent && <Badge size="sm" tone="acc">Actuel</Badge>}
+                  {isCurrent && <Badge size="sm" tone="acc">Current</Badge>}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--ink-2)", marginTop: 4 }}>{p.desc}</div>
               </div>
@@ -296,7 +296,7 @@ export default function BillingPage() {
 
               {isCurrent ? (
                 <Button full variant="outline" disabled style={{ marginTop: "auto" }}>
-                  Plan actuel
+                  Current plan
                 </Button>
               ) : (
                 <Button
@@ -306,7 +306,7 @@ export default function BillingPage() {
                   onClick={() => handleSubscribe(p.key)}
                   style={{ marginTop: "auto" }}
                 >
-                  {loadingPlan === p.key ? "Redirection..." : (p.key === "free" ? "Plan actuel" : `Choisir ${p.name}`)}
+                  {loadingPlan === p.key ? "Redirecting..." : (p.key === "free" ? "Current plan" : `Choose ${p.name}`)}
                 </Button>
               )}
             </Card>
@@ -316,30 +316,30 @@ export default function BillingPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }} className="max-md:!grid-cols-1">
         <Card padding={24}>
-          <h3 className="display" style={{ fontSize: 18, margin: 0, letterSpacing: 0 }}>Factures</h3>
+          <h3 className="display" style={{ fontSize: 18, margin: 0, letterSpacing: 0 }}>Invoices</h3>
           <div style={{ marginTop: 14, padding: 20, background: "var(--bg-1)", border: "1px solid var(--line-1)", borderRadius: 10, color: "var(--ink-2)", fontSize: 13, textAlign: "center" }}>
             {isPaidUser ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-                <span>Historique des paiements disponible sur votre portail Stripe.</span>
+                <span>Payment history is available in your Stripe portal.</span>
                 <Button variant="ghost" size="sm" icon={loadingPortal ? undefined : "link"} onClick={handleManageBilling} disabled={loadingPortal}>
-                  {loadingPortal ? "Chargement..." : "Consulter mes factures"}
+                  {loadingPortal ? "Loading..." : "View invoices"}
                 </Button>
               </div>
             ) : (
-              "Aucune facture disponible pour le moment."
+              "No invoices available yet."
             )}
           </div>
         </Card>
         
         <Card padding={24}>
-          <h3 className="display" style={{ fontSize: 18, margin: 0, letterSpacing: 0 }}>Sécurité des paiements</h3>
+          <h3 className="display" style={{ fontSize: 18, margin: 0, letterSpacing: 0 }}>Payment security</h3>
           <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--ink-1)" }}>
               <Icon name="credit" size={16} style={{ color: "var(--acc)" }} />
-              <span>Paiement sécurisé et hébergé à 100 % par <strong>Stripe</strong>.</span>
+              <span>Secure payments hosted 100% by <strong>Stripe</strong>.</span>
             </div>
             <p style={{ margin: 0, fontSize: 12, color: "var(--ink-2)", lineHeight: 1.5 }}>
-              Nous ne stockons aucune information de carte bancaire sur nos serveurs. Vos transactions sont entièrement chiffrées selon les standards de l'industrie (conformité PCI-DSS).
+              We do not store card details on our servers. Transactions are fully encrypted according to industry standards (PCI-DSS compliant).
             </p>
           </div>
         </Card>

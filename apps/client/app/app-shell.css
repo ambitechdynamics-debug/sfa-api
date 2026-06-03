@@ -6,20 +6,20 @@
 
 .csl-app-dashboard,
 .csl-app-workspace {
-  /* Warm-clay palette local to these screens */
-  --csl-bg:       #ffffff;
-  --csl-bg-soft:  #FAF8F4;
-  --csl-bg-mute:  #F2EEE7;
-  --csl-border:   #ECE8E1;
-  --csl-border-2: #E5E0D7;
-  --csl-border-3: #D2C9BC;
-  --csl-ink-0:    #2d2a26;
-  --csl-ink-1:    #6d6660;
-  --csl-ink-2:    #8a827a;
-  --csl-ink-3:    #a8a098;
-  --csl-accent:       #E89376;
-  --csl-accent-hover: #d97a5a;
-  --csl-accent-soft:  #F9C7B0;
+  /* Consilium palette from the new homepage header */
+  --csl-bg:       #0B0B0F;
+  --csl-bg-soft:  rgba(139,92,246,0.08);
+  --csl-bg-mute:  #14141A;
+  --csl-border:   rgba(255,255,255,0.06);
+  --csl-border-2: #26262F;
+  --csl-border-3: rgba(139,92,246,0.36);
+  --csl-ink-0:    #ffffff;
+  --csl-ink-1:    #d4d4d8;
+  --csl-ink-2:    #9B9BA8;
+  --csl-ink-3:    rgba(155,155,168,0.68);
+  --csl-accent:       #8B5CF6;
+  --csl-accent-hover: #EC4899;
+  --csl-accent-soft:  rgba(139,92,246,0.18);
   --csl-accent-on:    #ffffff;
 
   font-family: "Inter", "Segoe UI", system-ui, sans-serif;
@@ -40,16 +40,16 @@
 .csl-app-workspace * { box-sizing: border-box; }
 
 /* ─── DASHBOARD layout ────────────────────────────────────────────── */
-/* Sidebar — dark theme based on #1a2127, contrasts the light main area */
+/* Sidebar — Consilium dark theme from the new homepage header */
 .csl-app-dashboard .csl-sb {
   /* Local dark palette nuances */
-  --sb-bg:        #1a2127;
-  --sb-bg-elev:   #222a31;
-  --sb-bg-hover:  #2b343c;
+  --sb-bg:        #0B0B0F;
+  --sb-bg-elev:   #14141A;
+  --sb-bg-hover:  #1d1d26;
   --sb-bg-soft:   rgba(255,255,255,0.04);
   --sb-border:    rgba(255,255,255,0.08);
-  --sb-border-2:  rgba(255,255,255,0.12);
-  --sb-border-3:  rgba(255,255,255,0.18);
+  --sb-border-2:  #26262F;
+  --sb-border-3:  rgba(139,92,246,0.36);
   --sb-ink-0:     #ffffff;
   --sb-ink-1:     rgba(255,255,255,0.78);
   --sb-ink-2:     rgba(255,255,255,0.56);
@@ -75,7 +75,8 @@
   display: block;
   flex-shrink: 0;
 }
-.csl-app-dashboard .csl-sb-logo img {
+.csl-app-dashboard .csl-sb-logo img,
+.csl-app-dashboard .csl-sb-logo .consilium-prism-logo {
   width: 100%;
   height: 100%;
   display: block;
@@ -84,27 +85,22 @@
 }
 .csl-app-dashboard .csl-sb-brand-row {
   display: flex; align-items: center; gap: 8px;
-  /* Police très lisible — Inter bold (déjà chargée par le layout) */
   font-family: var(--font-inter), "Inter", "Segoe UI", system-ui, sans-serif;
-  /* Calibré pour que le couple Consilium + Design rentre dans la hauteur
-     du logo (36px) — chaque ligne ~17px + 2px gap ≈ 36px */
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0;
   color: var(--sb-ink-0);
   text-shadow: 0 1px 0 rgba(0,0,0,0.18);
   line-height: 1;
 }
 
-/* "Design" — italique artistique sous le wordmark, aligné à gauche
-   sur la même colonne que "Consilium" */
 .csl-app-dashboard .csl-sb-brand-script {
-  font-family: var(--font-artistic), "Playfair Display", "Georgia", serif;
-  font-style: italic;
-  font-weight: 500;
-  font-size: 17px;
-  letter-spacing: 0.01em;
-  color: var(--csl-accent);
+  font-family: ui-monospace, "Menlo", monospace;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 7.5px;
+  letter-spacing: 0.14em;
+  color: #9B9BA8;
   margin-top: 2px;
   line-height: 1;
 }
@@ -208,7 +204,7 @@
 .csl-app-dashboard .csl-form-picker-icon {
   width: 28px; height: 28px;
   border-radius: 6px;
-  background: rgba(232,147,118,0.18);
+  background: rgba(139,92,246,0.18);
   color: var(--csl-accent);
   display: inline-flex;
   align-items: center;
@@ -223,7 +219,7 @@
   width: 100%;
   height: 44px;
   border-radius: 8px;
-  background: var(--csl-accent);
+  background: linear-gradient(135deg, #8B5CF6, #EC4899 62%, #22D3EE);
   color: var(--csl-accent-on);
   font-size: 13.5px;
   font-weight: 500;
@@ -234,9 +230,10 @@
   justify-content: center;
   gap: 8px;
   font-family: inherit;
-  transition: background .15s;
+  box-shadow: 0 14px 34px rgba(139,92,246,0.24);
+  transition: filter .15s, transform .15s;
 }
-.csl-app-dashboard .csl-btn-primary:hover { background: var(--csl-accent-hover); }
+.csl-app-dashboard .csl-btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .csl-app-dashboard .csl-btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 
 .csl-app-dashboard .csl-form-hint {
@@ -256,12 +253,12 @@
 /* Main area — flat dark surface */
 .csl-app-dashboard .csl-main {
   /* Local dark palette for the main panel */
-  --main-bg:       #181f25;
-  --main-bg-elev:  #212a32;
-  --main-bg-hover: #2a343c;
+  --main-bg:       #08080C;
+  --main-bg-elev:  #14141A;
+  --main-bg-hover: #1d1d26;
   --main-border:   rgba(255,255,255,0.06);
-  --main-border-2: rgba(255,255,255,0.10);
-  --main-border-3: rgba(255,255,255,0.18);
+  --main-border-2: #26262F;
+  --main-border-3: rgba(139,92,246,0.36);
   --main-ink-0:    #ffffff;
   --main-ink-1:    rgba(255,255,255,0.78);
   --main-ink-2:    rgba(255,255,255,0.55);
@@ -366,16 +363,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.04);
+  background: radial-gradient(circle at 50% 40%, rgba(139,92,246,0.14), rgba(255,255,255,0.035) 64%);
   color: rgba(255,255,255,0.4);
 }
 .csl-app-dashboard .csl-card-thumb.featured {
-  background: linear-gradient(135deg, rgba(232,147,118,0.18) 0%, rgba(232,147,118,0.06) 100%);
-  color: rgba(232,147,118,0.55);
+  background: linear-gradient(135deg, rgba(139,92,246,0.22) 0%, rgba(236,72,153,0.12) 52%, rgba(34,211,238,0.10) 100%);
+  color: rgba(34,211,238,0.65);
 }
 .csl-app-dashboard .csl-card-thumb.system {
-  background: rgba(232,147,118,0.14);
-  color: rgba(232,147,118,0.6);
+  background: rgba(139,92,246,0.14);
+  color: rgba(139,92,246,0.7);
 }
 .csl-app-dashboard .csl-card-meta {
   padding: 14px 14px 14px;
@@ -409,9 +406,9 @@
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(255,255,255,0.06);
-  color: var(--main-ink-2);
-  border: 1px solid var(--main-border);
+  background: rgba(34,211,238,0.08);
+  color: #a5f3fc;
+  border: 1px solid rgba(34,211,238,0.16);
 }
 .csl-app-dashboard .csl-card-pill {
   position: absolute;
@@ -421,7 +418,7 @@
   padding: 3px 8px;
   border-radius: 999px;
   background: var(--csl-accent-soft);
-  color: #9c5a3d;
+  color: #ddd6fe;
 }
 .csl-app-dashboard .csl-card-actions {
   position: absolute;
@@ -456,9 +453,9 @@
 .csl-app-dashboard .csl-error {
   margin: 16px 28px 0;
   padding: 10px 12px;
-  background: rgba(232,147,118,0.10);
-  border: 1px solid rgba(232,147,118,0.30);
-  color: #f3b59f;
+  background: rgba(236,72,153,0.10);
+  border: 1px solid rgba(236,72,153,0.30);
+  color: #fbcfe8;
   border-radius: 8px;
   font-size: 12.5px;
 }
@@ -468,17 +465,17 @@
    Les règles ci-dessous ne changent pas — elles consomment automatiquement
    les nouvelles valeurs dark via le cascade CSS. */
 .csl-app-workspace {
-  --csl-bg:        #181f25;   /* fond principal (main) */
-  --csl-bg-soft:   rgba(255,255,255,0.04); /* hover subtil */
-  --csl-bg-mute:   #212a32;   /* surfaces élevées (cards) */
+  --csl-bg:        #08080C;   /* fond principal (main) */
+  --csl-bg-soft:   rgba(139,92,246,0.08); /* hover subtil */
+  --csl-bg-mute:   #14141A;   /* surfaces élevées (cards) */
   --csl-border:    rgba(255,255,255,0.06);
-  --csl-border-2:  rgba(255,255,255,0.10);
-  --csl-border-3:  rgba(255,255,255,0.18);
+  --csl-border-2:  #26262F;
+  --csl-border-3:  rgba(139,92,246,0.36);
   --csl-ink-0:     #ffffff;
   --csl-ink-1:     rgba(255,255,255,0.78);
   --csl-ink-2:     rgba(255,255,255,0.55);
   --csl-ink-3:     rgba(255,255,255,0.38);
-  --csl-accent-soft: rgba(232,147,118,0.18);
+  --csl-accent-soft: rgba(139,92,246,0.18);
 
   flex-direction: column;
   height: 100%;
@@ -493,7 +490,7 @@
   align-items: center;
   padding: 0 16px;
   gap: 16px;
-  background: #1a2127; /* même teinte que la sidebar du Dashboard */
+  background: #0B0B0F;
 }
 .csl-app-workspace .csl-ws-brand {
   display: flex; align-items: center; gap: 8px;
@@ -502,13 +499,11 @@
 .csl-app-workspace .csl-ws-brand-logo {
   width: 24px;
   height: 24px;
-  display: block;
-  object-fit: contain;
+  display: inline-flex;
   flex-shrink: 0;
-  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.22));
 }
 .csl-app-workspace .csl-ws-title {
-  font-family: "Source Serif 4", serif;
+  font-family: var(--font-inter), "Inter", "Segoe UI", system-ui, sans-serif;
   font-size: 13.5px;
   font-weight: 500;
   letter-spacing: -0.005em;
@@ -546,7 +541,7 @@
   height: 32px;
   padding: 0 14px;
   border-radius: 6px;
-  background: var(--csl-accent);
+  background: linear-gradient(135deg, #8B5CF6, #EC4899);
   color: #ffffff;
   font-size: 12.5px;
   font-weight: 600;
@@ -554,11 +549,11 @@
   cursor: pointer;
   font-family: inherit;
 }
-.csl-app-workspace .csl-ws-share:hover { background: var(--csl-accent-hover); }
+.csl-app-workspace .csl-ws-share:hover { filter: brightness(1.08); }
 .csl-app-workspace .csl-ws-avatar {
   width: 32px; height: 32px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #E89376, #c66a45);
+  background: linear-gradient(135deg, #8B5CF6, #EC4899 58%, #22D3EE);
   color: #ffffff;
   font-size: 11.5px;
   font-weight: 600;
@@ -577,7 +572,7 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--csl-border);
-  background: #1a2127; /* même teinte que la sidebar du Dashboard */
+  background: #0B0B0F;
 }
 .csl-app-workspace .csl-ws-left-top {
   flex: 1;
@@ -588,7 +583,7 @@
   overflow: auto;
 }
 .csl-app-workspace .csl-ws-h1 {
-  font-family: "Source Serif 4", serif;
+  font-family: var(--font-inter), "Inter", "Segoe UI", system-ui, sans-serif;
   font-size: 24px;
   font-weight: 500;
   letter-spacing: -0.01em;
@@ -736,8 +731,12 @@
   flex: 1;
   position: relative;
   /* Points blancs translucides sur fond dark */
-  background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image:
+    radial-gradient(circle at 14% 8%, rgba(139,92,246,0.12), transparent 34%),
+    radial-gradient(circle at 88% 14%, rgba(34,211,238,0.09), transparent 28%),
+    radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: auto, auto, 22px 22px;
 }
 .csl-app-workspace .csl-canvas-empty {
   position: absolute;
@@ -748,8 +747,12 @@
   color: var(--csl-ink-2);
 }
 .csl-app-workspace .csl-canvas-empty-title {
-  font-family: "Source Serif 4", serif;
+  font-family: var(--font-inter), "Inter", "Segoe UI", system-ui, sans-serif;
   font-size: 20px;
+}
+.csl-app-workspace .csl-generation-logo {
+  width: 58px;
+  height: 58px;
 }
 .csl-app-workspace .csl-canvas-empty-btn {
   height: 36px; padding: 0 16px;
@@ -770,7 +773,7 @@
 .csl-app-workspace .csl-ws-assets {
   flex-shrink: 0;
   border-top: 1px solid var(--csl-border);
-  background: #1a2127;
+  background: #0B0B0F;
   padding: 14px 20px 16px;
   max-height: 340px;
   overflow: hidden;
@@ -821,9 +824,15 @@
   width: 100%; height: 100%; object-fit: cover; display: block;
 }
 .csl-app-workspace .csl-poster-loading {
-  background: linear-gradient(135deg, var(--csl-bg-soft), var(--csl-bg-mute));
+  background: linear-gradient(135deg, rgba(139,92,246,0.16), rgba(236,72,153,0.08), var(--csl-bg-mute));
   color: var(--csl-ink-2);
   font-size: 11.5px;
+  flex-direction: column;
+  gap: 10px;
+}
+.csl-app-workspace .csl-poster-loading-logo {
+  width: 34px;
+  height: 34px;
 }
 
 /* Chat messages list (below context cards) */
@@ -858,14 +867,54 @@
 }
 
 /* Responsive */
+/* ─── Dashboard route wrapper ─────────────────────────────────────────────
+   Desktop: full-viewport, scroll confined inside .csl-grid-wrap.
+   Mobile (≤900px): natural page scroll, sidebar stacks on top of main. */
+.app-shell-dashboard-wrap {
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+@media (max-width: 900px) {
+  .app-shell-dashboard-wrap {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+}
+
 @media (max-width: 900px) {
   .csl-app-dashboard {
     flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
   }
   .csl-app-dashboard .csl-sb {
     width: 100%;
     border-right: 0;
     border-bottom: 1px solid var(--csl-border);
+  }
+  .csl-app-dashboard .csl-main {
+    flex: 0 1 auto;
+    overflow: visible;
+    min-height: 0;
+  }
+  .csl-app-dashboard .csl-grid-wrap {
+    flex: 0 1 auto;
+    overflow: visible;
+    padding: 20px 16px 32px;
+  }
+  .csl-app-dashboard .csl-topbar {
+    padding: 16px 16px 8px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .csl-app-dashboard .csl-search {
+    width: 100%;
   }
 
   .csl-app-workspace {

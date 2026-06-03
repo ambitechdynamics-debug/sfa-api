@@ -32,9 +32,9 @@ export default function ProfilePage() {
         body: JSON.stringify({ fullName, phone: phone || undefined }),
       })
       setUser(updated)
-      toast.success("Profil mis à jour")
+      toast.success("Profile updated")
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : "Erreur"
+      const msg = e instanceof ApiError ? e.message : "Error"
       toast.error(msg)
     } finally {
       setSaving(false)
@@ -51,27 +51,27 @@ export default function ProfilePage() {
           <div>
             <h2 className="display" style={{ fontSize: 22, margin: 0 }}>{user.fullName}</h2>
             <p style={{ fontSize: 13, color: "var(--ink-2)", margin: "4px 0 8px" }}>{user.email}</p>
-            <Badge size="sm" tone="acc">{user.role === "ADMIN" ? "Administrateur" : "Utilisateur Pro"}</Badge>
+            <Badge size="sm" tone="acc">{user.role === "ADMIN" ? "Administrator" : "Pro user"}</Badge>
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <Input label="Nom complet" value={fullName} onChange={(e) => setFullName(e.target.value)} icon="user" />
-          <Input label="E-mail (lecture seule)" value={user.email} disabled icon="message" />
-          <Input label="Téléphone" value={phone} onChange={(e) => setPhone(e.target.value)} icon="bell" placeholder="+33 6 12 34 56 78" />
+          <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} icon="user" />
+          <Input label="Email (read-only)" value={user.email} disabled icon="message" />
+          <Input label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} icon="bell" placeholder="+1 555 010 1234" />
         </div>
 
         <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button onClick={save} disabled={saving} icon={saving ? undefined : "check"}>{saving ? "Enregistrement…" : "Enregistrer"}</Button>
+          <Button onClick={save} disabled={saving} icon={saving ? undefined : "check"}>{saving ? "Saving..." : "Save"}</Button>
         </div>
       </Card>
 
       <Card padding={28}>
-        <h3 className="display" style={{ fontSize: 18, marginTop: 0, marginBottom: 12 }}>Statistiques compte</h3>
+        <h3 className="display" style={{ fontSize: 18, marginTop: 0, marginBottom: 12 }}>Account statistics</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
-          <Stat label="Crédits" value={user.credits} />
-          <Stat label="Membre depuis" value={new Date(user.createdAt).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })} />
-          <Stat label="Rôle" value={user.role} />
+          <Stat label="Credits" value={user.credits} />
+          <Stat label="Member since" value={new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })} />
+          <Stat label="Role" value={user.role} />
         </div>
       </Card>
     </div>

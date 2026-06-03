@@ -15,18 +15,18 @@ import { trackEvent } from "@/lib/ux-metrics"
 import { ApiError } from "@/lib/api"
 
 const TYPES = [
-  { value: "event", label: "Événement", icon: "calendar" },
+  { value: "event", label: "Event", icon: "calendar" },
   { value: "promo", label: "Promotion", icon: "tag" },
   { value: "menu", label: "Menu", icon: "layout" },
-  { value: "launch", label: "Lancement", icon: "rocket" },
+  { value: "launch", label: "Launch", icon: "rocket" },
 ]
 
 const FORMATS = ["Instagram 1:1", "Story 9:16", "A4 print", "Flyer A5", "Banner web"]
 const SUGGESTIONS = [
-  "Rends le visuel plus premium et minimaliste",
-  "Ajoute un appel à l'action clair",
-  "Propose une version plus festive",
-  "Prépare une déclinaison pour story Instagram",
+  "Make the visual more premium and minimal",
+  "Add a clear call to action",
+  "Suggest a more festive version",
+  "Prepare an Instagram story variation",
 ]
 
 export default function DashboardCreatePage() {
@@ -35,11 +35,11 @@ export default function DashboardCreatePage() {
   const [type, setType] = useState(TYPES[0].value)
   const [format, setFormat] = useState(FORMATS[0])
   const [brand, setBrand] = useState("")
-  const [tone, setTone] = useState("Premium, clair, moderne")
+  const [tone, setTone] = useState("Premium, clear, modern")
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [history, setHistory] = useState<Array<{ role: "user" | "assistant"; text: string }>>([
-    { role: "assistant", text: "Décrivez l'affiche à produire. Je prépare le brief, les options et le projet en un seul flux." },
+    { role: "assistant", text: "Describe the poster to produce. I will prepare the brief, options, and project in one flow." },
   ])
 
   useEffect(() => {
@@ -55,13 +55,13 @@ export default function DashboardCreatePage() {
     const clean = prompt.trim()
     if (!clean) return
     setSubmitting(true)
-    setHistory((items) => [...items, { role: "user", text: clean }, { role: "assistant", text: "Je structure le brief et lance la génération du projet." }])
+    setHistory((items) => [...items, { role: "user", text: clean }, { role: "assistant", text: "I am structuring the brief and starting project generation." }])
     trackEvent("prompt_submitted", { promptLength: clean.length, type, format })
     trackEvent("generation_started", { type, format })
 
     try {
-      const title = clean.split(/[.!?]/)[0].slice(0, 72) || "Nouvelle création"
-      // Modèle Project = marque container, Travail = livrable. On crée les deux d'un coup.
+      const title = clean.split(/[.!?]/)[0].slice(0, 72) || "New creation"
+      // Project is the brand container, Travail is the deliverable. Create both in one flow.
       const project = await createProject({ title: brand || title })
       const travail = await createTravail(project.id, {
         title,
@@ -73,9 +73,9 @@ export default function DashboardCreatePage() {
 
       await Promise.allSettled([
         upsertTravailMemory(travail.id, "M-SMS", { description: clean, message: clean, secondary: "" }),
-        upsertTravailMemory(travail.id, "M-MD", { type, format, audience: "Client final", objective: "Créer une affiche prête à publier", eventDate: "" }),
+        upsertTravailMemory(travail.id, "M-MD", { type, format, audience: "Final customer", objective: "Create a ready-to-publish poster", eventDate: "" }),
         upsertTravailMemory(travail.id, "M-CONTACT", { brand, contact: "" }),
-        upsertTravailMemory(travail.id, "M-STYLE", { styles: [tone], precision: "Rapide", notes: "Création via dashboard conversationnel" }),
+        upsertTravailMemory(travail.id, "M-STYLE", { styles: [tone], precision: "Fast", notes: "Created through the conversational dashboard" }),
       ])
 
       try {
@@ -85,13 +85,13 @@ export default function DashboardCreatePage() {
       }
 
       trackEvent("generation_completed", { travailId: travail.id, type, format })
-      toast.success("Création lancée")
+      toast.success("Creation started")
       router.push(`/dashboard/t/${travail.id}`)
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : "Génération impossible"
+      const msg = e instanceof ApiError ? e.message : "Generation unavailable"
       trackEvent("generation_failed", { message: msg, type, format })
       toast.error(msg)
-      setHistory((items) => [...items, { role: "assistant", text: "La génération a échoué. Vérifiez vos crédits ou réessayez avec un brief plus court." }])
+      setHistory((items) => [...items, { role: "assistant", text: "Generation failed. Check your credits or try again with a shorter brief." }])
     } finally {
       setSubmitting(false)
     }
@@ -104,10 +104,10 @@ export default function DashboardCreatePage() {
           <Card padding={0} style={{ overflow: "hidden", minHeight: 500 }}>
             <div style={{ padding: 18, borderBottom: "1px solid var(--line-1)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
               <div>
-                <Badge tone="acc" icon="sparkles">Création IA</Badge>
-                <h2 className="display" style={{ fontSize: 26, margin: "10px 0 0", letterSpacing: 0 }}>Prompt vers affiche</h2>
+                <Badge tone="acc" icon="sparkles">AI creation</Badge>
+                <h2 className="display" style={{ fontSize: 26, margin: "10px 0 0", letterSpacing: 0 }}>Prompt to poster</h2>
               </div>
-              <Badge tone="sage" icon="bookmark">Sauvegarde automatique</Badge>
+              <Badge tone="sage" icon="bookmark">Auto-save</Badge>
             </div>
 
             <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -138,16 +138,16 @@ export default function DashboardCreatePage() {
             ))}
           </div>
 
-          <ChatInput value={prompt} onChange={setPrompt} onSubmit={submitPrompt} disabled={submitting} placeholder="Ex. Affiche premium pour l'ouverture d'un restaurant, ambiance chaude, texte principal..." />
+          <ChatInput value={prompt} onChange={setPrompt} onSubmit={submitPrompt} disabled={submitting} placeholder="Ex. Premium poster for a restaurant opening, warm mood, main headline..." />
         </section>
 
         <aside style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Card padding={16}>
-            <Poster kind="editorial" brief={{ title: prompt ? prompt.split(" ").slice(0, 4).join("\n") : "Votre\nAffiche\nIA", brand: brand || "POSTER AI" }} ratio="3/4" />
+            <Poster kind="editorial" brief={{ title: prompt ? prompt.split(" ").slice(0, 4).join("\n") : "Your\nAI\nPoster", brand: brand || "POSTER AI" }} ratio="3/4" />
           </Card>
 
           <Card padding={18}>
-            <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700 }}>Type de création</h3>
+            <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700 }}>Creation type</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
               {TYPES.map((item) => {
                 const active = item.value === type
@@ -183,7 +183,7 @@ export default function DashboardCreatePage() {
               onClick={() => setAdvancedOpen((value) => !value)}
               style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "transparent", border: 0, color: "var(--ink-0)", cursor: "pointer", padding: 0 }}
             >
-              <span style={{ fontSize: 14, fontWeight: 700 }}>Options simples</span>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>Simple options</span>
               <Icon name={advancedOpen ? "chevronU" : "chevronD"} size={14} />
             </button>
             {advancedOpen && (
@@ -194,8 +194,8 @@ export default function DashboardCreatePage() {
                     {FORMATS.map((item) => <option key={item}>{item}</option>)}
                   </select>
                 </label>
-                <Input label="Marque" value={brand} onChange={(event) => setBrand(event.target.value)} placeholder="Nom de marque" icon="tag" />
-                <Input label="Direction visuelle" value={tone} onChange={(event) => setTone(event.target.value)} icon="palette" />
+                <Input label="Brand" value={brand} onChange={(event) => setBrand(event.target.value)} placeholder="Brand name" icon="tag" />
+                <Input label="Visual direction" value={tone} onChange={(event) => setTone(event.target.value)} icon="palette" />
               </div>
             )}
           </Card>

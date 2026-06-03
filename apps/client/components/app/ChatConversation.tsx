@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button"
 import { BrandMark } from "@/components/ui/BrandMark"
 import { Icon } from "@/components/ui/Icon"
 import { ChatInput } from "@/components/app/dashboard-ui"
+import { ConsiliumPrismLogo } from "@/components/brand/ConsiliumPrismLogo"
 import { useChatStore, type Message } from "@/store/chat-store"
 import { relativeTime } from "@/lib/utils"
 import { useAuth } from "@/hooks/useAuth"
@@ -57,31 +58,31 @@ const QUALITY_LEVELS = [
 ]
 
 const STYLES = [
-  "Moderne", "Minimaliste", "Luxe", "Urbain", "Corporate", "Événementiel", 
-  "Commercial", "Mode", "Restauration", "Tech", "Institutionnel", "Artistique", "Futuriste", "Afro-contemporain"
+  "Modern", "Minimal", "Luxury", "Urban", "Corporate", "Event",
+  "Commercial", "Fashion", "Restaurant", "Tech", "Institutional", "Artistic", "Futuristic", "Afro-contemporary"
 ]
 
 const OBJECTIVES = [
-  "Vendre un produit", "Promouvoir un événement", "Annoncer une offre",
-  "Présenter une marque", "Recruter", "Informer", "Faire connaître un service",
-  "Améliorer une affiche existante", "Créer une variante", "Préparer un visuel pour impression"
+  "Sell a product", "Promote an event", "Announce an offer",
+  "Present a brand", "Recruit", "Inform", "Promote a service",
+  "Improve an existing poster", "Create a variation", "Prepare a print visual"
 ]
 
-// Formats compatibles Nano Banana (Gemini Imagen 3) — aspect ratios uniquement
+// Nano Banana-compatible formats (Gemini Imagen 3): aspect ratios only.
 const FORMATS = [
-  { value: "Carré — 1:1",    hint: "Instagram, Facebook" },
+  { value: "Square — 1:1",    hint: "Instagram, Facebook" },
   { value: "Portrait — 9:16", hint: "Stories, Reels, TikTok" },
-  { value: "Paysage — 16:9", hint: "YouTube, Bannière web" },
-  { value: "Portrait — 3:4", hint: "Flyer, Affiche, A4" },
-  { value: "Bannière — 4:3", hint: "Présentation, pub" },
+  { value: "Landscape — 16:9", hint: "YouTube, web banner" },
+  { value: "Portrait — 3:4", hint: "Flyer, poster, A4" },
+  { value: "Banner — 4:3", hint: "Presentation, ad" },
 ]
 
 const ASSET_TYPE_LABELS: Record<UploadedAsset["type"], string> = {
   logo: "Logo",
-  product: "Produit",
+  product: "Product",
   reference: "Inspiration",
-  poster: "Affiche",
-  other: "Autre",
+  poster: "Poster",
+  other: "Other",
 }
 
 function isLocalConversationId(value?: string) {
@@ -303,7 +304,7 @@ function ErrorNotice({
       </span>
       {canRetry && (
         <Button variant="outline" size="sm" onClick={onRetry} disabled={isSending}>
-          Réessayer
+          Try again
         </Button>
       )}
     </div>
@@ -740,7 +741,7 @@ export function ChatConversation({
     const clean = content.trim()
     if (!clean || !user?.id || isSending || loadingConversation) return
 
-    const isVisualTrigger = /g[eé]r[eé]r.*visuel|g[eé]n[eé]r[eé]r.*visuel/i.test(clean)
+    const isVisualTrigger = /g[eé]r[eé]r.*visuel|g[eé]n[eé]r[eé]r.*visuel|generate.*visual|create.*visual/i.test(clean)
 
     setPrompt("")
     setConfigAttached(false)
@@ -1125,7 +1126,7 @@ export function ChatConversation({
                 active={configAttached}
               />
               <div style={{ textAlign: "center", fontSize: 10.5, color: "rgba(255,255,255,0.2)", marginTop: 10 }}>
-                L'IA peut faire des erreurs · Vérifiez les résultats générés
+                AI can make mistakes · Review generated results
               </div>
             </div>
           </div>
@@ -1264,7 +1265,7 @@ export function ChatConversation({
                       {/* Delete */}
                       <button
                         onClick={() => deleteAsset(asset.id)}
-                        aria-label="Supprimer"
+                        aria-label="Delete"
                         className="asset-del-btn"
                         style={{
                           border: 0, borderLeft: "1px solid var(--line-2)",
@@ -1302,7 +1303,7 @@ export function ChatConversation({
                   />
                   <Icon name="upload" size={18} style={{ color: "var(--acc-bright)", marginBottom: 4 }} />
                   <span style={{ fontSize: 9.5, color: "var(--ink-3)", textAlign: "center", lineHeight: 1.3 }}>
-                    Ajouter
+                    Add
                   </span>
                 </div>
               </div>
@@ -1342,9 +1343,9 @@ export function ChatConversation({
                       background: "rgba(8,8,12,0.65)", backdropFilter: "blur(3px)",
                       gap: 10,
                     }}>
-                      <div className="cv-gen-spinner" />
+                      <ConsiliumPrismLogo size={40} className="cv-gen-prism" />
                       <div style={{ color: "#fff", fontSize: 12, fontWeight: 600, letterSpacing: "0.02em" }}>
-                        Nouvelle variante en cours…
+                        New variation in progress...
                       </div>
                     </div>
                   )}
@@ -1376,7 +1377,7 @@ export function ChatConversation({
                         color: "var(--ink-1)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, justifyContent: "center"
                       }}
                     >
-                      <Icon name="download" size={12} /> Télécharger
+                        <Icon name="download" size={12} /> Download
                     </button>
                     
                     <button
@@ -1391,7 +1392,7 @@ export function ChatConversation({
                       }}
                     >
                       <Icon name={isGenerating ? "loader" : "wand"} size={12} />
-                      {isGenerating ? "Génération..." : "Variantes"}
+                      {isGenerating ? "Generating..." : "Variations"}
                     </button>
                   </div>
 
@@ -1408,7 +1409,7 @@ export function ChatConversation({
                       }}
                     >
                       <Icon name={isGenerating ? "loader" : "sparkles"} size={12} />
-                      {isGenerating ? "Génération..." : "Améliorer"}
+                      {isGenerating ? "Generating..." : "Improve"}
                     </button>
 
                     <button
@@ -1419,7 +1420,7 @@ export function ChatConversation({
                         color: "var(--rose)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, justifyContent: "center"
                       }}
                     >
-                      <Icon name="trash" size={12} /> Supprimer
+                      <Icon name="trash" size={12} /> Delete
                     </button>
                   </div>
 
@@ -1433,7 +1434,7 @@ export function ChatConversation({
                         color: "var(--ink-1)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, justifyContent: "center"
                       }}
                     >
-                      <Icon name="plus" size={12} /> Formats d'export HD...
+                      <Icon name="plus" size={12} /> HD export formats...
                     </button>
 
                     {activeExportFormat && (
@@ -1445,9 +1446,9 @@ export function ChatConversation({
                       }}>
                         {[
                           { label: "PNG (Standard)", key: "PNG" },
-                          { label: "JPG (Compressé)", key: "JPG" },
-                          { label: "PDF (Impression)", key: "PDF" },
-                          { label: "WebP (Ultra léger)", key: "WebP" },
+                          { label: "JPG (Compressed)", key: "JPG" },
+                          { label: "PDF (Print)", key: "PDF" },
+                          { label: "WebP (Ultra light)", key: "WebP" },
                           { label: "HD Print (300 DPI)", key: "HD Print" },
                         ].map(({ label, key }) => (
                           <button
@@ -1479,8 +1480,7 @@ export function ChatConversation({
               }}>
                 {/* Halo de fond animé */}
                 <div className="cv-gen-halo" />
-                {/* Spinner principal */}
-                <div className="cv-gen-spinner" style={{ width: 56, height: 56, borderWidth: 3 }} />
+                <ConsiliumPrismLogo size={56} className="cv-gen-prism" />
                 <div style={{ zIndex: 1 }}>
                   <p style={{ fontSize: 13, fontWeight: 650, color: "var(--ink-1)", letterSpacing: "0.02em", margin: 0 }}>
                     Creating...
@@ -1495,11 +1495,11 @@ export function ChatConversation({
               }}>
                 <Icon name="image" size={36} style={{ color: "var(--ink-4)", opacity: 0.35 }} />
                 <div style={{ fontSize: 13, fontWeight: 650, color: "var(--ink-2)", marginTop: 4 }}>
-                  Aucun visuel généré
+                  No generated visual
                 </div>
                 <p style={{ fontSize: 11.5, color: "var(--ink-3)", margin: 0, lineHeight: 1.5 }}>
-                  Complétez la conversation puis dites<br />
-                  <strong style={{ color: "var(--acc-bright)" }}>&ldquo;gérer le visuel&rdquo;</strong> pour lancer la génération.
+                  Complete the conversation, then say<br />
+                  <strong style={{ color: "var(--acc-bright)" }}>&ldquo;generate the visual&rdquo;</strong> to start generation.
                 </p>
               </div>
             )}
@@ -1563,7 +1563,7 @@ export function ChatConversation({
         >
           <button
             onClick={() => setZoomOpen(false)}
-            aria-label="Fermer le plein écran"
+            aria-label="Close fullscreen"
             style={{
               position: "absolute", top: 20, right: 20,
               width: 40, height: 40, borderRadius: "50%",
@@ -1595,7 +1595,7 @@ export function ChatConversation({
             <div style={{ textAlign: "center", color: "#fff" }}>
               <div style={{ fontSize: 16, fontWeight: 650 }}>{activeVisual.title}</div>
               <div style={{ fontSize: 12, color: "var(--ink-2)", marginTop: 4 }}>
-                {activeVisual.format} · Visualisation Haute Résolution
+                {activeVisual.format} · High-resolution preview
               </div>
             </div>
           </div>

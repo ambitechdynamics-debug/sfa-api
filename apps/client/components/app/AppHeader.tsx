@@ -46,7 +46,7 @@ export function AppHeader({ sidebarCollapsed, onOpenMobileNav, onToggleSidebar }
           <span className="md:hidden">
             <button
               type="button"
-              aria-label="Ouvrir la navigation"
+              aria-label="Open navigation"
               onClick={onOpenMobileNav}
               style={{
                 width: 38,
@@ -68,8 +68,8 @@ export function AppHeader({ sidebarCollapsed, onOpenMobileNav, onToggleSidebar }
           <span className="max-md:hidden">
             <button
               type="button"
-              aria-label={sidebarCollapsed ? "Agrandir la sidebar" : "Réduire la sidebar"}
-              title={sidebarCollapsed ? "Agrandir la sidebar" : "Réduire la sidebar"}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               onClick={onToggleSidebar}
               style={{
                 width: 38,
@@ -113,7 +113,7 @@ export function AppHeader({ sidebarCollapsed, onOpenMobileNav, onToggleSidebar }
             <Icon name="bell" size={16} />
           </Link>
           {user && (
-            <Link href="/dashboard/profile" aria-label="Profil" title="Profil" style={{ display: "inline-flex" }}>
+            <Link href="/dashboard/profile" aria-label="Profile" title="Profile" style={{ display: "inline-flex" }}>
               <Avatar name={user.fullName} size={34} />
             </Link>
           )}

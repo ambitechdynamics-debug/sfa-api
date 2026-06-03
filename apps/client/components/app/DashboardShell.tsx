@@ -14,11 +14,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const isDashboard = pathname === "/dashboard" || pathname.startsWith("/dashboard/")
 
   if (isDashboard) {
-    return (
-      <div style={{ height: "100vh", minHeight: "100vh", width: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {children}
-      </div>
-    )
+    return <div className="app-shell-dashboard-wrap">{children}</div>
   }
 
   return (

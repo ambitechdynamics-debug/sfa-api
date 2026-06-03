@@ -21,11 +21,11 @@ interface UploadingAsset {
 
 const ASSET_LABELS: Record<AssetType, string> = {
   logo: "Logo",
-  product: "Produit",
+  product: "Product",
   reference: "Inspiration",
-  poster: "Affiche",
-  character: "Personnage",
-  other: "Autre",
+  poster: "Poster",
+  character: "Character",
+  other: "Other",
 }
 
 const ASSET_TYPES: AssetType[] = ["logo", "product", "reference", "poster", "character", "other"]
@@ -123,7 +123,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
       })
       .catch((err) => {
         console.error("[workspace assets] fetch failed", err)
-        if (!cancelled) setError("Impossible de charger les fichiers du projet.")
+        if (!cancelled) setError("Unable to load project files.")
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -156,13 +156,13 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
 
     for (const file of files) {
       if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-        setError(`"${file.name}" dépasse ${MAX_FILE_SIZE_MB} Mo.`)
+        setError(`"${file.name}" exceeds ${MAX_FILE_SIZE_MB} MB.`)
         continue
       }
 
       const ext = file.name.split(".").pop()?.toLowerCase()
       if (!ext || !ALLOWED_EXT.includes(ext)) {
-        setError(`"${file.name}" n'est pas un format image accepté.`)
+        setError(`"${file.name}" is not an accepted image format.`)
         continue
       }
 
@@ -187,7 +187,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
         setUploadingAssets((current) => current.map((asset) => (
           asset.id === tempId ? { ...asset, status: "error" } : asset
         )))
-        setError(err instanceof Error ? err.message : "Import impossible.")
+        setError(err instanceof Error ? err.message : "Upload unavailable.")
       }
     }
   }
@@ -207,7 +207,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
       console.error("[workspace assets] delete failed", err)
       setAssets(previous)
       setPrimaryId(previousPrimaryId)
-      setError(err instanceof Error ? err.message : "Suppression impossible.")
+      setError(err instanceof Error ? err.message : "Delete unavailable.")
     }
   }
 
@@ -230,7 +230,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
     } catch (err) {
       console.error("[workspace assets] update usage failed", err)
       setAssets(previous)
-      setError(err instanceof Error ? err.message : "Changement de type impossible.")
+      setError(err instanceof Error ? err.message : "Type change unavailable.")
     }
   }
 
@@ -257,7 +257,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
   return (
     <div className="csl-ws-assets">
       <div style={{ fontSize: 12.5, color: "var(--csl-ink-1)", marginBottom: 8 }}>
-        Fichiers de conception
+        Design files
       </div>
 
       <div
@@ -278,7 +278,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
           padding: 8,
           border: `1.5px dashed ${dragOver ? "var(--csl-accent)" : "var(--csl-border-2)"}`,
           borderRadius: 12,
-          background: dragOver ? "rgba(232,147,118,0.08)" : "transparent",
+          background: dragOver ? "rgba(139,92,246,0.10)" : "transparent",
           transition: "background .15s, border-color .15s",
           minHeight: isEmpty ? 150 : undefined,
           alignContent: isEmpty ? "center" : "start",
@@ -318,7 +318,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
               }}
             >
               <span
-                title={asset.status === "uploading" ? "Import en cours" : "Import échoué"}
+                title={asset.status === "uploading" ? "Uploading" : "Upload failed"}
                 style={{
                   borderRight: "1px solid var(--csl-border-2)",
                   color: asset.status === "uploading" ? "var(--csl-accent)" : "#f87171",
@@ -352,7 +352,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
               <button
                 type="button"
                 onClick={() => removeUploadingAsset(asset.id)}
-                aria-label="Retirer"
+                aria-label="Remove"
                 style={{
                   border: 0,
                   borderLeft: "1px solid var(--csl-border-2)",
@@ -420,18 +420,18 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  borderTop: `1px solid ${isPrimary ? "rgba(232,147,118,0.30)" : "var(--csl-border-2)"}`,
-                  background: isPrimary ? "rgba(232,147,118,0.10)" : "var(--csl-bg)",
+                  borderTop: `1px solid ${isPrimary ? "rgba(139,92,246,0.34)" : "var(--csl-border-2)"}`,
+                  background: isPrimary ? "rgba(139,92,246,0.12)" : "var(--csl-bg)",
                   height: 30,
                 }}
               >
                 <button
                   type="button"
                   onClick={() => setPrimaryId(asset.id)}
-                  title={isPrimary ? "Élément principal" : "Définir comme principal"}
+                  title={isPrimary ? "Primary asset" : "Set as primary"}
                   style={{
                     border: 0,
-                    borderRight: `1px solid ${isPrimary ? "rgba(232,147,118,0.30)" : "var(--csl-border-2)"}`,
+                    borderRight: `1px solid ${isPrimary ? "rgba(139,92,246,0.34)" : "var(--csl-border-2)"}`,
                     background: "transparent",
                     color: isPrimary ? "var(--csl-accent)" : "var(--csl-ink-3)",
                     width: 30,
@@ -447,7 +447,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
                 <button
                   type="button"
                   onClick={() => void cycleType(asset.id)}
-                  title="Changer le type"
+                  title="Change type"
                   style={{
                     border: 0,
                     background: "transparent",
@@ -471,7 +471,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
                 <button
                   type="button"
                   onClick={() => void removePersistedAsset(asset.id)}
-                  aria-label="Supprimer"
+                  aria-label="Delete"
                   style={{
                     border: 0,
                     borderLeft: "1px solid var(--csl-border-2)",
@@ -519,7 +519,7 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
         >
           <UploadIcon />
           <span style={{ fontSize: 9, marginTop: 4, lineHeight: 1.2, textAlign: "center", padding: "0 4px" }}>
-            Importer
+            Upload
           </span>
         </button>
       </div>
@@ -535,17 +535,17 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
 
       {loading && (
         <div style={{ fontSize: 11, color: "var(--csl-ink-2)", marginTop: 6 }}>
-          Chargement des fichiers...
+          Loading files...
         </div>
       )}
       {!loading && !error && isEmpty && (
         <div style={{ fontSize: 11, color: "var(--csl-ink-2)", marginTop: 6 }}>
-          Aucun fichier pour l'instant. Importez logo, produit ou référence.
+          No files yet. Upload a logo, product, or reference.
         </div>
       )}
       {allCount > 0 && (
         <div style={{ fontSize: 11, color: "var(--csl-ink-2)", marginTop: 6 }}>
-          {allCount} fichier{allCount > 1 ? "s" : ""} disponible{allCount > 1 ? "s" : ""}
+          {allCount} file{allCount > 1 ? "s" : ""} available
         </div>
       )}
       {error && (
