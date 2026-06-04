@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Upload, ImagePlus, X, Link2, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
 import { JsonEditor } from './JsonEditor'
-import { AgentDefinition, AgentMemoryLink, ChatAgentModuleAccess } from '@/types/agent'
+import { SkillsEditor } from './SkillsEditor'
+import { AgentDefinition, AgentMemoryLink, AgentSkill, ChatAgentModuleAccess } from '@/types/agent'
 import { MemoryDefinition } from '@/types/memory'
 import { ArtisticResource } from '@/types/payment'
 import {
@@ -82,6 +83,7 @@ export function AgentForm({ initial, onSubmit, onCancel, isLoading }: AgentFormP
     systemPrompt: '', expectedOutputSchema: {}, isActive: true,
     ...initial,
     moduleAccess: { ...DEFAULT_AGENT_MODULE_ACCESS, ...(initial?.moduleAccess ?? {}) },
+    skills: initial?.skills ?? [],
   })
   const [providers, setProviders] = useState<LlmProvider[]>([])
   const [loadingProviders, setLoadingProviders] = useState(true)
@@ -213,6 +215,19 @@ export function AgentForm({ initial, onSubmit, onCancel, isLoading }: AgentFormP
           })}
         </div>
       </div>
+
+      <SkillsEditor<AgentSkill>
+        skills={(form.skills as AgentSkill[]) ?? []}
+        onChange={(next) => set('skills', next)}
+        newEntry={() => ({
+          name: '',
+          description: '',
+          tags: [],
+          content: '',
+          isActive: true,
+          order: 0,
+        })}
+      />
 
       <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--bg-subtle)]">
         <div>

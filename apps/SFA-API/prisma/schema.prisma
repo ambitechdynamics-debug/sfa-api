@@ -126,8 +126,25 @@ model AgentDefinition {
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   memoryLinks          AgentMemoryLink[]
+  skills               AgentSkill[]
 
   @@index([key])
+}
+
+model AgentSkill {
+  id                String          @id @default(cuid())
+  agentDefinitionId String
+  name              String
+  description       String?
+  tags              String[]
+  content           String          @db.Text
+  isActive          Boolean         @default(true)
+  order             Int             @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  agent             AgentDefinition @relation(fields: [agentDefinitionId], references: [id], onDelete: Cascade)
+
+  @@index([agentDefinitionId])
 }
 
 model AgentMemoryLink {

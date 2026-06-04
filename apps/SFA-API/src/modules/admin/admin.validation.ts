@@ -20,6 +20,17 @@ export const agentModuleAccessSchema = z.object({
   creation_options: z.boolean(),
 });
 
+export const agentSkillInputSchema = z.object({
+  id: z.string().min(1).optional(),
+  name: z.string().min(1).max(120),
+  description: z.string().max(500).optional().nullable(),
+  tags: z.array(z.string().min(1).max(40)).default([]),
+  content: z.string().min(1).max(20_000),
+  isActive: z.boolean().optional().default(true),
+  order: z.number().int().min(0).optional().default(0),
+});
+export type AgentSkillInput = z.infer<typeof agentSkillInputSchema>;
+
 export const createAgentDefSchema = z.object({
   key: z.string().min(1),
   name: z.string().min(1),
@@ -29,7 +40,8 @@ export const createAgentDefSchema = z.object({
   systemPrompt: z.string().min(1),
   expectedOutputSchema: z.record(z.unknown()).optional(),
   moduleAccess: agentModuleAccessSchema.nullish(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  skills: z.array(agentSkillInputSchema).optional()
 });
 
 export const updateAgentDefSchema = createAgentDefSchema.partial();
@@ -68,6 +80,16 @@ export const orchestratorPipelineConfigSchema = z.object({
   steps: z.array(orchestratorPipelineStepSchema),
 });
 
+export const chatAgentSkillSchema = z.object({
+  id: z.string().min(1).optional(),
+  name: z.string().min(1).max(120),
+  description: z.string().max(500).optional().nullable(),
+  tags: z.array(z.string().min(1).max(40)).default([]),
+  content: z.string().min(1).max(20_000),
+  isActive: z.boolean().optional().default(true),
+  order: z.number().int().min(0).optional().default(0),
+});
+
 export const chatAgentConfigSchema = z.object({
   memoryTargetKey: z.string().min(1),
   moduleAccess: z.object({
@@ -76,6 +98,7 @@ export const chatAgentConfigSchema = z.object({
     forbidden_rules: z.boolean(),
     creation_options: z.boolean(),
   }),
+  skills: z.array(chatAgentSkillSchema).optional(),
 });
 
 export const artisticVisionConfigSchema = z.object({

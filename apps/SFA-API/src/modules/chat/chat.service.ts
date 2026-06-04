@@ -8,6 +8,7 @@ import {
   buildArtisticBaseContextBlock as sharedArtisticBlock,
   buildForbiddenRulesContextBlock as sharedForbiddenBlock,
 } from '../agents/agentModuleContext.service';
+import { buildSkillsBlock } from '../agents/skills/skillsBlock.util';
 import type {
   ChatHistoryMessage,
   ChatOpeningInput,
@@ -607,11 +608,14 @@ async function callChatProvider(input: ChatRequestInput): Promise<string> {
     if (visionPrompt) workspaceContextPrompt += `\n\n${visionPrompt}`;
   }
 
+  const skillsBlock = buildSkillsBlock(chatAgentConfig.skills);
+
   const resolvedSystemPrompt = [
     `PROMPT SYSTÈME ADMIN CONFIGURÉ DANS /admin/settings :\n${agentProfile.systemPrompt}`,
     workspaceContextPrompt.trim()
       ? `CONTEXTE WORKSPACE À RESPECTER SANS IGNORER LE PROMPT SYSTÈME ADMIN :${workspaceContextPrompt}`
       : '',
+    skillsBlock,
   ].filter(Boolean).join('\n\n');
 
   const model = await resolveChatModel(provider);
@@ -836,6 +840,7 @@ export const chatService = {
 
     const provider = await resolveChatProvider();
     const agentProfile = await resolveChatAgentProfile();
+    const chatAgentConfig = await chatAgentConfigService.get();
     const workspaceBrief = mergeWorkspaceBriefContext(
       await loadWorkspaceBriefContext(travailId),
       input.visualConfig
@@ -858,6 +863,8 @@ export const chatService = {
           )).join('\n'),
         })
       : '';
+    const skillsBlock = buildSkillsBlock(chatAgentConfig.skills);
+
     const systemPrompt = [
       `PROMPT SYSTÈME ADMIN CONFIGURÉ DANS /admin/settings :\n${agentProfile.systemPrompt}`,
       workspaceBriefPrompt
@@ -867,6 +874,7 @@ export const chatService = {
       openingInstruction
         ? `INSTRUCTION SPÉCIALE — OUVERTURE WORKSPACE :\n${openingInstruction}`
         : '',
+      skillsBlock,
     ].filter(Boolean).join('\n\n═══════════════════════════════════════\n\n');
 
     const model = await resolveChatModel(provider);

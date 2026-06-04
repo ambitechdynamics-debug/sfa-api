@@ -5,6 +5,7 @@ import { stripe } from '../../config/stripe';
 import { orchestratorPipelineService } from '../orchestrator/orchestratorPipeline.service';
 import { chatAgentConfigService } from '../chat/chatAgentConfig.service';
 import { artisticVisionConfigService } from '../artistic-base/artisticVisionConfig.service';
+import type { AgentSkillInput } from './admin.validation';
 
 const SUBSCRIPTION_PLAN_DEFAULTS = {
   free:     { name: 'Gratuit',  price: 0,  currency: 'XOF', credits: 0,   maxProjects: 3,   maxFilesPerProject: 3,  features: ['3 projets max', '3 générations gratuites', 'Affiches en basse résolution'], isActive: true },
@@ -40,29 +41,103 @@ export const adminService = {
   },
 
   // Agent Definitions
-  createAgentDef: async (data: Prisma.AgentDefinitionCreateInput) => {
-    return prisma.agentDefinition.create({ data });
+  createAgentDef: async (data: Prisma.AgentDefinitionCreateInput & { skills?: AgentSkillInput[] }) => {
+    const { skills, ...scalars } = data;
+    return prisma.$transaction(async (tx) => {
+      const created = await tx.agentDefinition.create({ data: scalars });
+      if (skills && skills.length > 0) {
+        await tx.agentSkill.createMany({
+          data: skills.map((s, idx) => ({
+            agentDefinitionId: created.id,
+            name: s.name,
+            description: s.description ?? null,
+            tags: s.tags ?? [],
+            content: s.content,
+            isActive: s.isActive ?? true,
+            order: s.order ?? idx,
+          })),
+        });
+      }
+      return tx.agentDefinition.findUnique({
+        where: { id: created.id },
+        include: {
+          memoryLinks: { include: { memory: true } },
+          skills: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] },
+        },
+      });
+    });
   },
   listAgentDefs: async () => {
     const rows = await prisma.agentDefinition.findMany({
-      include: { _count: { select: { memoryLinks: true } } },
+      include: {
+        _count: { select: { memoryLinks: true, skills: true } },
+        skills: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] },
+      },
       orderBy: { createdAt: 'desc' }
     });
     return rows.map(({ _count, ...rest }) => ({
       ...rest,
       memoryLinksCount: _count.memoryLinks,
+      skillsCount: _count.skills,
     }));
   },
   getAgentDef: async (id: string) => {
     const def = await prisma.agentDefinition.findUnique({
       where: { id },
-      include: { memoryLinks: { include: { memory: true } } }
+      include: {
+        memoryLinks: { include: { memory: true } },
+        skills: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] },
+      }
     });
     if (!def) throw new AppError('AgentDefinition not found', 404);
     return def;
   },
-  updateAgentDef: async (id: string, data: Prisma.AgentDefinitionUpdateInput) => {
-    return prisma.agentDefinition.update({ where: { id }, data });
+  updateAgentDef: async (id: string, data: Prisma.AgentDefinitionUpdateInput & { skills?: AgentSkillInput[] }) => {
+    const { skills, ...scalars } = data;
+    return prisma.$transaction(async (tx) => {
+      await tx.agentDefinition.update({ where: { id }, data: scalars });
+
+      if (skills !== undefined) {
+        const incomingIds = skills.map((s) => s.id).filter((v): v is string => Boolean(v));
+
+        await tx.agentSkill.deleteMany({
+          where: {
+            agentDefinitionId: id,
+            ...(incomingIds.length > 0 ? { id: { notIn: incomingIds } } : {}),
+          },
+        });
+
+        for (let idx = 0; idx < skills.length; idx++) {
+          const s = skills[idx];
+          const payload = {
+            name: s.name,
+            description: s.description ?? null,
+            tags: s.tags ?? [],
+            content: s.content,
+            isActive: s.isActive ?? true,
+            order: s.order ?? idx,
+          };
+          if (s.id) {
+            await tx.agentSkill.update({
+              where: { id: s.id },
+              data: payload,
+            });
+          } else {
+            await tx.agentSkill.create({
+              data: { ...payload, agentDefinitionId: id },
+            });
+          }
+        }
+      }
+
+      return tx.agentDefinition.findUnique({
+        where: { id },
+        include: {
+          memoryLinks: { include: { memory: true } },
+          skills: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] },
+        },
+      });
+    });
   },
   deleteAgentDef: async (id: string) => {
     return prisma.agentDefinition.delete({ where: { id } });

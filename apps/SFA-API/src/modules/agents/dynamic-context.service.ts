@@ -6,6 +6,7 @@ import {
   normalizeAgentModuleAccess,
   type AgentModuleAccess,
 } from './agentModuleContext.service';
+import { buildSkillsBlock } from './skills/skillsBlock.util';
 
 export interface AgentContextData {
   promptText: string;
@@ -31,7 +32,7 @@ export async function buildAgentContext(
   snapshot?: MemorySnapshot,
   options: AgentContextOptions = {},
 ): Promise<AgentContextData> {
-  // 1. Récupérer l'agent et ses liaisons INPUT / BOTH
+  // 1. Récupérer l'agent et ses liaisons INPUT / BOTH, plus ses skills actives.
   const agent = await prisma.agentDefinition.findUnique({
     where: { key: agentKey },
     include: {
@@ -39,6 +40,10 @@ export async function buildAgentContext(
         where: { usageType: { in: ['INPUT', 'BOTH'] } },
         include: { memory: true },
         orderBy: { priority: 'asc' }
+      },
+      skills: {
+        where: { isActive: true },
+        orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
       }
     }
   });
@@ -68,9 +73,11 @@ export async function buildAgentContext(
       })()
     : Promise.resolve('');
 
+  const skillsBlock = buildSkillsBlock(agent.skills);
+
   const composeSystemPrompt = async () => {
     const moduleBlocks = await moduleBlocksPromise;
-    return moduleBlocks ? `${agent.systemPrompt}\n\n${moduleBlocks}` : agent.systemPrompt;
+    return [agent.systemPrompt, moduleBlocks, skillsBlock].filter(Boolean).join('\n\n');
   };
 
   // 2. Récupérer les mémoires du travail correspondant. Par défaut les liens

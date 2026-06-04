@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { prisma } from '../../config/database';
 
 export const CHAT_AGENT_CONFIG_SETTING_KEY = 'chat_agent_config';
+export const CHAT_AGENT_SKILL_CONTENT_MAX = 20_000;
 
 export type ChatAgentModule = 'files' | 'artistic_base' | 'forbidden_rules' | 'creation_options';
 
@@ -11,9 +13,20 @@ export interface ChatAgentModuleAccess {
   creation_options: boolean;
 }
 
+export interface ChatAgentSkill {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  content: string;
+  isActive: boolean;
+  order: number;
+}
+
 export interface ChatAgentConfig {
   memoryTargetKey: string;
   moduleAccess: ChatAgentModuleAccess;
+  skills: ChatAgentSkill[];
 }
 
 const DEFAULT_CONFIG: ChatAgentConfig = {
@@ -24,6 +37,7 @@ const DEFAULT_CONFIG: ChatAgentConfig = {
     forbidden_rules: false,
     creation_options: true,
   },
+  skills: [],
 };
 
 function cloneDefault(): ChatAgentConfig {
@@ -50,12 +64,57 @@ function normalizeModuleAccess(value: unknown): ChatAgentModuleAccess {
   };
 }
 
+function normalizeTags(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  for (const raw of value) {
+    if (typeof raw !== 'string') continue;
+    const trimmed = raw.trim();
+    if (trimmed) out.push(trimmed);
+  }
+  return out;
+}
+
+function normalizeSkillEntry(value: unknown, fallbackOrder: number): ChatAgentSkill | null {
+  const record = asRecord(value);
+  const name = typeof record.name === 'string' ? record.name.trim() : '';
+  const content = typeof record.content === 'string' ? record.content : '';
+  if (!name || !content.trim()) return null;
+
+  const description = typeof record.description === 'string' ? record.description.trim() : '';
+  const id = typeof record.id === 'string' && record.id.trim() ? record.id.trim() : randomUUID();
+  const orderRaw = Number(record.order);
+  const order = Number.isFinite(orderRaw) ? Math.max(0, Math.trunc(orderRaw)) : fallbackOrder;
+  const isActive = typeof record.isActive === 'boolean' ? record.isActive : true;
+
+  return {
+    id,
+    name,
+    description,
+    tags: normalizeTags(record.tags),
+    content: content.slice(0, CHAT_AGENT_SKILL_CONTENT_MAX),
+    isActive,
+    order,
+  };
+}
+
+function normalizeSkills(value: unknown): ChatAgentSkill[] {
+  if (!Array.isArray(value)) return [];
+  const out: ChatAgentSkill[] = [];
+  value.forEach((entry, index) => {
+    const skill = normalizeSkillEntry(entry, index);
+    if (skill) out.push(skill);
+  });
+  return out.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'fr'));
+}
+
 export function normalizeChatAgentConfig(input: unknown): ChatAgentConfig {
   const record = asRecord(input);
   const rawKey = typeof record.memoryTargetKey === 'string' ? record.memoryTargetKey.trim() : '';
   return {
     memoryTargetKey: rawKey || DEFAULT_CONFIG.memoryTargetKey,
     moduleAccess: normalizeModuleAccess(record.moduleAccess),
+    skills: normalizeSkills(record.skills),
   };
 }
 

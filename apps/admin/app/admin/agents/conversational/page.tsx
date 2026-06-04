@@ -11,11 +11,12 @@ import {
   saveChatAgentConfig,
 } from '@/lib/admin-api'
 import type { SettingsByCategory, LlmProvider } from '@/lib/admin-api'
-import type { ChatAgentConfig, ChatAgentModule } from '@/types/agent'
+import type { ChatAgentConfig, ChatAgentModule, ChatAgentSkill } from '@/types/agent'
 import type { MemoryDefinition } from '@/types/memory'
 import { toastSuccess, toastError, toastLoadError } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { Toggle } from '@/components/admin/Toggle'
+import { SkillsEditor } from '@/components/admin/SkillsEditor'
 
 type ChatProvider = string
 
@@ -64,6 +65,12 @@ const DEFAULT_CHAT_AGENT_SETTINGS: ChatAgentSettings = {
 const DEFAULT_CHAT_AGENT_CONFIG: ChatAgentConfig = {
   memoryTargetKey: 'M_SMS',
   moduleAccess: { files: true, artistic_base: false, forbidden_rules: false, creation_options: true },
+  skills: [],
+}
+
+function createChatSkillId() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
+  return `chat_skill_${Date.now()}_${Math.random().toString(36).slice(2)}`
 }
 
 const MODULE_META: Record<ChatAgentModule, { label: string; description: string; icon: typeof Files }> = {
@@ -415,6 +422,25 @@ export default function ConversationalAgentPage() {
                 <p className="text-[11px] leading-4 text-amber-600">Cette clef n’existe pas dans MemoryDefinition. Créez-la dans /admin/memories ou choisissez-en une autre.</p>
               )}
             </label>
+          </section>
+
+          {/* Section 3bis — Compétences (.amd) */}
+          <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+            <SkillsEditor<ChatAgentSkill>
+              skills={chatConfig.skills ?? []}
+              onChange={(next) =>
+                setChatConfig((c) => ({ ...c, skills: next.map((s, i) => ({ ...s, order: i })) }))
+              }
+              newEntry={() => ({
+                id: createChatSkillId(),
+                name: '',
+                description: '',
+                tags: [],
+                content: '',
+                isActive: true,
+                order: 0,
+              })}
+            />
           </section>
 
           {/* Section 4 — Modules accessibles */}

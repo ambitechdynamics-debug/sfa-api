@@ -8,7 +8,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['src/middlewares/**', 'src/modules/users/**'],
+      include: [
+        'src/middlewares/**',
+        'src/modules/users/**',
+        'src/modules/agents/skills/**',
+      ],
     },
   },
 });

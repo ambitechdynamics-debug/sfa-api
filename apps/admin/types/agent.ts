@@ -3,6 +3,16 @@ import { MemoryDefinition } from './memory'
 export type AgentProvider = string
 export type AgentMemoryUsageType = 'INPUT' | 'OUTPUT' | 'BOTH'
 
+export interface AgentSkill {
+  id?: string
+  name: string
+  description?: string | null
+  tags: string[]
+  content: string
+  isActive: boolean
+  order: number
+}
+
 export interface AgentDefinition {
   id: string
   key: string
@@ -17,6 +27,8 @@ export interface AgentDefinition {
   createdAt: string
   updatedAt: string
   memoryLinksCount?: number
+  skillsCount?: number
+  skills?: AgentSkill[]
 }
 
 export interface AgentMemoryLink {
@@ -55,7 +67,18 @@ export interface ChatAgentModuleAccess {
   creation_options: boolean
 }
 
+export interface ChatAgentSkill {
+  id: string
+  name: string
+  description?: string
+  tags: string[]
+  content: string
+  isActive: boolean
+  order: number
+}
+
 export interface ChatAgentConfig {
   memoryTargetKey: string
   moduleAccess: ChatAgentModuleAccess
+  skills: ChatAgentSkill[]
 }
