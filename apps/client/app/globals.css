@@ -144,7 +144,12 @@
 
 /* ─── Base ──────────────────────────────────────────────────────────────────── */
 * { box-sizing: border-box; }
-html, body, #root { height: 100%; margin: 0; }
+html { height: 100%; margin: 0; }
+/* Use min-height instead of height: 100% on body so pages whose content is
+   taller than the viewport (mobile dashboard, long forms) can grow and scroll
+   naturally. Workspace screens that need a locked viewport set their own
+   height: 100% / 100vh on their wrapper. */
+body, #root { min-height: 100%; margin: 0; }
 body {
   background: var(--bg-0);
   color: var(--ink-0);
