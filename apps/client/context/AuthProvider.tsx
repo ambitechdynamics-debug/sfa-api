@@ -365,6 +365,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.replace(sanitizeNextPath(input.nextPath))
       return { success: true }
     } catch (err) {
+      // Clerk throws `session_exists` when the user is already signed in on
+      // this device. Instead of telling them to reload the page, transparently
+      // refresh our session state and route to nextPath.
+      const code = (err as { errors?: Array<{ code?: string }> })?.errors?.[0]?.code
+      if (code === "session_exists") {
+        const currentUser = await refreshSession()
+        if (currentUser) {
+          router.replace(sanitizeNextPath(input.nextPath))
+          return { success: true }
+        }
+      }
       const message = mapClerkSignInError(err)
       setStatus("anonymous")
       setError(message)
