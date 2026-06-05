@@ -102,6 +102,8 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
     }, 4000);
   };
 
+  const cloudinaryVideo = process.env.NEXT_PUBLIC_CLOUDINARY_HERO_VIDEO || '';
+
   return (
     <div className={`overflow-x-hidden ${isLightMode ? 'bg-[#FAF8F4] text-stone-900' : 'bg-[#0B0B0F] text-zinc-300'}`}>
       
@@ -109,6 +111,16 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
           2.0 HERO SECTION
           ==================================== */}
       <section className="relative min-h-screen pt-24 pb-16 flex flex-col justify-center overflow-hidden border-b border-white/5">
+        {cloudinaryVideo && (
+          <video
+            className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none z-0"
+            src={cloudinaryVideo}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        )}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.1),transparent_50%)] pointer-events-none" />
         
         {/* Dynamic decorative backdrop grid */}

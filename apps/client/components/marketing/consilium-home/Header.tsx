@@ -61,7 +61,7 @@ export default function Header({ onNavigate }: HeaderProps) {
                 CONSILIUM
               </span>
               <span className="text-[7.5px] font-mono tracking-[0.14em] text-[#9B9BA8] uppercase">
-                BY AMBITECH
+                Design
               </span>
             </div>
           </div>
@@ -85,7 +85,7 @@ export default function Header({ onNavigate }: HeaderProps) {
               onClick={() => onNavigate('app', { tab: 'projects' })}
               className="text-[13px] font-sans font-semibold px-2 py-1 hover:opacity-80 transition-opacity text-zinc-200"
             >
-              essai gratuit
+              Try for free
             </button>
 
             <button
@@ -93,7 +93,7 @@ export default function Header({ onNavigate }: HeaderProps) {
               className="relative group overflow-hidden px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-violet-600 via-magenta-600 to-amber-600 drop-shadow-[0_4px_12px_rgba(139,92,246,0.35)] hover:drop-shadow-[0_4px_16px_rgba(139,92,246,0.5)] transition-all duration-300 active:scale-95"
             >
               <span className="relative z-10 flex items-center gap-1">
-                Open app <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                Connect <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-amber-600 via-violet-600 to-magenta-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </button>
