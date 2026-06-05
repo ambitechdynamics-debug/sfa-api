@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Sparkles, Sliders, Palette, Layers, ArrowRight, Zap, Target, Shield, ChevronRight, 
+  Sparkles, Sliders, Layers, ArrowRight, Zap, Target, ChevronRight, 
   User, CheckCircle, Mail, Globe, HelpCircle, ChevronRightSquare, MessageSquare, Flame 
 } from 'lucide-react';
 import { DEFAULT_TEMPLATES } from './data/models';
@@ -403,47 +403,7 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
               <span className="text-xs text-[#9B9BA8]">STRUCTURED COMPOSITIONS</span>
             </div>
           </div>
-
-          {/* Bento Card 3: Brand space */}
-          <div className="md:col-span-6 bg-[#14141A] rounded-2xl border border-white/10 p-6 md:p-8 flex flex-col justify-between hover:border-cyan-500/20 transition-all group">
-            <div className="space-y-4">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
-                <Palette className="w-5 h-5" />
-              </div>
-              <h3 className="text-xl font-sans font-semibold text-white">Strict Brand Kit Respect</h3>
-              <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">
-                Upload palettes, contact details and logos once. AI agents analyze those assets and keep every generated variation aligned with your brand rules.
-              </p>
-            </div>
-
-            {/* Palette swatch simulator */}
-            <div className="flex gap-2.5 mt-6">
-              {['#8B5CF6', '#EC4899', '#F59E0B', '#22D3EE', '#0B0B0F'].map((color) => (
-                <div key={color} className="flex-1 flex flex-col gap-1">
-                  <div className="h-10 rounded-md border border-white/10" style={{ backgroundColor: color }} />
-                  <span className="text-[10px] text-zinc-500 font-mono text-center">{color}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bento Card 4: Security */}
-          <div className="md:col-span-6 bg-[#14141A] rounded-2xl border border-white/10 p-6 md:p-8 flex flex-col justify-between hover:border-amber-500/20 transition-all">
-            <div className="space-y-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                <Shield className="w-5 h-5" />
-              </div>
-              <h3 className="text-xl font-sans font-semibold text-white">EU Cloud & Encrypted Storage</h3>
-              <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">
-                Your communication projects stay confidential. Logos and saved work are stored securely on encrypted EU cloud infrastructure. No visual is used publicly without consent.
-              </p>
-            </div>
-
-            <div className="mt-8 flex items-center gap-2 text-[10px] font-mono text-zinc-500 uppercase bg-[#0B0B0F] p-2 rounded-lg border border-white/5">
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mr-1" />
-              <span>EU 2016/679 compliant</span>
-            </div>
-          </div>
+            {/* Brand space and Security cards removed per request */}
 
         </div>
 
