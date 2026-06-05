@@ -123,9 +123,10 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
               loop
               playsInline
             />
-            {/* 50 % brand-violet tint sitting on top of the blurred video,
-                under the decorative grid + content. */}
-            <div className="absolute inset-0 bg-violet-600/50 pointer-events-none z-[1]" />
+            {/* Brand-violet tint sitting on top of the blurred video, under
+                the decorative grid + content. Darker shade so the video
+                reads as a moody backdrop, not a flat purple wash. */}
+            <div className="absolute inset-0 bg-violet-900/60 pointer-events-none z-[1]" />
           </>
         )}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.1),transparent_50%)] pointer-events-none" />
