@@ -1,10 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Sparkles, Sliders, Layers, ArrowRight, Zap, Target, ChevronRight, 
-  User, CheckCircle, Mail, Globe, HelpCircle, ChevronRightSquare, MessageSquare, Flame 
+import { motion } from 'framer-motion';
+import {
+  Sparkles, Sliders, Layers, ArrowRight, Zap, Target, ChevronRight,
+  User, CheckCircle, Mail, Globe, HelpCircle, ChevronRightSquare, MessageSquare, Flame
 } from 'lucide-react';
 import { DEFAULT_TEMPLATES } from './data/models';
 import { Template } from './types';
+
+// Shared scroll-triggered animation applied to every landing section
+// EXCEPT the hero (which renders as a plain section element so it's
+// visible immediately on first paint).
+const sectionMotion = {
+  initial: { opacity: 0, y: 40 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.15 },
+  transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+};
 
 interface LandingPageProps {
   onNavigate: (tab: string, extra?: any) => void;
@@ -110,6 +121,7 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
       {/* ====================================
           2.0 HERO SECTION
           ==================================== */}
+      {/* Hero — intentionally NOT a motion.section: visible immediately. */}
       <section className="relative min-h-screen pt-24 pb-16 flex flex-col justify-center overflow-hidden border-b border-white/5">
         {cloudinaryVideo && (
           <>
@@ -321,7 +333,7 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
       {/* ====================================
           2.1 CLIENT MARQUEE BANNER
           ==================================== */}
-      <section className="bg-zinc-950/60 border-y border-white/5 py-8 overflow-hidden select-none">
+      <motion.section {...sectionMotion} className="bg-zinc-950/60 border-y border-white/5 py-8 overflow-hidden select-none">
         <div className="max-w-7xl mx-auto px-4 text-center mb-4">
           <p className="text-[10px] font-mono tracking-[0.18em] text-zinc-500 uppercase">
             They create refined designs with Consilium tools
@@ -337,12 +349,12 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
             </div>
           ))}
         </div>
-      </section>
+      </motion.section>
 
       {/* ====================================
           2.2 WHY CONSILIUM (BENTO GRID)
           ==================================== */}
-      <section id="why-section" className="py-24 max-w-7xl mx-auto px-4 md:px-8">
+      <motion.section {...sectionMotion} id="why-section" className="py-24 max-w-7xl mx-auto px-4 md:px-8">
         
         {/* Section Header */}
         <div className="text-left max-w-3xl space-y-4 mb-16">
@@ -412,12 +424,12 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
 
         </div>
 
-      </section>
+      </motion.section>
 
       {/* ====================================
           2.3 INTERACTIVE MODEL LIBRARY
           ==================================== */}
-      <section id="models-section" className="py-24 bg-zinc-950/40 border-y border-white/5">
+      <motion.section {...sectionMotion} id="models-section" className="py-24 bg-zinc-950/40 border-y border-white/5">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           
           {/* Title Area */}
@@ -523,12 +535,12 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
           </div>
 
         </div>
-      </section>
+      </motion.section>
 
       {/* ====================================
           2.4 SEGMENTS
           ==================================== */}
-      <section id="how-it-works-section" className="py-24 max-w-7xl mx-auto px-4 md:px-8">
+      <motion.section {...sectionMotion} id="how-it-works-section" className="py-24 max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           
           {/* Freelancers / creators card */}
@@ -607,14 +619,14 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
           </div>
 
         </div>
-      </section>
+      </motion.section>
 
       {/* HOW IT WORKS section removed */}
 
       {/* ====================================
           2.6 PRICING
           ==================================== */}
-      <section id="pricing-section" className="py-24 max-w-7xl mx-auto px-4 md:px-8">
+      <motion.section {...sectionMotion} id="pricing-section" className="py-24 max-w-7xl mx-auto px-4 md:px-8">
         
         {/* Header Section (removed) */}
         <div className="text-center space-y-4 mb-12">
@@ -743,12 +755,12 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
 
         </div>
 
-      </section>
+      </motion.section>
 
       {/* ====================================
           2.7 TESTIMONIALS
           ==================================== */}
-      <section className="py-24 bg-zinc-950/40 border-y border-white/5">
+      <motion.section {...sectionMotion} className="py-24 bg-zinc-950/40 border-y border-white/5">
         <div className="max-w-7xl mx-auto px-4 md:px-8 text-center space-y-12">
           
           <div className="text-left max-w-2xl space-y-3">
@@ -796,12 +808,12 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
           </div>
 
         </div>
-      </section>
+      </motion.section>
 
       {/* ====================================
           2.8 CONTACT FORM (WITH ANIMATED SUCCESS CHECKBOX)
           ==================================== */}
-      <section id="contact-section" className="py-24 max-w-4xl mx-auto px-4">
+      <motion.section {...sectionMotion} id="contact-section" className="py-24 max-w-4xl mx-auto px-4">
         
         <div className="bg-[#14141A] rounded-2xl border border-white/10 p-8 text-left space-y-6 relative shadow-2xl overflow-hidden">
           
@@ -891,12 +903,12 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
 
         </div>
 
-      </section>
+      </motion.section>
 
       {/* ====================================
           2.9 FINAL CALL TO ACTION (CTA)
           ==================================== */}
-      <section className="py-28 relative overflow-hidden bg-[radial-gradient(ellipse_at_bottom,rgba(139,92,246,0.12),transparent_60%)] border-t border-white/5">
+      <motion.section {...sectionMotion} className="py-28 relative overflow-hidden bg-[radial-gradient(ellipse_at_bottom,rgba(139,92,246,0.12),transparent_60%)] border-t border-white/5">
         <div className="max-w-4xl mx-auto px-4 text-center space-y-8 relative z-10">
           
           <div className="inline-flex p-3 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/25 animate-bounce mb-2">
@@ -935,7 +947,7 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
           </div>
 
         </div>
-      </section>
+      </motion.section>
 
     </div>
   );
