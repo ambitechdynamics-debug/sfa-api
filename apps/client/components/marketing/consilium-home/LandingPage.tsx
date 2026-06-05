@@ -126,7 +126,7 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
             {/* Brand-violet tint sitting on top of the blurred video, under
                 the decorative grid + content. Darker shade so the video
                 reads as a moody backdrop, not a flat purple wash. */}
-            <div className="absolute inset-0 bg-violet-900/60 pointer-events-none z-[1]" />
+            <div className="absolute inset-0 bg-violet-900/75 pointer-events-none z-[1]" />
           </>
         )}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.1),transparent_50%)] pointer-events-none" />
@@ -644,54 +644,7 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
         </div>
       </section>
 
-      {/* ====================================
-          2.5 HOW IT WORKS (3 STEPS & AGENTS DESIGN)
-          ==================================== */}
-      <section className="py-24 bg-zinc-950/40 border-y border-white/5">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 text-center space-y-12">
-          
-          <div className="text-left max-w-2xl space-y-3 mb-12">
-            <h2 className="text-3xl md:text-5xl font-sans font-semibold text-white tracking-tight">
-              Three steps. <span className="font-serif italic font-normal text-amber-100">Nothing extra</span>.
-            </h2>
-            <p className="text-zinc-400 text-xs md:text-sm">
-              This is how the prism workflow structures your campaign-ready visuals.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-            
-            {/* Step 1 */}
-            <div className="space-y-4">
-              <span className="text-4xl md:text-5xl font-mono font-bold text-zinc-700 block">01</span>
-              <h3 className="text-lg font-sans font-semibold text-white">Prepare the creative intent</h3>
-              <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">
-                Describe the visual in the chat workspace. AI structures the information, suggests inspiration keywords and prepares format and typography defaults.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="space-y-4">
-              <span className="text-4xl md:text-5xl font-mono font-bold text-zinc-700 block text-violet-500">02</span>
-              <h3 className="text-lg font-sans font-semibold text-white">AI agents start composing</h3>
-              <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">
-                Collaborative agents handle structure, brand analysis, prompt design and alignment to produce balanced directions.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="space-y-4">
-              <span className="text-4xl md:text-5xl font-mono font-bold text-zinc-700 block text-cyan-400">03</span>
-              <h3 className="text-lg font-sans font-semibold text-white">Free editing & HD export</h3>
-              <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">
-                Select a composition, refine copy and move badges in the canvas editor before downloading print-ready files.
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
+      {/* HOW IT WORKS section removed */}
 
       {/* ====================================
           2.6 PRICING
