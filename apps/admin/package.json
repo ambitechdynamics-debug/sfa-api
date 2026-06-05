@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.39.5",
     "@hookform/resolvers": "^5.2.2",
     "@types/js-yaml": "^4.0.9",
     "clsx": "^2.1.1",

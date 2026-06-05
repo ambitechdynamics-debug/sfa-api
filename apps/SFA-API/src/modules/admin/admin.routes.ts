@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { authMiddleware } from '../../middlewares/auth.middleware';
+import { adminJwtMiddleware } from '../../middlewares/adminJwt.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import { adminController } from './admin.controller';
 import {
@@ -24,7 +24,9 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 
 const router = Router();
 
-router.use(authMiddleware);
+// Admin routes are gated by the email+password JWT (see auth.service.ts +
+// adminJwt.middleware.ts). End-user identity (Clerk) is NOT accepted here.
+router.use(adminJwtMiddleware);
 router.use(requireAdmin);
 
 // ─── LLM Providers ──────────────────────────────────────────────────────────

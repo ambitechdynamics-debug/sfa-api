@@ -52,11 +52,25 @@ const envSchema = z.object({
     z.string().min(1).default('http://localhost:3000')
   ),
 
-  // Clerk is the single authentication provider. The frontend sends Clerk
-  // session JWTs in Authorization headers; the API verifies them with
-  // @clerk/backend in auth.middleware.ts.
+  // Clerk is the authentication provider for the end-user client app
+  // (apps/client). The admin dashboard (apps/admin) uses a separate
+  // email+password flow signed with ADMIN_JWT_SECRET — see auth.middleware.ts
+  // (Clerk) and adminJwt.middleware.ts (admin JWT).
   CLERK_SECRET_KEY: requiredInProduction('CLERK_SECRET_KEY'),
   CLERK_PUBLISHABLE_KEY: emptyToUndefined,
+
+  // Admin auth (email + password → JWT). Distinct from Clerk so the admin
+  // dashboard can sign in without going through the user identity provider.
+  ADMIN_JWT_SECRET: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    process.env.NODE_ENV === 'production'
+      ? z.string().min(32, 'ADMIN_JWT_SECRET must be at least 32 chars in production')
+      : z.string().min(8).default('local-dev-admin-jwt-secret-please-change')
+  ),
+  ADMIN_JWT_EXPIRES_IN: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().min(1).default('12h')
+  ),
 
   // AI Providers — NB : ces variables ne sont plus lues au runtime (la source
   // unique est AppSetting, configurable dans /admin/settings). Conservées

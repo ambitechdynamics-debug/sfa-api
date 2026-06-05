@@ -6,49 +6,37 @@ const API_URL = (
   (process.env.NODE_ENV !== 'production' ? 'http://localhost:5000' : '')
 ).replace(/\/+$/, '')
 
+const TOKEN_STORAGE_KEY = 'admin-jwt-token'
+
 type ApiResponse<T> = {
   success?: boolean
   message?: string
   data?: T
 }
 
-type ClerkLike = {
-  session?: {
-    getToken: (options?: { skipCache?: boolean }) => Promise<string | null>
-  } | null
-  signOut?: () => Promise<unknown>
+/**
+ * Admin auth uses a backend-issued JWT (email + password against the User
+ * table). The token is stored in localStorage and attached as `Bearer` to
+ * every admin API call.
+ *
+ * NOTE: localStorage is XSS-exposed. The trade-off here matches the existing
+ * setup (single-page admin app, no SSR for /admin pages) and the alternative
+ * (HttpOnly cookies) requires CORS credentials + SameSite tuning beyond this
+ * change set.
+ */
+export function getToken(): string {
+  if (typeof window === 'undefined') return ''
+  return window.localStorage.getItem(TOKEN_STORAGE_KEY) ?? ''
 }
 
-const TOKEN_WAIT_STEP_MS = 250
-
-function getClerk(): ClerkLike | undefined {
-  if (typeof window === 'undefined') return undefined
-  return (window as unknown as { Clerk?: ClerkLike }).Clerk
+export function setToken(token: string): void {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(TOKEN_STORAGE_KEY, token)
 }
 
-function delay(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms))
-}
-
-export async function getToken(options?: { skipCache?: boolean }): Promise<string> {
-  const clerk = getClerk()
-  if (!clerk?.session) return ''
-
-  try {
-    return (await clerk.session.getToken(options)) ?? ''
-  } catch {
-    return ''
-  }
-}
-
-async function waitForToken(timeoutMs: number): Promise<string> {
-  const deadline = Date.now() + timeoutMs
-  while (true) {
-    const token = await getToken()
-    if (token) return token
-    if (Date.now() >= deadline) return ''
-    await delay(Math.min(TOKEN_WAIT_STEP_MS, Math.max(0, deadline - Date.now())))
-  }
+export function clearSession(): void {
+  if (typeof window === 'undefined') return
+  window.localStorage.removeItem(TOKEN_STORAGE_KEY)
 }
 
 async function requestApi<T>(path: string, options?: RequestInit): Promise<T> {
@@ -56,26 +44,17 @@ async function requestApi<T>(path: string, options?: RequestInit): Promise<T> {
     throw new AdminApiError('URL API manquante. Configurez NEXT_PUBLIC_API_URL.', 0)
   }
 
-  const send = async (token: string) => fetch(`${API_URL}${path}`, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      ...(options?.headers ?? {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  })
-
+  const token = getToken()
   let res: Response
   try {
-    const token = await waitForToken(15_000)
-    res = await send(token)
-
-    if (res.status === 401 || res.status === 403) {
-      const refreshedToken = await getToken({ skipCache: true })
-      if (refreshedToken && refreshedToken !== token) {
-        res = await send(refreshedToken)
-      }
-    }
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options?.headers ?? {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
   } catch {
     throw new AdminApiError('API indisponible. Vérifiez que le serveur backend est lancé.', 0)
   }
@@ -89,23 +68,27 @@ async function requestApi<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function getMe(): Promise<AdminUser> {
-  return requestApi<AdminUser>('/api/users/me')
+  return requestApi<AdminUser>('/api/auth/admin/me')
+}
+
+export interface AdminLoginResponse {
+  token: string
+  user: AdminUser
+}
+
+export async function loginAdmin(email: string, password: string): Promise<AdminLoginResponse> {
+  const result = await requestApi<AdminLoginResponse>('/api/auth/admin/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  })
+  setToken(result.token)
+  return result
 }
 
 export async function logoutAdmin(): Promise<void> {
-  const clerk = getClerk()
-  try {
-    await clerk?.signOut?.()
-  } catch {
-    /* noop */
-  }
+  clearSession()
 }
 
 export function isAdmin(user: AdminUser | null): boolean {
   return user?.role === 'ADMIN'
-}
-
-export function clearSession() {
-  // Clerk owns the browser session; this function is retained for existing
-  // invalid-auth call sites.
 }

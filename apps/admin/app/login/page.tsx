@@ -3,78 +3,33 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { useClerk, useSignIn } from '@clerk/nextjs'
-import { getMe } from '@/lib/auth'
+import { loginAdmin } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 
 /**
  * Admin sign-in page.
- * Authentication is handled by Clerk. The backend only accepts Clerk session
- * tokens, then checks the local User row for ADMIN privileges.
+ * Authenticates against POST /api/auth/admin/login (email + password).
+ * The backend validates the bcrypt hash on User.password, ensures the role
+ * is ADMIN, and returns a JWT signed with ADMIN_JWT_SECRET.
  */
 export default function LoginPage() {
   const router = useRouter()
-  const { signOut } = useClerk()
-  const { isLoaded: signInLoaded, signIn, setActive } = useSignIn()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  function getErrorMessage(value: unknown) {
-    return value instanceof Error ? value.message : String(value)
-  }
-
-  function mapClerkError(value: unknown) {
-    const error = value as { errors?: Array<{ code?: string; message?: string }>; message?: string } | undefined
-    const first = error?.errors?.[0]
-    switch (first?.code) {
-      case 'form_identifier_not_found':
-      case 'form_password_incorrect':
-        return 'Email ou mot de passe incorrect.'
-      case 'form_param_format_invalid':
-      case 'form_param_nil':
-        return "Format d'email ou de mot de passe invalide."
-      case 'session_exists':
-        return 'Une session est déjà active. Rechargez la page.'
-      default:
-        return first?.message || error?.message || getErrorMessage(value)
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setIsLoading(true)
     try {
-      if (!signInLoaded || !signIn || !setActive) {
-        setError("Service d'authentification non prêt. Réessayez dans une seconde.")
-        return
-      }
-
-      const result = await signIn.create({
-        identifier: email.trim(),
-        password,
-      })
-
-      if (result.status !== 'complete' || !result.createdSessionId) {
-        setError('Authentification incomplète. Vérification supplémentaire requise.')
-        return
-      }
-
-      await setActive({ session: result.createdSessionId })
-
-      const profile = await getMe()
-      if (profile.role !== 'ADMIN') {
-        await signOut()
-        setError("Ce compte n'a pas les droits administrateur.")
-        return
-      }
-
+      await loginAdmin(email.trim(), password)
       router.replace('/admin')
     } catch (e: unknown) {
-      setError(mapClerkError(e))
+      const message = e instanceof Error ? e.message : "Erreur de connexion."
+      setError(message)
     } finally {
       setIsLoading(false)
     }
@@ -97,7 +52,6 @@ export default function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-sm">
-        {/* Card */}
         <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-7 shadow-2xl">
           {error && (
             <div role="alert" className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 mb-4">
