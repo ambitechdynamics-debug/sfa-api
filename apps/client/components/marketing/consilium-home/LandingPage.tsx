@@ -643,9 +643,6 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
         <div className="max-w-7xl mx-auto px-4 md:px-8 text-center space-y-12">
           
           <div className="text-left max-w-2xl space-y-3 mb-12">
-            <p className="text-xs font-mono text-violet-400 tracking-[0.15em] font-bold uppercase">
-              ● HOW IT WORKS
-            </p>
             <h2 className="text-3xl md:text-5xl font-sans font-semibold text-white tracking-tight">
               Three steps. <span className="font-serif italic font-normal text-amber-100">Nothing extra</span>.
             </h2>
@@ -693,17 +690,9 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
           ==================================== */}
       <section id="pricing-section" className="py-24 max-w-7xl mx-auto px-4 md:px-8">
         
-        {/* Header Section */}
+        {/* Header Section (removed) */}
         <div className="text-center space-y-4 mb-12">
-          <p className="text-xs font-mono text-violet-400 tracking-[0.15em] font-bold uppercase">
-            ● PRICING
-          </p>
-          <h2 className="text-3xl md:text-5xl font-sans font-semibold text-white tracking-tight">
-            Simple plans. No <span className="font-serif italic font-normal text-amber-100">hidden fees</span>.
-          </h2>
-          <p className="text-zinc-400 text-xs md:text-sm max-w-md mx-auto">
-            Keep clear traceability across your visuals, exports and brand work.
-          </p>
+          {/* Pricing header removed per request */}
 
           {/* Toggle morphing periodizer */}
           <div className="inline-flex items-center gap-1.5 bg-[#14141A] border border-white/5 p-1 rounded-full mt-4">
