@@ -112,6 +112,9 @@ const ROUTE_MOUNTS = [
   { path: '',                handler: filesRoutes },
   { path: '/admin/settings', handler: settingsRoutes }, // AVANT /admin
   { path: '/admin',          handler: adminRoutes },
+  // Fresh mount points (no prior runtime cache) — admin frontend hits these.
+  { path: '/admin-v2/settings', handler: settingsRoutes },
+  { path: '/admin-v2',          handler: adminRoutes },
   { path: '/ux-metrics',     handler: uxMetricsRoutes },
   { path: '/metrics',        handler: metricsRoutes },
   { path: '/chat',           handler: chatRoutes },

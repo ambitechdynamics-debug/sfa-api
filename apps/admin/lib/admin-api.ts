@@ -69,18 +69,18 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 // ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
 export async function fetchSubscriptions(): Promise<SubscriptionPlan[]> {
-  return apiFetch('/api/admin/subscriptions')
+  return apiFetch('/api/admin-v2/subscriptions')
 }
 
 export async function updateSubscription(
   planId: string,
   data: Partial<Pick<SubscriptionPlan, 'price' | 'credits' | 'maxProjects'>>,
 ): Promise<SubscriptionPlan> {
-  return apiFetch(`/api/admin/subscriptions/${planId}`, { method: 'PATCH', body: JSON.stringify(data) })
+  return apiFetch(`/api/admin-v2/subscriptions/${planId}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
 export async function cancelSubscription(subscriptionId: string) {
-  return apiFetch(`/api/admin/stripe/subscriptions/${subscriptionId}/cancel`, { method: 'POST' })
+  return apiFetch(`/api/admin-v2/stripe/subscriptions/${subscriptionId}/cancel`, { method: 'POST' })
 }
 
 // ==========================================
@@ -113,7 +113,7 @@ export async function deleteCreationOption(id: string) {
 
 // ─── STATS ────────────────────────────────────────────────────────────────────
 export async function fetchStats(): Promise<AdminStats> {
-  return apiFetch('/api/admin/stats')
+  return apiFetch('/api/admin-v2/stats')
 }
 
 export interface ChartDataPoint {
@@ -125,16 +125,16 @@ export interface ChartDataPoint {
 }
 
 export async function fetchChartData(): Promise<ChartDataPoint[]> {
-  return apiFetch('/api/admin/chart-data')
+  return apiFetch('/api/admin-v2/chart-data')
 }
 
 // ─── USERS ────────────────────────────────────────────────────────────────────
 export async function fetchUsers(): Promise<AdminUser[]> {
-  return apiFetch('/api/admin/users')
+  return apiFetch('/api/admin-v2/users')
 }
 
 export async function updateUserCredits(userId: string, amount: number, reason: string): Promise<AdminUser> {
-  return apiFetch(`/api/admin/users/${userId}/credits`, {
+  return apiFetch(`/api/admin-v2/users/${userId}/credits`, {
     method: 'POST',
     body: JSON.stringify({ amount, reason }),
   })
@@ -142,78 +142,78 @@ export async function updateUserCredits(userId: string, amount: number, reason: 
 
 // ─── PROJECTS ─────────────────────────────────────────────────────────────────
 export async function fetchProjects(): Promise<AdminProject[]> {
-  return apiFetch('/api/admin/projects')
+  return apiFetch('/api/admin-v2/projects')
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  return apiFetch(`/api/admin/projects/${id}`, { method: 'DELETE' })
+  return apiFetch(`/api/admin-v2/projects/${id}`, { method: 'DELETE' })
 }
 
 export async function deleteUser(id: string): Promise<void> {
-  return apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' })
+  return apiFetch(`/api/admin-v2/users/${id}`, { method: 'DELETE' })
 }
 
 // ─── AGENTS ───────────────────────────────────────────────────────────────────
 export async function fetchAgents(): Promise<AgentDefinition[]> {
-  return apiFetch('/api/admin/agent-definitions')
+  return apiFetch('/api/admin-v2/agent-definitions')
 }
 
 export async function createAgent(data: Partial<AgentDefinition>): Promise<AgentDefinition> {
-  return apiFetch('/api/admin/agent-definitions', { method: 'POST', body: JSON.stringify(data) })
+  return apiFetch('/api/admin-v2/agent-definitions', { method: 'POST', body: JSON.stringify(data) })
 }
 
 export async function updateAgent(id: string, data: Partial<AgentDefinition>): Promise<AgentDefinition> {
-  return apiFetch(`/api/admin/agent-definitions/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  return apiFetch(`/api/admin-v2/agent-definitions/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
 export async function deleteAgent(id: string): Promise<void> {
-  return apiFetch(`/api/admin/agent-definitions/${id}`, { method: 'DELETE' })
+  return apiFetch(`/api/admin-v2/agent-definitions/${id}`, { method: 'DELETE' })
 }
 
 // ─── MEMORIES ─────────────────────────────────────────────────────────────────
 export async function fetchMemories(): Promise<MemoryDefinition[]> {
-  return apiFetch('/api/admin/memory-definitions')
+  return apiFetch('/api/admin-v2/memory-definitions')
 }
 
 export async function createMemory(data: Partial<MemoryDefinition>): Promise<MemoryDefinition> {
-  return apiFetch('/api/admin/memory-definitions', { method: 'POST', body: JSON.stringify(data) })
+  return apiFetch('/api/admin-v2/memory-definitions', { method: 'POST', body: JSON.stringify(data) })
 }
 
 export async function updateMemory(id: string, data: Partial<MemoryDefinition>): Promise<MemoryDefinition> {
-  return apiFetch(`/api/admin/memory-definitions/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  return apiFetch(`/api/admin-v2/memory-definitions/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
 export async function deleteMemory(id: string): Promise<void> {
-  return apiFetch(`/api/admin/memory-definitions/${id}`, { method: 'DELETE' })
+  return apiFetch(`/api/admin-v2/memory-definitions/${id}`, { method: 'DELETE' })
 }
 
 // ─── AGENT MEMORY LINKS ───────────────────────────────────────────────────────
 export async function fetchAgentMemoryLinks(): Promise<AgentMemoryLink[]> {
-  return apiFetch('/api/admin/agent-memory-links')
+  return apiFetch('/api/admin-v2/agent-memory-links')
 }
 
 export async function createAgentMemoryLink(data: Partial<AgentMemoryLink>): Promise<AgentMemoryLink> {
-  return apiFetch('/api/admin/agent-memory-links', { method: 'POST', body: JSON.stringify(data) })
+  return apiFetch('/api/admin-v2/agent-memory-links', { method: 'POST', body: JSON.stringify(data) })
 }
 
 export async function deleteAgentMemoryLink(id: string): Promise<void> {
-  return apiFetch(`/api/admin/agent-memory-links/${id}`, { method: 'DELETE' })
+  return apiFetch(`/api/admin-v2/agent-memory-links/${id}`, { method: 'DELETE' })
 }
 
 // ─── ORCHESTRATOR PIPELINE ───────────────────────────────────────────────────
 export async function fetchOrchestratorPipeline(): Promise<OrchestratorPipelinePayload> {
-  return apiFetch('/api/admin/orchestrator-pipeline')
+  return apiFetch('/api/admin-v2/orchestrator-pipeline')
 }
 
 export async function saveOrchestratorPipeline(config: OrchestratorPipelineConfig): Promise<OrchestratorPipelinePayload> {
-  return apiFetch('/api/admin/orchestrator-pipeline', {
+  return apiFetch('/api/admin-v2/orchestrator-pipeline', {
     method: 'PUT',
     body: JSON.stringify(config),
   })
 }
 
 export async function resetOrchestratorPipeline(): Promise<OrchestratorPipelinePayload> {
-  return apiFetch('/api/admin/orchestrator-pipeline/reset', {
+  return apiFetch('/api/admin-v2/orchestrator-pipeline/reset', {
     method: 'POST',
     body: '{}',
   })
@@ -221,11 +221,11 @@ export async function resetOrchestratorPipeline(): Promise<OrchestratorPipelineP
 
 // ─── CHAT AGENT CONFIG ────────────────────────────────────────────────────────
 export async function fetchChatAgentConfig(): Promise<ChatAgentConfig> {
-  return apiFetch('/api/admin/chat-agent-config')
+  return apiFetch('/api/admin-v2/chat-agent-config')
 }
 
 export async function saveChatAgentConfig(config: ChatAgentConfig): Promise<ChatAgentConfig> {
-  return apiFetch('/api/admin/chat-agent-config', {
+  return apiFetch('/api/admin-v2/chat-agent-config', {
     method: 'PUT',
     body: JSON.stringify(config),
   })
@@ -240,11 +240,11 @@ export interface ArtisticVisionConfig {
 }
 
 export async function fetchArtisticVisionConfig(): Promise<ArtisticVisionConfig> {
-  return apiFetch('/api/admin/artistic-vision-config')
+  return apiFetch('/api/admin-v2/artistic-vision-config')
 }
 
 export async function saveArtisticVisionConfig(config: ArtisticVisionConfig): Promise<ArtisticVisionConfig> {
-  return apiFetch('/api/admin/artistic-vision-config', {
+  return apiFetch('/api/admin-v2/artistic-vision-config', {
     method: 'PUT',
     body: JSON.stringify(config),
   })
@@ -258,7 +258,7 @@ export async function fetchArtisticResources(): Promise<ArtisticResource[]> {
 }
 
 export async function createArtisticResource(data: Partial<ArtisticResource>): Promise<ArtisticResource> {
-  return apiFetch('/api/admin/artistic-resources', { method: 'POST', body: JSON.stringify(data) })
+  return apiFetch('/api/admin-v2/artistic-resources', { method: 'POST', body: JSON.stringify(data) })
 }
 
 /**
@@ -281,7 +281,7 @@ export async function uploadArtisticResourceImage(
   // Use XMLHttpRequest for upload progress support
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    xhr.open('POST', `${API_URL}/api/admin/artistic-resources/upload-image`)
+    xhr.open('POST', `${API_URL}/api/admin-v2/artistic-resources/upload-image`)
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
 
     xhr.upload.onprogress = (evt) => {
@@ -339,7 +339,7 @@ export async function bulkUploadAnalyzeCreateArtisticResources(
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    xhr.open('POST', `${API_URL}/api/admin/artistic-resources/bulk-upload-analyze-create`)
+    xhr.open('POST', `${API_URL}/api/admin-v2/artistic-resources/bulk-upload-analyze-create`)
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
 
     xhr.upload.onprogress = (evt) => {
@@ -367,11 +367,11 @@ export async function bulkUploadAnalyzeCreateArtisticResources(
 }
 
 export async function updateArtisticResource(id: string, data: Partial<ArtisticResource>): Promise<ArtisticResource> {
-  return apiFetch(`/api/admin/artistic-resources/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  return apiFetch(`/api/admin-v2/artistic-resources/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
 export async function deleteArtisticResource(id: string): Promise<void> {
-  return apiFetch(`/api/admin/artistic-resources/${id}`, { method: 'DELETE' })
+  return apiFetch(`/api/admin-v2/artistic-resources/${id}`, { method: 'DELETE' })
 }
 
 export async function analyzeArtisticResourceImage(
@@ -379,7 +379,7 @@ export async function analyzeArtisticResourceImage(
   providerId: string,
   model: string
 ): Promise<Partial<ArtisticResource>> {
-  return apiFetch('/api/admin/artistic-resources/analyze-image', {
+  return apiFetch('/api/admin-v2/artistic-resources/analyze-image', {
     method: 'POST',
     body: JSON.stringify({
       providerId,
@@ -403,35 +403,35 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
 }
 
 export async function fetchForbiddenRules(filters: ForbiddenRulesFilters = {}): Promise<ForbiddenRulesPaginated> {
-  return apiFetch(`/api/admin/forbidden-rules${buildQuery(filters as Record<string, string | number | boolean | undefined>)}`)
+  return apiFetch(`/api/admin-v2/forbidden-rules${buildQuery(filters as Record<string, string | number | boolean | undefined>)}`)
 }
 
 export async function fetchForbiddenRuleById(id: string): Promise<ForbiddenRule> {
-  return apiFetch(`/api/admin/forbidden-rules/${id}`)
+  return apiFetch(`/api/admin-v2/forbidden-rules/${id}`)
 }
 
 export async function createForbiddenRule(data: Partial<ForbiddenRule>): Promise<ForbiddenRule> {
-  return apiFetch('/api/admin/forbidden-rules', { method: 'POST', body: JSON.stringify(data) })
+  return apiFetch('/api/admin-v2/forbidden-rules', { method: 'POST', body: JSON.stringify(data) })
 }
 
 export async function updateForbiddenRule(id: string, data: Partial<ForbiddenRule>): Promise<ForbiddenRule> {
-  return apiFetch(`/api/admin/forbidden-rules/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  return apiFetch(`/api/admin-v2/forbidden-rules/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
 export async function deleteForbiddenRule(id: string): Promise<void> {
-  return apiFetch(`/api/admin/forbidden-rules/${id}`, { method: 'DELETE' })
+  return apiFetch(`/api/admin-v2/forbidden-rules/${id}`, { method: 'DELETE' })
 }
 
 export async function toggleForbiddenRule(id: string): Promise<ForbiddenRule> {
-  return apiFetch(`/api/admin/forbidden-rules/${id}/toggle`, { method: 'POST' })
+  return apiFetch(`/api/admin-v2/forbidden-rules/${id}/toggle`, { method: 'POST' })
 }
 
 export async function syncForbiddenRulesToMemory(): Promise<{ definitionId: string; entryId: string | null; ruleCount: number }> {
-  return apiFetch('/api/admin/forbidden-rules/sync-memory', { method: 'POST' })
+  return apiFetch('/api/admin-v2/forbidden-rules/sync-memory', { method: 'POST' })
 }
 
 export async function seedForbiddenRules(): Promise<{ created: number; skipped: number }> {
-  return apiFetch('/api/admin/forbidden-rules/seed', { method: 'POST' })
+  return apiFetch('/api/admin-v2/forbidden-rules/seed', { method: 'POST' })
 }
 
 export async function buildForbiddenNegativePrompt(): Promise<{ negative_prompt: string }> {
@@ -440,29 +440,29 @@ export async function buildForbiddenNegativePrompt(): Promise<{ negative_prompt:
 
 // ─── GENERATED POSTERS ────────────────────────────────────────────────────────
 export async function fetchGeneratedPosters(): Promise<GeneratedPoster[]> {
-  return apiFetch('/api/admin/generated-posters')
+  return apiFetch('/api/admin-v2/generated-posters')
 }
 
 export async function deleteGeneratedPoster(id: string): Promise<void> {
-  return apiFetch(`/api/admin/generated-posters/${id}`, { method: 'DELETE' })
+  return apiFetch(`/api/admin-v2/generated-posters/${id}`, { method: 'DELETE' })
 }
 
 export async function updateGeneratedPoster(id: string, data: Partial<GeneratedPoster>): Promise<GeneratedPoster> {
-  return apiFetch(`/api/admin/generated-posters/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  return apiFetch(`/api/admin-v2/generated-posters/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
 // ─── FILES ────────────────────────────────────────────────────────────────────
 export async function fetchFiles(): Promise<FileAsset[]> {
-  return apiFetch('/api/admin/files')
+  return apiFetch('/api/admin-v2/files')
 }
 
 export async function deleteFile(id: string): Promise<void> {
-  return apiFetch(`/api/admin/files/${id}`, { method: 'DELETE' })
+  return apiFetch(`/api/admin-v2/files/${id}`, { method: 'DELETE' })
 }
 
 // ─── PROMPTS ──────────────────────────────────────────────────────────────────
 export async function fetchPrompts(): Promise<FinalPrompt[]> {
-  const entries = await apiFetch<FinalPrompt[]>('/api/admin/prompts')
+  const entries = await apiFetch<FinalPrompt[]>('/api/admin-v2/prompts')
   // Normalize: expose content fields at top level for convenience
   return entries.map((e) => ({
     ...e,
@@ -475,25 +475,25 @@ export async function fetchPrompts(): Promise<FinalPrompt[]> {
 
 // ─── PAYMENTS ─────────────────────────────────────────────────────────────────
 export async function fetchPayments(): Promise<Payment[]> {
-  return apiFetch('/api/admin/payments')
+  return apiFetch('/api/admin-v2/payments')
 }
 
 export async function refundPayment(id: string): Promise<Payment> {
-  return apiFetch(`/api/admin/payments/${id}/refund`, { method: 'POST' })
+  return apiFetch(`/api/admin-v2/payments/${id}/refund`, { method: 'POST' })
 }
 
 export async function verifyPayment(id: string): Promise<Payment> {
-  return apiFetch(`/api/admin/payments/${id}/verify`, { method: 'POST' })
+  return apiFetch(`/api/admin-v2/payments/${id}/verify`, { method: 'POST' })
 }
 
 // ─── CREDITS ──────────────────────────────────────────────────────────────────
 export async function fetchCreditTransactions(): Promise<CreditTransaction[]> {
-  return apiFetch('/api/admin/credits')
+  return apiFetch('/api/admin-v2/credits')
 }
 
 // ─── AGENT RUNS ───────────────────────────────────────────────────────────────
 export async function fetchAgentRuns(): Promise<AgentRunRecord[]> {
-  return apiFetch('/api/admin/agent-runs')
+  return apiFetch('/api/admin-v2/agent-runs')
 }
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
@@ -511,17 +511,17 @@ export type SettingsByCategory = Record<string, AppSetting[]>
 
 /** Fetch all settings grouped by category */
 export async function fetchSettings(): Promise<SettingsByCategory> {
-  return apiFetch('/api/admin/settings')
+  return apiFetch('/api/admin-v2/settings')
 }
 
 /** Fetch settings for a single category */
 export async function fetchSettingsByCategory(category: string): Promise<AppSetting[]> {
-  return apiFetch(`/api/admin/settings/category/${category}`)
+  return apiFetch(`/api/admin-v2/settings/category/${category}`)
 }
 
 /** Bulk save settings — only sends changed keys */
 export async function saveSettings(settings: { key: string; value: string; category?: string; isSecret?: boolean }[]): Promise<AppSetting[]> {
-  return apiFetch('/api/admin/settings', {
+  return apiFetch('/api/admin-v2/settings', {
     method: 'PUT',
     body: JSON.stringify({ settings }),
   })
@@ -529,12 +529,12 @@ export async function saveSettings(settings: { key: string; value: string; categ
 
 /** Seed default setting keys (idempotent) */
 export async function seedSettings(): Promise<{ created: number }> {
-  return apiFetch('/api/admin/settings/seed', { method: 'POST', body: '{}' })
+  return apiFetch('/api/admin-v2/settings/seed', { method: 'POST', body: '{}' })
 }
 
 /** Bulk delete settings by key */
 export async function deleteSettings(keys: string[]): Promise<void> {
-  return apiFetch('/api/admin/settings/delete', {
+  return apiFetch('/api/admin-v2/settings/delete', {
     method: 'POST',
     body: JSON.stringify({ keys }),
   })
@@ -560,7 +560,7 @@ export interface EffectiveSetting {
  * silently shadowing an empty DB value.
  */
 export async function fetchEffectiveSettings(): Promise<EffectiveSetting[]> {
-  return apiFetch('/api/admin/settings/effective')
+  return apiFetch('/api/admin-v2/settings/effective')
 }
 
 // ─── CUSTOM AI PROVIDERS ───────────────────────────────────────────────────────
@@ -731,7 +731,7 @@ export interface LlmProvider {
 
 export async function fetchLlmProviders(): Promise<LlmProvider[]> {
   try {
-    const data = await apiFetch<{ providers: LlmProvider[] }>('/api/admin/llm-providers', {
+    const data = await apiFetch<{ providers: LlmProvider[] }>('/api/admin-v2/llm-providers', {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
