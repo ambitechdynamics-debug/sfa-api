@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAdminStore } from '@/store/admin-store'
+import { ConsiliumPrismLogo } from '@/components/brand/ConsiliumPrismLogo'
 
 const NAV_ITEMS = [
   { label: 'Vue d\'ensemble', href: '/admin', icon: LayoutDashboard, exact: true },
@@ -71,13 +72,11 @@ export function AdminSidebar() {
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-[var(--sidebar-bg)] w-60">
-      {/* Logo */}
+      {/* Logo — Consilium identity, shared with the client app. */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-[var(--sidebar-border)]">
-        <div className="w-8 h-8 rounded-lg bg-[var(--accent)] flex items-center justify-center">
-          <Sparkles className="w-4 h-4 text-white" />
-        </div>
+        <ConsiliumPrismLogo size={32} />
         <div>
-          <div className="text-xs font-bold text-white leading-tight">STUDIO FLYER AI</div>
+          <div className="text-xs font-bold text-white leading-tight tracking-tight">CONSILIUM</div>
           <div className="text-[10px] text-[var(--sidebar-text)]">Administration</div>
         </div>
         <button
