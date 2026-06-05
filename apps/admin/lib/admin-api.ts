@@ -26,6 +26,16 @@ function notifyInvalidAuth() {
   window.dispatchEvent(new Event('admin-auth-invalid'))
 }
 
+/**
+ * Only routes that *are the auth gate themselves* should kick the user out
+ * on 401. Other admin endpoints throwing 401 (which happens transiently
+ * during prod rollouts while the backend is still serving an old build)
+ * must not close the session — they just bubble the error to the caller.
+ */
+function isAuthEndpoint(path: string): boolean {
+  return path.startsWith('/api/auth/admin/')
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   if (!API_URL) {
     throw new AdminApiError('URL API manquante. Configurez NEXT_PUBLIC_API_URL.', 0)
@@ -50,7 +60,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const data = await res.json().catch(() => ({} as ApiResponse<T>))
   if (!res.ok || !data.success) {
     const error = new AdminApiError(data.message || 'Erreur API', res.status)
-    if (error.status === 401) notifyInvalidAuth()
+    if (error.status === 401 && isAuthEndpoint(path)) notifyInvalidAuth()
     throw error
   }
 
