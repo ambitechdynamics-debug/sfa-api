@@ -12,7 +12,7 @@ import projectsRoutes from './modules/projects/projects.routes';
 import usersRoutes from './modules/users/users.routes';
 import agentsRoutes from './modules/agents/agents.routes';
 import orchestratorRoutes from './modules/orchestrator/promptOrchestrator.routes';
-import adminRoutes from './modules/admin/admin.routes';
+import adminRoutes from './modules/admin/admin-jwt.routes';
 import agentsDynamicRoutes from './modules/agents-dynamic/agentsDynamic.routes';
 import settingsRoutes from './modules/settings/settings.routes';
 import forbiddenRulesRoutes from './modules/forbidden-rules/forbiddenRules.routes';

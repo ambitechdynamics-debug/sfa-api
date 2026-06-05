@@ -1,3 +1,12 @@
+/**
+ * Fresh admin routes file mounted at /api/admin/*.
+ *
+ * Background: a previous version of admin.routes.ts used Clerk's
+ * `authMiddleware` and Render's build cache kept serving that compiled
+ * output even after the source was switched to `adminJwtMiddleware`.
+ * Compiling under a new filename guarantees the dist gets a brand-new
+ * entry that no cached layer could possibly satisfy.
+ */
 import { Router, Request, Response, NextFunction } from 'express';
 import { adminJwtMiddleware } from '../../middlewares/adminJwt.middleware';
 import { validate } from '../../middlewares/validate.middleware';
@@ -11,11 +20,11 @@ import {
   updateAgentMemoryLinkSchema,
   orchestratorPipelineConfigSchema,
   chatAgentConfigSchema,
-  artisticVisionConfigSchema
+  artisticVisionConfigSchema,
 } from './admin.validation';
 import { AppError } from '../../utils/appError';
 
-const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+const requireAdmin = (req: Request, _res: Response, next: NextFunction) => {
   if (req.user?.role !== 'ADMIN') {
     return next(new AppError('Accès interdit. Rôle administrateur requis.', 403));
   }
@@ -24,25 +33,17 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 
 const router = Router();
 
-// Unauthenticated probe so we can prove from outside which build is live.
-// Returns the source build marker. If a request to `/api/admin/build-marker`
-// returns 401 instead of this JSON, the deployed runtime is serving an
-// OLDER admin.routes.js than the one in the current commit.
+// Unauthenticated probe — call /api/admin/build-marker from any client to
+// confirm this module is the one currently mounted.
 router.get('/build-marker', (_req, res) => {
   res.json({
     success: true,
-    marker: 'admin-jwt-build-2026-06-05',
+    marker: 'admin-jwt-routes-v2',
     middleware: 'adminJwtMiddleware',
+    file: 'admin-jwt.routes.ts',
   });
 });
 
-// Admin routes are gated by the email+password JWT (see auth.service.ts +
-// adminJwt.middleware.ts). End-user identity (Clerk) is NOT accepted here.
-router.use((req, _res, next) => {
-  // eslint-disable-next-line no-console
-  console.log('[admin.routes] adminJwt middleware in effect for', req.method, req.originalUrl);
-  next();
-});
 router.use(adminJwtMiddleware);
 router.use(requireAdmin);
 
@@ -80,12 +81,12 @@ router.get('/agent-runs', adminController.listAgentRuns);
 router.get('/prompts', adminController.listPrompts);
 
 // ─── Subscriptions ───────────────────────────────────────────────────────────
-router.get('/subscriptions', adminController.listSubscriptions)
-router.patch('/subscriptions/:planId', adminController.updateSubscription)
+router.get('/subscriptions', adminController.listSubscriptions);
+router.patch('/subscriptions/:planId', adminController.updateSubscription);
 
 // ─── Payments ───────────────────────────────────────────────────────────────
-router.get('/payments', adminController.listPayments)
-router.post('/payments/:id/refund', adminController.refundPayment)
+router.get('/payments', adminController.listPayments);
+router.post('/payments/:id/refund', adminController.refundPayment);
 router.post('/payments/:id/verify', adminController.verifyPayment);
 
 // ─── Credit Transactions ────────────────────────────────────────────────────
