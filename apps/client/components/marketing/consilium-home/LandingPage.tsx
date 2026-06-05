@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { DEFAULT_TEMPLATES } from './data/models';
 import { Template } from './types';
+import { ConsiliumPrismLogo } from '@/components/brand/ConsiliumPrismLogo';
 
 // Shared scroll-triggered animation applied to every landing section
 // EXCEPT the hero (which renders as a plain section element so it's
@@ -183,8 +184,8 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-violet-500/10 text-violet-400 mt-1">
-                  <Sparkles className="w-5 h-5 animate-pulse" />
+                <div className="mt-1 flex-shrink-0">
+                  <ConsiliumPrismLogo size={40} label="Consilium" />
                 </div>
                 <div className="flex-1 space-y-1 relative">
                   <label className="text-[10px] font-mono tracking-wider text-zinc-500 uppercase block">Creative intent</label>
