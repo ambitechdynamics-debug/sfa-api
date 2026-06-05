@@ -224,23 +224,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastSyncedClerkUserRef.current = null
   }, [clearProfile, resetChat, resetProjects])
 
-  const expireSession = useCallback(async (message = SESSION_EXPIRED_MESSAGE) => {
+  const expireSession = useCallback(async (_message = SESSION_EXPIRED_MESSAGE) => {
     clearWorkspaceState()
-    setStatus("expired")
-    setError(message)
+    setStatus("anonymous")
+    setError("")
     await signOutSession()
-    // L'expiration de session est un événement d'UX normal (token Clerk
-    // qui passe TTL, /api/users/me qui rend 401), pas une erreur logique.
-    // Sur une page protégée on redirige vers /login?reason=expired et le
-    // bandeau de la page de login affiche déjà le message — pas besoin de
-    // toast. Sur une page publique on émet un toast.warning (qui mappe sur
-    // console.warn dans le shim sonner — au lieu d'un console.error rouge).
-    if (isProtectedPath(pathname)) {
-      router.replace(buildLoginPath(pathname, "expired"))
-    } else {
-      toast.warning(message)
+    try {
+      await clerkSignOut()
+    } catch {
+      // Clerk may already be signed out — ignore.
     }
-  }, [clearWorkspaceState, pathname, router])
+    // Quietly send the user back to /login. The login page strips the
+    // `reason=expired` param on mount so they see a clean form and no
+    // "session expired" banner; no toast is shown on public pages either.
+    if (isProtectedPath(pathname)) {
+      router.replace("/login")
+    }
+  }, [clearWorkspaceState, clerkSignOut, pathname, router])
 
   const handleBackendAuthRejection = useCallback(async (reason?: unknown) => {
     const message =

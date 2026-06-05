@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
+import { useClerk } from "@clerk/nextjs"
 import { AuthShell, AuthLeftPitch } from "@/components/auth/AuthShell"
 import { OAuthButtons } from "@/components/auth/OAuthButtons"
 import { Button } from "@/components/ui/Button"
@@ -12,8 +13,10 @@ import { Icon } from "@/components/ui/Icon"
 import { useAuth } from "@/hooks/useAuth"
 
 export default function LoginPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { loginWithEmail, signInReady } = useAuth()
+  const { signOut: clerkSignOut } = useClerk()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPw, setShowPw] = useState(false)
@@ -22,6 +25,20 @@ export default function LoginPage() {
   const nextPath = searchParams.get("next")
   const reason = searchParams.get("reason")
   const verified = searchParams.get("verified")
+
+  // If the user landed here because their previous session expired or was
+  // rejected, silently clear any leftover Clerk cookie and strip the
+  // ?reason= param so the page shows a clean login form — no scary banner,
+  // no toast. The user just signs in again as if it were a fresh visit.
+  useEffect(() => {
+    if (reason === "expired" || reason === "invalid") {
+      void clerkSignOut().catch(() => {})
+      const params = new URLSearchParams(window.location.search)
+      params.delete("reason")
+      const qs = params.toString()
+      router.replace(`/login${qs ? `?${qs}` : ""}`)
+    }
+  }, [reason, clerkSignOut, router])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -52,7 +69,7 @@ export default function LoginPage() {
             Sign in to access your projects and keep creating.
           </p>
 
-          {(reason === "expired" || verified === "1") && (
+          {verified === "1" && (
             <div
               role="status"
               style={{
@@ -65,7 +82,7 @@ export default function LoginPage() {
                 marginBottom: 18,
               }}
             >
-              {reason === "expired" ? "Your session has expired. Please sign in again." : "Email address confirmed. You can now sign in."}
+              Email address confirmed. You can now sign in.
             </div>
           )}
 
