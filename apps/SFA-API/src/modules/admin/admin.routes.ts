@@ -24,9 +24,20 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 
 const router = Router();
 
+// Unauthenticated probe so we can prove from outside which build is live.
+// Returns the source build marker. If a request to `/api/admin/build-marker`
+// returns 401 instead of this JSON, the deployed runtime is serving an
+// OLDER admin.routes.js than the one in the current commit.
+router.get('/build-marker', (_req, res) => {
+  res.json({
+    success: true,
+    marker: 'admin-jwt-build-2026-06-05',
+    middleware: 'adminJwtMiddleware',
+  });
+});
+
 // Admin routes are gated by the email+password JWT (see auth.service.ts +
 // adminJwt.middleware.ts). End-user identity (Clerk) is NOT accepted here.
-// Build-marker: 2026-06-05 — force Render layer cache invalidation.
 router.use((req, _res, next) => {
   // eslint-disable-next-line no-console
   console.log('[admin.routes] adminJwt middleware in effect for', req.method, req.originalUrl);
