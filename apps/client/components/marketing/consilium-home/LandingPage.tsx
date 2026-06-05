@@ -142,8 +142,8 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
               className="absolute inset-0 pointer-events-none z-[1]"
               style={{
                 backgroundImage: [
-                  'radial-gradient(ellipse 120% 95% at 50% 0%, rgba(76,29,149,0.92) 0%, rgba(76,29,149,0.65) 28%, rgba(76,29,149,0.30) 60%, rgba(76,29,149,0) 100%)',
-                  'radial-gradient(ellipse 70% 55% at 80% 25%, rgba(91,33,182,0.55) 0%, rgba(91,33,182,0) 70%)',
+                  'radial-gradient(ellipse 120% 95% at 50% 0%, rgba(76,29,149,0.10) 0%, rgba(76,29,149,0.07) 28%, rgba(76,29,149,0.03) 60%, rgba(76,29,149,0) 100%)',
+                  'radial-gradient(ellipse 70% 55% at 80% 25%, rgba(91,33,182,0.06) 0%, rgba(91,33,182,0) 70%)',
                 ].join(', '),
               }}
             />
