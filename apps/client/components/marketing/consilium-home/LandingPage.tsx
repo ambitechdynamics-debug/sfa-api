@@ -123,10 +123,18 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
               loop
               playsInline
             />
-            {/* Brand-violet tint sitting on top of the blurred video, under
-                the decorative grid + content. Darker shade so the video
-                reads as a moody backdrop, not a flat purple wash. */}
-            <div className="absolute inset-0 bg-violet-900/75 pointer-events-none z-[1]" />
+            {/* Two stacked radial gradients build a "violet cloud" over the
+                blurred video: densest near the top, fading toward the
+                bottom of the section. */}
+            <div
+              className="absolute inset-0 pointer-events-none z-[1]"
+              style={{
+                backgroundImage: [
+                  'radial-gradient(ellipse 120% 95% at 50% 0%, rgba(76,29,149,0.92) 0%, rgba(76,29,149,0.65) 28%, rgba(76,29,149,0.30) 60%, rgba(76,29,149,0) 100%)',
+                  'radial-gradient(ellipse 70% 55% at 80% 25%, rgba(91,33,182,0.55) 0%, rgba(91,33,182,0) 70%)',
+                ].join(', '),
+              }}
+            />
           </>
         )}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.1),transparent_50%)] pointer-events-none" />
@@ -140,9 +148,6 @@ export default function LandingPage({ onNavigate, isLightMode }: LandingPageProp
           <div className="lg:col-span-7 space-y-8 text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-violet-500/10 to-transparent rounded-full border border-violet-500/10">
               <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping" />
-              <span className="text-[11px] font-mono tracking-[0.15em] text-violet-400 font-bold uppercase">
-                ● CONSILIUM AI v1.8 — AMBITECH
-              </span>
             </div>
 
             <h1 className="text-4xl md:text-6xl font-sans font-bold tracking-tight text-white leading-[1.05]">
