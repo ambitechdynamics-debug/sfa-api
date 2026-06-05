@@ -101,6 +101,18 @@ app.get('/api/health', (_req, res) => {
 // de mount.
 const ROUTE_MOUNTS = [
   { path: '/auth',           handler: authRoutes },
+  // ── Admin routes MUST be mounted before any router that sits at the bare
+  // '' prefix. travauxRoutes, artisticBaseRoutes, forbiddenRulesRoutes and
+  // filesRoutes all attach `router.use(authMiddleware)` at the top of their
+  // module, which means they hijack EVERY request reaching them — including
+  // /admin/* and /admin-v2/*. Putting the admin mounts before those rooted
+  // routers ensures the email+password JWT middleware sees the request
+  // first; otherwise Clerk rejects it with "Authentication token is required"
+  // and the admin dashboard appears 401-locked.
+  { path: '/admin/settings', handler: settingsRoutes },
+  { path: '/admin',          handler: adminRoutes },
+  { path: '/admin-v2/settings', handler: settingsRoutes },
+  { path: '/admin-v2',          handler: adminRoutes },
   { path: '/users',          handler: usersRoutes },
   { path: '/projects',       handler: projectsRoutes },
   { path: '',                handler: travauxRoutes }, // POST /projects/:id/travaux + /travaux/*
@@ -112,11 +124,6 @@ const ROUTE_MOUNTS = [
   { path: '',                handler: artisticBaseRoutes },
   { path: '',                handler: forbiddenRulesRoutes },
   { path: '',                handler: filesRoutes },
-  { path: '/admin/settings', handler: settingsRoutes }, // AVANT /admin
-  { path: '/admin',          handler: adminRoutes },
-  // Fresh mount points (no prior runtime cache) — admin frontend hits these.
-  { path: '/admin-v2/settings', handler: settingsRoutes },
-  { path: '/admin-v2',          handler: adminRoutes },
   { path: '/ux-metrics',     handler: uxMetricsRoutes },
   { path: '/metrics',        handler: metricsRoutes },
   { path: '/chat',           handler: chatRoutes },
