@@ -4,6 +4,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Prisma uses libssl to load its query engine; install OpenSSL explicitly so
+# `prisma generate` picks the correct binary target (Alpine 3.18+ ships
+# OpenSSL 3, but the detection logic looks for libssl.so.* in known paths).
+RUN apk add --no-cache openssl
+
 # Copy the backend manifest first for better Docker layer caching.
 COPY apps/SFA-API/package.json apps/SFA-API/package-lock.json ./
 COPY apps/SFA-API/prisma ./prisma
@@ -22,6 +27,10 @@ RUN npm prune --omit=dev
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+
+# Same OpenSSL on the runtime so the engine binary baked at build time loads
+# without falling back to "openssl-1.1.x" and trying to redownload.
+RUN apk add --no-cache openssl
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
