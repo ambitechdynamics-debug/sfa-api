@@ -82,6 +82,8 @@ app.get('/api/health', (_req, res) => {
   res.json({
     success: true,
     message: 'STUDIO FLYER AI backend is running',
+    build: 'admin-v2-2026-06-05T14:45',
+    routes: ['/api/admin/*', '/api/admin-v2/*'],
     data: {
       uptime: process.uptime()
     }
