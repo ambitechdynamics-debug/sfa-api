@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
 import { useAuth } from "@/hooks/useAuth"
 import { useChatStore, type Message } from "@/store/chat-store"
 import {
@@ -15,6 +16,42 @@ import { fetchChatOpening } from "@/lib/chat"
 import type { GeneratedPoster } from "@/types/project"
 import { ConsiliumPrismLogo } from "@/components/brand/ConsiliumPrismLogo"
 import { WorkspaceAssetPanel } from "./WorkspaceAssetPanel"
+
+/**
+ * Cloudinary URL helper: rewrites a Cloudinary `/upload/` URL so the browser
+ * downloads instead of opening inline. Falls back to the original URL when
+ * the host isn't a Cloudinary `res.cloudinary.com` URL.
+ */
+function downloadVariantUrl(url: string, transform = "fl_attachment"): string {
+  if (!url.includes("res.cloudinary.com")) return url
+  return url.replace("/upload/", `/upload/${transform}/`)
+}
+
+async function triggerDownload(url: string, filename: string) {
+  try {
+    const res = await fetch(url, { mode: "cors" })
+    const blob = await res.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = objectUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(objectUrl)
+  } catch {
+    // Falls back to opening the URL in a new tab, browser will choose to render
+    // or download depending on Content-Disposition / mime.
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
+}
+
+/** Compute a wrap-around grid starting position for a poster, in canvas px. */
+function gridPosition(index: number, cols = 3, tile = 200, gap = 16) {
+  const col = index % cols
+  const row = Math.floor(index / cols)
+  return { x: col * (tile + gap), y: row * (Math.round(tile * 4 / 3) + gap) }
+}
 
 /* ── Tiny icons ── */
 const Ico = {
@@ -190,6 +227,9 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
   const [posters, setPosters] = useState<GeneratedPoster[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [genError, setGenError] = useState<string | null>(null)
+  // Canvas bounding box for draggable posters — used as dragConstraints so each
+  // generated visual can be moved freely but stays inside the workspace area.
+  const canvasRef = useRef<HTMLDivElement>(null)
   const [assetRefreshKey, setAssetRefreshKey] = useState(0)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const pendingUsageTypeRef = useRef<string>("REFERENCE_IMAGE")
@@ -563,7 +603,7 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
             </div>
           </div>
 
-          <div className="csl-canvas-area">
+          <div className="csl-canvas-area" ref={canvasRef}>
             {posters.length === 0 ? (
               <div className="csl-canvas-empty">
                 {isGenerating && (
@@ -575,18 +615,97 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
               </div>
             ) : (
               <div className="csl-posters">
-                {posters.map((p) => (
-                  <div key={p.id} className="csl-poster">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.imageUrl} alt={`Variante ${p.variationNumber}`} />
-                  </div>
-                ))}
-                {isGenerating && Array.from({ length: 3 }).map((_, i) => (
-                  <div key={`loading-${i}`} className="csl-poster csl-poster-loading">
-                    <ConsiliumPrismLogo size={34} className="csl-poster-loading-logo" />
-                    <span>Generating...</span>
-                  </div>
-                ))}
+                {posters.map((p, i) => {
+                  const pos = gridPosition(i)
+                  const safeName = `consilium-variant-${p.variationNumber || i + 1}`
+                  return (
+                    <motion.div
+                      key={p.id}
+                      className="csl-poster"
+                      style={{ left: pos.x, top: pos.y }}
+                      drag
+                      dragConstraints={canvasRef}
+                      dragElastic={0}
+                      dragMomentum={false}
+                      whileDrag={{ scale: 1.03, zIndex: 50, cursor: "grabbing" }}
+                      whileHover={{ zIndex: 20 }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={p.imageUrl}
+                        alt={`Variante ${p.variationNumber}`}
+                        draggable={false}
+                      />
+
+                      {/* Download menu — appears on hover, click bubbles disabled so
+                          the drag handler doesn't fight with the buttons. */}
+                      <div
+                        className="csl-poster-actions"
+                        onPointerDownCapture={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          className="csl-poster-action"
+                          title="Download HD (original)"
+                          onClick={() =>
+                            triggerDownload(downloadVariantUrl(p.imageUrl), `${safeName}-hd.png`)
+                          }
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
+                          <span>HD</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="csl-poster-action"
+                          title="Download web (1280px, optimised)"
+                          onClick={() =>
+                            triggerDownload(
+                              downloadVariantUrl(p.imageUrl, "fl_attachment,q_auto:eco,w_1280"),
+                              `${safeName}-web.jpg`,
+                            )
+                          }
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
+                          <span>Web</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="csl-poster-action"
+                          title="Copy image URL"
+                          onClick={() => {
+                            void navigator.clipboard.writeText(p.imageUrl)
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+                {isGenerating && Array.from({ length: 3 }).map((_, i) => {
+                  const pos = gridPosition(posters.length + i)
+                  return (
+                    <div
+                      key={`loading-${i}`}
+                      className="csl-poster csl-poster-loading"
+                      style={{ left: pos.x, top: pos.y }}
+                    >
+                      <ConsiliumPrismLogo size={34} className="csl-poster-loading-logo" />
+                      <span>Generating...</span>
+                    </div>
+                  )
+                })}
               </div>
             )}
 

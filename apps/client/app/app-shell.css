@@ -798,30 +798,73 @@
   gap: 10px;
 }
 
-/* Generated poster tiles in canvas */
+/* Generated poster tiles in canvas — free-floating, each poster can be
+   dragged anywhere inside .csl-canvas-area. */
 .csl-app-workspace .csl-posters {
   position: absolute;
   inset: 24px 24px 56px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px;
-  overflow: auto;
-  padding-right: 4px;
+  overflow: hidden;
 }
 .csl-app-workspace .csl-poster {
-  border-radius: 10px;
+  position: absolute;
+  width: 200px;
+  aspect-ratio: 3/4;
+  border-radius: 14px;
   background: var(--csl-bg);
   border: 1px solid var(--csl-border);
   overflow: hidden;
-  aspect-ratio: 3/4;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  cursor: pointer;
+  cursor: grab;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.30);
+  touch-action: none;
+  user-select: none;
 }
+.csl-app-workspace .csl-poster:active { cursor: grabbing; }
 .csl-app-workspace .csl-poster img {
   width: 100%; height: 100%; object-fit: cover; display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+/* Download / actions overlay — hidden until hover, shown above the image. */
+.csl-app-workspace .csl-poster-actions {
+  position: absolute;
+  inset: auto 8px 8px 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .18s ease, transform .18s ease;
+  pointer-events: none;
+}
+.csl-app-workspace .csl-poster:hover .csl-poster-actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.csl-app-workspace .csl-poster-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 8px;
+  background: rgba(11, 11, 15, 0.78);
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s ease, border-color .15s ease;
+}
+.csl-app-workspace .csl-poster-action:hover {
+  background: rgba(139, 92, 246, 0.30);
+  border-color: rgba(139, 92, 246, 0.50);
 }
 .csl-app-workspace .csl-poster-loading {
   background: linear-gradient(135deg, rgba(139,92,246,0.16), rgba(236,72,153,0.08), var(--csl-bg-mute));

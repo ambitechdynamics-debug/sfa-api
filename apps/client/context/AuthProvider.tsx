@@ -144,26 +144,56 @@ function mapClerkSignUpError(err: unknown): string {
   }
 }
 
-function loadingScreen(message = "Setting up your Consilium workspace...") {
+function loadingScreen(_message = "Setting up your Consilium workspace...") {
+  // Minimal, calm loader: just the brand mark centered on a dark canvas
+  // with a hairline progress bar. Intentionally no copy, no step list.
   return (
-    <div className="csl-session-setup" role="status" aria-live="polite">
-      <ConsiliumPrismLogo size={280} className="csl-session-setup-bg" animated={false} label="" />
-      <div className="csl-session-setup-panel">
-        <ConsiliumPrismLogo size={62} className="csl-session-setup-logo" />
-        <div className="csl-session-setup-copy">
-          <p className="csl-session-setup-kicker">CONSILIUM</p>
-          <h1>{message}</h1>
-          <p>Preparing your secure session and creative tools. This may take a moment.</p>
-        </div>
-        <div className="csl-session-setup-steps" aria-hidden="true">
-          <span className="is-active">Verifying identity</span>
-          <span>Syncing workspace</span>
-          <span>Opening dashboard</span>
-        </div>
-        <div className="csl-session-setup-progress" aria-hidden="true">
-          <span />
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: "fixed",
+        inset: 0,
+        display: "grid",
+        placeItems: "center",
+        background: "#0B0B0F",
+        zIndex: 9999,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
+        <ConsiliumPrismLogo size={72} label="Consilium" />
+        <div
+          aria-hidden="true"
+          style={{
+            width: 96,
+            height: 2,
+            background: "rgba(255,255,255,0.06)",
+            overflow: "hidden",
+            position: "relative",
+            borderRadius: 1,
+          }}
+        >
+          <span
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              height: "100%",
+              width: "40%",
+              background: "linear-gradient(90deg, #8B5CF6, #EC4899, #22D3EE)",
+              animation: "csl-loader-slide 1.4s ease-in-out infinite",
+              borderRadius: 1,
+            }}
+          />
         </div>
       </div>
+      <style>{`
+        @keyframes csl-loader-slide {
+          0%   { transform: translateX(-100%); }
+          50%  { transform: translateX(150%); }
+          100% { transform: translateX(150%); }
+        }
+      `}</style>
     </div>
   )
 }
