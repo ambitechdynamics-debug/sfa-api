@@ -14,10 +14,10 @@ export const adminJwtMiddleware = async (req: Request, _res: Response, next: Nex
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      throw new AppError('Admin token is required', 401);
+      throw new AppError('[adminJwt] missing Bearer token', 401);
     }
     const token = authHeader.slice('Bearer '.length).trim();
-    if (!token) throw new AppError('Admin token is required', 401);
+    if (!token) throw new AppError('[adminJwt] missing Bearer token', 401);
 
     const payload = verifyAdminToken(token);
 
@@ -27,7 +27,7 @@ export const adminJwtMiddleware = async (req: Request, _res: Response, next: Nex
     });
 
     if (!user || user.role !== Role.ADMIN) {
-      throw new AppError('Admin access revoked. Please sign in again.', 401);
+      throw new AppError('[adminJwt] user is not an admin', 401);
     }
 
     req.user = user;
