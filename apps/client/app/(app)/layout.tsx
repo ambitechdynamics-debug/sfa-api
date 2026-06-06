@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
-import { AnimatePresence, motion } from "framer-motion"
 import { DashboardShell } from "@/components/app/DashboardShell"
 import { RouteMetricsTracker } from "@/components/app/RouteMetricsTracker"
 import { Button } from "@/components/ui/Button"
@@ -12,7 +11,7 @@ import { loadingScreen } from "@/context/AuthProvider"
 
 // Covers realistic slow paths: Clerk activation, Render/API cold start,
 // local profile creation/linking, and transient getCurrentUser retry.
-const DASHBOARD_SESSION_TIMEOUT_MS = 60_000
+const DASHBOARD_SESSION_TIMEOUT_MS = 120_000
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
@@ -52,7 +51,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const sessionUnavailable = (message: string) => (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg-0)", color: "var(--ink-0)", padding: 24 }}>
       <div style={{ maxWidth: 420, display: "grid", gap: 16, textAlign: "center" }}>
-        <h1 className="display" style={{ margin: 0, fontSize: 28 }}>Session unavailable</h1>
+        <h1 className="display" style={{ margin: 0, fontSize: 28 }}>Session à vérifier</h1>
         <p style={{ margin: 0, color: "var(--ink-2)", lineHeight: 1.6 }}>{message}</p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
           <Button onClick={retrySession} icon="refresh">Try again</Button>
@@ -63,11 +62,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   )
 
   if (status === "error") {
-    return sessionUnavailable(error || "Unable to verify your session. Check your connection and try again.")
+    return sessionUnavailable(error || "Impossible de vérifier votre session. Vérifiez votre connexion et réessayez.")
   }
 
   if (loadingTimedOut) {
-    return sessionUnavailable("Session setup is taking too long. Try again or sign in again.")
+    return sessionUnavailable("La préparation de votre session prend trop de temps. Réessayez ou reconnectez-vous.")
   }
 
   if (isCheckingSession) return loadingScreen("Setting up your Consilium workspace...")
@@ -76,18 +75,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <DashboardShell>
       <RouteMetricsTracker />
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={pathname}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}
-        >
-          {children}
-        </motion.div>
-      </AnimatePresence>
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
+        {children}
+      </div>
     </DashboardShell>
   )
 }

@@ -11,22 +11,18 @@ function AuthLayoutGate({ children }: { children: ReactNode }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const nextPath = searchParams.get("next")
-  const { isAuthenticated } = useAuth()
-  // Trust Clerk's session cookie as the "already signed in" signal even
-  // before our backend `/users/me` has resolved. This prevents the login
-  // form from briefly flashing when the user opens /login with an active
-  // session, and avoids the "Une session est déjà active" round-trip
-  // when they submit the form.
+  const { isAuthenticated, profileLoading, sessionLoading, status } = useAuth()
   const { isLoaded: clerkLoaded, isSignedIn } = useUser()
-  const hasSession = isAuthenticated || (clerkLoaded && isSignedIn === true)
+  const isVerifyingExistingSession =
+    clerkLoaded && isSignedIn === true && (sessionLoading || profileLoading || status === "loading")
 
   useEffect(() => {
-    if (hasSession) {
+    if (isAuthenticated) {
       router.replace(sanitizeNextPath(nextPath))
     }
-  }, [hasSession, nextPath, router])
+  }, [isAuthenticated, nextPath, router])
 
-  if (hasSession) return null
+  if (isAuthenticated || isVerifyingExistingSession) return loadingScreen()
 
   return children
 }

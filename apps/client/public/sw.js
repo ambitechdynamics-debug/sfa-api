@@ -1,7 +1,6 @@
-/* Studio Flyer AI — service worker (app shell + offline fallback). */
-/* eslint-disable no-restricted-globals */
+/* Consilium Design service worker (app shell + offline fallback). */
 
-const VERSION = "sfa-v1";
+const VERSION = "consilium-v2";
 const SHELL_CACHE = `${VERSION}-shell`;
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGES_CACHE = `${VERSION}-pages`;
@@ -72,6 +71,26 @@ function isImage(req, url) {
 function isHTMLNav(req) {
   return req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html");
 }
+function isAuthSensitivePage(url) {
+  const roots = [
+    "/dashboard",
+    "/ai-settings",
+    "/billing",
+    "/check-email",
+    "/create",
+    "/forgot-password",
+    "/login",
+    "/metrics",
+    "/notifications",
+    "/profile",
+    "/projects",
+    "/register",
+    "/reset-password",
+    "/settings",
+    "/support",
+  ];
+  return roots.some((root) => url.pathname === root || url.pathname.startsWith(`${root}/`));
+}
 
 async function staleWhileRevalidate(req, cacheName) {
   const cache = await caches.open(cacheName);
@@ -117,6 +136,17 @@ async function networkFirstHTML(req) {
   }
 }
 
+async function networkOnlyHTML(req) {
+  try {
+    return await fetch(req, { cache: "no-store" });
+  } catch {
+    const shell = await caches.open(SHELL_CACHE);
+    const offline = await shell.match("/offline");
+    if (offline) return offline;
+    return new Response("Offline", { status: 503, statusText: "Offline" });
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
@@ -154,6 +184,10 @@ self.addEventListener("fetch", (event) => {
 
   // HTML navigations: network-first, fall back to last cached page, then /offline.
   if (isHTMLNav(req)) {
+    if (url.origin === self.location.origin && isAuthSensitivePage(url)) {
+      event.respondWith(networkOnlyHTML(req));
+      return;
+    }
     event.respondWith(networkFirstHTML(req));
     return;
   }

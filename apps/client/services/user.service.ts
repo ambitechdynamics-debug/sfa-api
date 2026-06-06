@@ -6,7 +6,7 @@ import type { User } from "@/types/user"
 // progressif. La vérification de session est sur le chemin critique du
 // dashboard — sans retry, un cold-start Neon de 10s casse tout le login.
 export async function getCurrentUser(): Promise<User> {
-  const token = await waitForSessionToken({ timeoutMs: 15_000 })
+  const token = await waitForSessionToken({ timeoutMs: 30_000 })
   if (!token) {
     throw new ApiError("Session Clerk en cours d'activation. Réessayez dans un instant.", 0, [], "CLERK_SESSION_PENDING")
   }

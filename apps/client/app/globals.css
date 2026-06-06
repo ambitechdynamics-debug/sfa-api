@@ -283,6 +283,11 @@ img { max-width: 100%; display: block; }
   transform-origin: center;
   animation: consilium-prism-ping 3s cubic-bezier(0, 0, .2, 1) infinite;
 }
+.csl-loader-logo {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
 .csl-session-setup {
   position: relative;
   min-height: 100vh;
@@ -329,6 +334,9 @@ img { max-width: 100%; display: block; }
   text-align: center;
 }
 .csl-session-setup-logo {
+  border: 0;
+  background: transparent;
+  padding: 0;
   filter: drop-shadow(0 0 18px rgba(236,72,153,.36));
 }
 .csl-session-setup-copy {

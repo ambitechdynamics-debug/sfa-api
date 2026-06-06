@@ -18,12 +18,7 @@ const Workspace = () => {
           </button>
         </div>
 
-        <div className="flex-1 flex items-end h-full pl-2">
-          <div className="flex items-center gap-1.5 px-3 h-9 border-l border-t border-r border-[#ECE8E1] rounded-t-md bg-white text-[12.5px] font-medium relative" style={{ marginBottom: "-1px" }}>
-            <FileIcon size={12} />
-            Fichiers de conception
-          </div>
-        </div>
+        <div className="flex-1 flex items-end h-full pl-2" />
 
         <div className="flex items-center gap-3">
           <button className="px-3.5 h-8 rounded-md bg-[#2d2a26] text-white text-[12.5px] font-medium hover:bg-[#1d1a16]">Partager</button>

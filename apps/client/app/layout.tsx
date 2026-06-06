@@ -24,13 +24,13 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Studio Flyer AI — Create professional visuals with AI",
+  title: "Consilium Design — Create professional visuals with AI",
   description: "Generate custom advertising visuals in minutes with AI. Posters, flyers, stories, banners, every format and every style.",
-  applicationName: "Studio Flyer AI",
+  applicationName: "Consilium Design",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "StudioFlyer",
+    title: "Consilium",
   },
   icons: {
     icon: [

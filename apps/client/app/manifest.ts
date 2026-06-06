@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Studio Flyer AI",
-    short_name: "StudioFlyer",
+    name: "Consilium Design",
+    short_name: "Consilium",
     description:
       "Create professional advertising visuals — posters, flyers, stories, banners — in minutes with AI.",
     start_url: "/dashboard",

@@ -161,7 +161,7 @@ function loadingScreen(_message = "Setting up your Consilium workspace...") {
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
-        <ConsiliumPrismLogo size={72} label="Consilium" />
+        <ConsiliumPrismLogo size={72} className="csl-loader-logo" label="Consilium" />
         <div
           aria-hidden="true"
           style={{
@@ -249,9 +249,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : "La session Clerk est active, mais l'API n'a pas encore pu la valider. Réessayez dans un instant."
 
     if (clerkIsSignedIn) {
-      setError(message)
-      setStatus("error")
-      debugAuthTransition("backend auth rejected while Clerk is signed in", { message })
+      debugAuthTransition("backend auth rejected while Clerk is signed in, clearing session", { message })
+      await expireSession(message || SESSION_EXPIRED_MESSAGE)
       return
     }
 
@@ -272,6 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (reason) {
       if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) {
         debugAuthTransition("backend auth rejected", { status: reason.status })
+        lastRefreshErrorRef.current = reason.message || SESSION_EXPIRED_MESSAGE
         await handleBackendAuthRejection(reason)
         return null
       }
@@ -366,13 +366,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true }
     } catch (err) {
       // Clerk throws `session_exists` when the user is already signed in on
-      // this device. Route them to nextPath unconditionally — the
-      // destination layout will run its own profile check + loading
-      // screen if needed, and Clerk's cookie is already in place.
+      // this device. Treat that existing Clerk cookie as untrusted until the
+      // backend profile check confirms it; otherwise the dashboard can land on
+      // a half-valid session and show the recovery screen indefinitely.
       const code = (err as { errors?: Array<{ code?: string }> })?.errors?.[0]?.code
       if (code === "session_exists") {
-        // Best-effort backend refresh, but do not block the redirect on it.
-        void refreshSession()
+        const currentUser = await refreshSession()
+        if (!currentUser) {
+          return {
+            success: false,
+            message: lastRefreshErrorRef.current || "Session existante invalide. Reconnectez-vous.",
+          }
+        }
         router.replace(sanitizeNextPath(input.nextPath))
         return { success: true }
       }

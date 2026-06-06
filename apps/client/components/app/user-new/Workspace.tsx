@@ -3,6 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import {
+  ArrowLeft,
+  CreditCard,
+  Images,
+  LogOut,
+  MessageCircle,
+  Settings,
+  UploadCloud,
+  UserRound,
+} from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useChatStore, type Message } from "@/store/chat-store"
 import {
@@ -58,11 +68,6 @@ const Ico = {
   palette: () => (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22a10 10 0 1 1 10-10 4 4 0 0 1-4 4h-1.5a2.5 2.5 0 0 0-2 4 2.5 2.5 0 0 1-2.5 2Z" />
-    </svg>
-  ),
-  bell: () => (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
     </svg>
   ),
   file: () => (
@@ -212,7 +217,7 @@ function buildWorkspaceVisualConfig(travail: WorkspaceVisualSource | null): Work
 
 export function UserNewWorkspace({ travailId }: { travailId: string }) {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const {
     activeTravail,
     error,
@@ -234,6 +239,12 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const pendingUsageTypeRef = useRef<string>("REFERENCE_IMAGE")
   const openingFetchedRef = useRef<string | null>(null)
+  const accountMenuRef = useRef<HTMLDivElement | null>(null)
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
+  const [isMobileViewport, setIsMobileViewport] = useState(false)
+  // Mobile-only panel switch: which section of the workspace is visible.
+  // On desktop both panels are visible regardless (handled in CSS).
+  const [mobilePanel, setMobilePanel] = useState<"chat" | "upload" | "visuals">("chat")
   const visualTravailTitle = activeTravail?.title
   const visualPosterType = activeTravail?.posterType
   const visualCategory = activeTravail?.category
@@ -277,6 +288,25 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
     })
     return () => { cancelled = true }
   }, [travailId, user?.id, loadTravail, router])
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)")
+    const sync = () => setIsMobileViewport(mq.matches)
+    sync()
+    mq.addEventListener("change", sync)
+    return () => mq.removeEventListener("change", sync)
+  }, [])
+
+  useEffect(() => {
+    if (!accountMenuOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setAccountMenuOpen(false)
+      }
+    }
+    window.addEventListener("mousedown", onDown)
+    return () => window.removeEventListener("mousedown", onDown)
+  }, [accountMenuOpen])
 
   // Fetch initial opening message if no messages yet
   useEffect(() => {
@@ -359,11 +389,13 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
     await sendMessage(clean, user.id, travailId, workspaceVisualConfig)
 
     if (isVisualTrigger) {
+      setMobilePanel("visuals")
       void triggerGeneration()
     }
   }
 
   async function triggerGeneration() {
+    setMobilePanel("visuals")
     if (isGenerating) return
     setIsGenerating(true)
     setGenError(null)
@@ -438,28 +470,70 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
   const userInitials = (user?.fullName ?? "AD")
     .split(" ").map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase()
 
+  const closeAccountMenu = () => setAccountMenuOpen(false)
+
   return (
-    <div className="csl-app-workspace">
+    <div className="csl-app-workspace" data-mobile-panel={mobilePanel}>
       {/* TOP BAR */}
       <header className="csl-ws-top">
+        <div className="csl-ws-mobile-account" ref={accountMenuRef}>
+          <button
+            type="button"
+            className="csl-ws-burger csl-ws-brand-menu"
+            onClick={() => setAccountMenuOpen((open) => !open)}
+            aria-label="Open account menu"
+            aria-expanded={accountMenuOpen}
+          >
+            <ConsiliumPrismLogo size={28} className="csl-ws-burger-logo" />
+          </button>
+          {accountMenuOpen && (
+            <div className="csl-ws-account-menu">
+              <button
+                type="button"
+                onClick={() => { closeAccountMenu(); router.push("/dashboard/profile") }}
+              >
+                <UserRound size={15} />
+                Profile
+              </button>
+              <button
+                type="button"
+                onClick={() => { closeAccountMenu(); router.push("/dashboard/settings") }}
+              >
+                <Settings size={15} />
+                Settings
+              </button>
+              <button
+                type="button"
+                onClick={() => { closeAccountMenu(); router.push("/dashboard/billing") }}
+              >
+                <CreditCard size={15} />
+                Billing
+              </button>
+              <button
+                type="button"
+                className="is-danger"
+                onClick={() => { closeAccountMenu(); void logout() }}
+              >
+                <LogOut size={15} />
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="csl-ws-brand">
           <ConsiliumPrismLogo size={26} className="csl-ws-brand-logo" />
           <span className="csl-ws-title">{title}</span>
-          <button
-            type="button"
-            style={{ marginLeft: "auto", background: "transparent", border: 0, color: "var(--csl-ink-2)", cursor: "pointer", padding: 4 }}
-            aria-label="Notifications"
-          >
-            <Ico.bell />
-          </button>
         </div>
 
-        <div className="csl-ws-tabbar">
-          <div className="csl-ws-tab">
-            <Ico.file />
-            Design files
-          </div>
-        </div>
+        <button
+          type="button"
+          className="csl-ws-mobile-back"
+          onClick={() => router.push("/dashboard")}
+          aria-label="Back to dashboard"
+        >
+          <ArrowLeft size={18} />
+        </button>
 
         <div className="csl-ws-actions">
           <button className="csl-ws-share">Share</button>
@@ -514,12 +588,8 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
                     )
                   })}
                   {isSending && (
-                    <div className="csl-msg assistant" style={{ padding: "16px 12px" }}>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {[0, 1, 2].map((i) => (
-                          <span key={i} className="anim-dot-bounce" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--csl-ink-2)", display: "inline-block", animationDelay: `${i * 0.18}s` }} />
-                        ))}
-                      </div>
+                    <div className="csl-msg assistant csl-msg-thinking">
+                      <ConsiliumPrismLogo size={18} className="csl-provider-thinking-logo" />
                     </div>
                   )}
                 </div>
@@ -623,11 +693,11 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
                       key={p.id}
                       className="csl-poster"
                       style={{ left: pos.x, top: pos.y }}
-                      drag
+                      drag={!isMobileViewport}
                       dragConstraints={canvasRef}
                       dragElastic={0}
                       dragMomentum={false}
-                      whileDrag={{ scale: 1.03, zIndex: 50, cursor: "grabbing" }}
+                      whileDrag={{ zIndex: 50, cursor: "grabbing" }}
                       whileHover={{ zIndex: 20 }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -722,6 +792,28 @@ export function UserNewWorkspace({ travailId }: { travailId: string }) {
           <WorkspaceAssetPanel projectId={projectId} refreshKey={assetRefreshKey} />
         </section>
       </div>
+
+      <nav className="csl-ws-mobile-nav" aria-label="Workspace mobile navigation">
+        <div className="csl-ws-mobile-nav-track" role="tablist">
+          {[
+            { key: "chat" as const, label: "Chat", Icon: MessageCircle },
+            { key: "upload" as const, label: "Upload", Icon: UploadCloud },
+            { key: "visuals" as const, label: "Visuels", Icon: Images },
+          ].map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={mobilePanel === key}
+              className={`csl-ws-mobile-nav-item${mobilePanel === key ? " is-active" : ""}`}
+              onClick={() => setMobilePanel(key)}
+            >
+              <Icon size={21} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
 
       <input
         ref={fileInputRef}

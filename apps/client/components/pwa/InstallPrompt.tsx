@@ -7,7 +7,7 @@ type DeferredPrompt = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
 }
 
-const DISMISS_KEY = "sfa:pwa:install-dismissed-at"
+const DISMISS_KEY = "consilium:pwa:install-dismissed-at"
 const DISMISS_TTL_MS = 1000 * 60 * 60 * 24 * 7 // 7 days
 
 /**
@@ -15,7 +15,7 @@ const DISMISS_TTL_MS = 1000 * 60 * 60 * 24 * 7 // 7 days
  *
  *   1. Captures `beforeinstallprompt` (Android / desktop Chrome) and shows a
  *      discreet bottom card with an "Install" CTA. Dismissed for 7 days.
- *   2. Listens for `sfa:sw:update` (fired by ServiceWorkerRegister) and shows
+ *   2. Listens for `consilium:sw:update` (fired by ServiceWorkerRegister) and shows
  *      an "Update ready — reload" toast. Tapping it tells the waiting SW to
  *      skip waiting; the page reloads automatically via controllerchange.
  *
@@ -49,12 +49,12 @@ export function InstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", onBeforeInstall)
     window.addEventListener("appinstalled", onAppInstalled)
-    window.addEventListener("sfa:sw:update", onSwUpdate)
+    window.addEventListener("consilium:sw:update", onSwUpdate)
 
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall)
       window.removeEventListener("appinstalled", onAppInstalled)
-      window.removeEventListener("sfa:sw:update", onSwUpdate)
+      window.removeEventListener("consilium:sw:update", onSwUpdate)
     }
   }, [])
 
@@ -172,7 +172,7 @@ export function InstallPrompt() {
             ▲
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>Install Studio Flyer</div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Install Consilium Design</div>
             <div style={{ fontSize: 12, color: "var(--ink-2)", marginTop: 2 }}>
               Faster launch, works offline.
             </div>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Offline — Studio Flyer AI",
+  title: "Offline — Consilium Design",
   robots: { index: false, follow: false },
 }
 
@@ -39,7 +39,7 @@ export default function OfflinePage() {
           You are offline
         </h1>
         <p style={{ margin: 0, color: "var(--ink-2)", lineHeight: 1.6, fontSize: 15 }}>
-          We cannot reach Studio Flyer right now. Check your connection — the app
+          We cannot reach Consilium Design right now. Check your connection — the app
           will pick up where you left off as soon as you are back online.
         </p>
         <a

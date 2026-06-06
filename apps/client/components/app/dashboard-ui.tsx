@@ -97,11 +97,9 @@ export function ChatInput({
           justifyContent: "center",
           cursor: sendDisabled ? "not-allowed" : "pointer",
           justifySelf: "end",
-          transition: "background 0.2s ease, color 0.2s ease, transform 0.1s ease",
-          transform: sendDisabled ? "scale(0.95)" : "scale(1)",
+          transition: "background 0.2s ease, color 0.2s ease, opacity 0.1s ease",
+          opacity: sendDisabled ? 0.86 : 1,
         }}
-        onMouseEnter={(e) => { if (!sendDisabled) e.currentTarget.style.transform = "scale(1.05)" }}
-        onMouseLeave={(e) => { if (!sendDisabled) e.currentTarget.style.transform = "scale(1)" }}
       >
         {loading ? <span style={{ fontSize: 18, lineHeight: 1, transform: "translateY(-2px)" }}>...</span> : <Icon name="arrowUp" size={18} />}
       </button>

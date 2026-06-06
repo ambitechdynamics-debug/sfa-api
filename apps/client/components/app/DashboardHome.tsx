@@ -783,12 +783,9 @@ export function DashboardHome() {
                       color: promptInput.trim() ? "#000" : "rgba(255,255,255,0.6)",
                       border: 0, display: "flex", alignItems: "center", justifyContent: "center",
                       cursor: promptInput.trim() && !isSending ? "pointer" : "default",
-                      transition: "all 0.2s ease",
-                      transform: promptInput.trim() && !isSending ? "scale(1)" : "scale(1)",
+                      transition: "background 0.2s ease, color 0.2s ease, opacity 0.2s ease",
                       opacity: isSending ? 0.7 : 1,
                     }}
-                    onMouseEnter={(e) => { if (promptInput.trim() && !isSending) e.currentTarget.style.transform = "scale(1.05)" }}
-                    onMouseLeave={(e) => { if (promptInput.trim() && !isSending) e.currentTarget.style.transform = "scale(1)" }}
                   >
                     {isSending ? (
                       <div className="anim-spin" style={{ width: 16, height: 16, borderRadius: 999, border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#000" }} />

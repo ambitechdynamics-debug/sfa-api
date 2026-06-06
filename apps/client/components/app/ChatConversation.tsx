@@ -223,11 +223,11 @@ function ChatBubble({
                   textAlign: "left",
                   letterSpacing: "-0.01em",
                   lineHeight: 1.3,
-                  transition: "background 0.2s ease, transform 0.1s ease",
+                  transition: "background 0.2s ease",
                 }}
                 className={isLatest ? "choice-chip" : ""}
-                onMouseEnter={e => { if (isLatest) { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.transform = "scale(1.02)"; } }}
-                onMouseLeave={e => { if (isLatest) { e.currentTarget.style.background = choice.toLowerCase().includes("autre") ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.08)"; e.currentTarget.style.transform = "scale(1)"; } }}
+                onMouseEnter={e => { if (isLatest) { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; } }}
+                onMouseLeave={e => { if (isLatest) { e.currentTarget.style.background = choice.toLowerCase().includes("autre") ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.08)"; } }}
               >
                 {choice}
               </button>
@@ -1331,9 +1331,7 @@ export function ChatConversation({
                     alt={activeVisual.title}
                     style={{
                       maxWidth: "100%", maxHeight: 380, objectFit: "contain",
-                      transition: "transform 0.3s ease"
                     }}
-                    className="hover:scale-102"
                   />
                   {/* Overlay loader pendant régénération / nouvelle variante */}
                   {isGenerating && (
@@ -1604,9 +1602,6 @@ export function ChatConversation({
 
       {/* ─── Inject Local CSS Rules ─── */}
       <style>{`
-        .hover\\:scale-102:hover {
-          transform: scale(1.025);
-        }
         .hover\\:color-rose:hover {
           color: var(--rose) !important;
         }
@@ -1646,7 +1641,7 @@ export function ChatConversation({
           box-shadow: 0 6px 20px rgba(224, 138, 100, 0.3);
         }
         .choice-chip:active {
-          transform: translateY(0) scale(0.98);
+          transform: translateY(0);
         }
 
         /* Responsive Layout Overrides */
@@ -1673,8 +1668,8 @@ export function ChatConversation({
           }
         }
         @keyframes dotBounce {
-          0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
-          40% { transform: scale(1); opacity: 1; }
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+          40% { transform: translateY(-3px); opacity: 1; }
         }
         .anim-dot-bounce {
           animation: dotBounce 1.2s ease-in-out infinite;

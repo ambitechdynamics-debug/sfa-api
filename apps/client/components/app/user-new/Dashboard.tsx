@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { CreditCard, LogOut, Settings, UserRound } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useProjectStore } from "@/store/project-store"
 import { useCreationOptionsStore } from "@/store/creation-options-store"
@@ -132,10 +133,6 @@ function timeAgo(iso: string | undefined): string {
   return new Date(iso).toLocaleDateString("en-US", { day: "numeric", month: "short" })
 }
 
-const TOP_TABS = ["Recent", "Your creations", "Examples", "Design systems"] as const
-
-type TopTab = (typeof TOP_TABS)[number]
-
 export function UserNewDashboard() {
   const router = useRouter()
   const { user, logout } = useAuth()
@@ -144,13 +141,17 @@ export function UserNewDashboard() {
   const { options, fetchOptions } = useCreationOptionsStore()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement | null>(null)
+  const mobileUserMenuRef = useRef<HTMLDivElement | null>(null)
   const [pendingAssets, setPendingAssets] = useState<PendingAsset[]>([])
 
   // Close user menu on outside click
   useEffect(() => {
     if (!userMenuOpen) return
     const onDown = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      const isInsideDesktop = userMenuRef.current?.contains(target)
+      const isInsideMobile = mobileUserMenuRef.current?.contains(target)
+      if (!isInsideDesktop && !isInsideMobile) {
         setUserMenuOpen(false)
       }
     }
@@ -158,7 +159,6 @@ export function UserNewDashboard() {
     return () => window.removeEventListener("mousedown", onDown)
   }, [userMenuOpen])
 
-  const [topTab, setTopTab] = useState<TopTab>("Recent")
   const [search, setSearch] = useState("")
   const [name, setName] = useState("")
   const [systemId, setSystemId] = useState<string>("")
@@ -260,6 +260,78 @@ export function UserNewDashboard() {
 
   return (
     <div className="csl-app-dashboard">
+      <header className="csl-dashboard-mobile-top">
+        <div className="csl-dashboard-mobile-spacer" aria-hidden="true" />
+        <div className="csl-dashboard-mobile-brand">
+          <ConsiliumPrismLogo size={28} className="csl-dashboard-mobile-brand-logo" />
+          <span>
+            <strong>CONSILIUM</strong>
+            <small>Design</small>
+          </span>
+        </div>
+        <div className="csl-dashboard-mobile-account" ref={mobileUserMenuRef}>
+          <button
+            type="button"
+            className="csl-dashboard-mobile-menu"
+            onClick={() => setUserMenuOpen((v) => !v)}
+            aria-label="Open account menu"
+            aria-expanded={userMenuOpen}
+          >
+            <ConsiliumPrismLogo size={28} className="csl-dashboard-mobile-menu-logo" />
+          </button>
+          {userMenuOpen && (
+            <div className="csl-dashboard-mobile-account-menu">
+              <div className="csl-dashboard-mobile-menu-brand">
+                <span>
+                  <strong>CONSILIUM</strong>
+                  <small>Design</small>
+                </span>
+                <ConsiliumPrismLogo size={24} className="csl-dashboard-mobile-menu-brand-logo" />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setUserMenuOpen(false)
+                  router.push("/dashboard/projects")
+                }}
+              >
+                <Ico.folder size={15} color="currentColor" />
+                Projets
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUserMenuOpen(false); router.push("/dashboard/profile") }}
+              >
+                <UserRound size={15} />
+                Profile
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUserMenuOpen(false); router.push("/dashboard/settings") }}
+              >
+                <Settings size={15} />
+                Settings
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUserMenuOpen(false); router.push("/dashboard/billing") }}
+              >
+                <CreditCard size={15} />
+                Billing
+              </button>
+              <button
+                type="button"
+                className="is-danger"
+                onClick={() => { setUserMenuOpen(false); void logout() }}
+              >
+                <LogOut size={15} />
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
       {/* SIDEBAR */}
       <aside className="csl-sb">
         <div className="csl-sb-head">
@@ -448,25 +520,16 @@ export function UserNewDashboard() {
       {/* MAIN */}
       <main className="csl-main">
         <div className="csl-topbar">
-          <nav className="csl-toptabs">
-            {TOP_TABS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTopTab(t)}
-                className={`csl-toptab ${topTab === t ? "active" : ""}`}
-              >
-                {t}
-              </button>
-            ))}
-          </nav>
+          <div className="csl-dashboard-section-title">
+            <span>Projects</span>
+          </div>
           <div className="csl-search">
             <span className="csl-search-icon"><Ico.search /></span>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
+              placeholder="Search projects..."
               className="csl-input"
-              style={{ paddingLeft: 32 }}
             />
           </div>
         </div>

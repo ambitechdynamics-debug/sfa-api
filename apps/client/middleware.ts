@@ -17,13 +17,12 @@ const isProtectedRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   if (!isProtectedRoute(req)) return NextResponse.next()
 
-  const { userId, redirectToSignIn } = await auth()
+  const { userId } = await auth()
 
   if (!userId) {
-    // Preserve the original `next` query so the login page can redirect back
-    // after a successful sign-in (Clerk uses `redirect_url` natively, but the
-    // existing login UI reads `next`).
-    return redirectToSignIn({ returnBackUrl: req.url })
+    const loginUrl = new URL("/login", req.url)
+    loginUrl.searchParams.set("next", `${req.nextUrl.pathname}${req.nextUrl.search}`)
+    return NextResponse.redirect(loginUrl)
   }
 
   const response = NextResponse.next()

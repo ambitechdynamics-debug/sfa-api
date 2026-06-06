@@ -256,11 +256,8 @@ export function WorkspaceAssetPanel({ projectId, refreshKey = 0 }: WorkspaceAsse
 
   return (
     <div className="csl-ws-assets">
-      <div style={{ fontSize: 12.5, color: "var(--csl-ink-1)", marginBottom: 8 }}>
-        Design files
-      </div>
-
       <div
+        className="csl-ws-assets-dropzone"
         onDragOver={(e) => { e.preventDefault(); if (!disabled) setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {

@@ -7,7 +7,7 @@ import { useEffect } from "react"
  *
  * Side effects:
  *   - In production, registers /sw.js with scope "/".
- *   - When a new SW is waiting, dispatches a `sfa:sw:update` window event with
+ *   - When a new SW is waiting, dispatches a `consilium:sw:update` window event with
  *     the waiting registration as detail — InstallPrompt listens to it and
  *     shows the "Update ready" toast.
  *   - In development, actively unregisters any previously-registered SW to
@@ -81,5 +81,5 @@ export function ServiceWorkerRegister() {
 }
 
 function dispatchUpdate(reg: ServiceWorkerRegistration) {
-  window.dispatchEvent(new CustomEvent("sfa:sw:update", { detail: reg }))
+  window.dispatchEvent(new CustomEvent("consilium:sw:update", { detail: reg }))
 }
