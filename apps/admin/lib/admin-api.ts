@@ -1,7 +1,7 @@
 import { AdminStats, SubscriptionPlan } from '@/types/admin'
 import { AdminUser, CreditTransaction } from '@/types/user'
 import { AdminProject, FileAsset, GeneratedPoster, FinalPrompt } from '@/types/project'
-import { AgentDefinition, AgentMemoryLink, AgentRunRecord, ChatAgentConfig } from '@/types/agent'
+import { AgentDefinition, AgentMemoryLink, AgentRunRecord, AgentSkill, ChatAgentConfig } from '@/types/agent'
 import { MemoryDefinition } from '@/types/memory'
 import { Payment, ArtisticResource } from '@/types/payment'
 import { ForbiddenRule, ForbiddenRulesFilters, ForbiddenRulesPaginated } from '@/types/forbidden-rule'
@@ -18,6 +18,7 @@ type ApiResponse<T> = {
   success?: boolean
   message?: string
   data?: T
+  errors?: Array<{ path?: string; message?: string } | unknown>
 }
 
 function notifyInvalidAuth() {
@@ -59,7 +60,21 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
   const data = await res.json().catch(() => ({} as ApiResponse<T>))
   if (!res.ok || !data.success) {
-    const error = new AdminApiError(data.message || 'Erreur API', res.status)
+    const details = Array.isArray(data.errors)
+      ? data.errors
+          .map((entry: unknown) => {
+            if (entry && typeof entry === 'object' && 'message' in entry) {
+              const detail = entry as { path?: string; message?: string }
+              return [detail.path, detail.message].filter(Boolean).join(': ')
+            }
+            return ''
+          })
+          .filter(Boolean)
+      : []
+    const message = details.length > 0
+      ? `${data.message || 'Erreur API'} — ${details.join('; ')}`
+      : data.message || 'Erreur API'
+    const error = new AdminApiError(message, res.status)
     if (error.status === 401 && isAuthEndpoint(path)) notifyInvalidAuth()
     throw error
   }
@@ -158,12 +173,63 @@ export async function fetchAgents(): Promise<AgentDefinition[]> {
   return apiFetch('/api/admin-v2/agent-definitions')
 }
 
+function normalizeAgentSkills(skills: AgentSkill[] | undefined): AgentSkill[] | undefined {
+  if (!Array.isArray(skills)) return undefined
+
+  const normalized = skills
+    .map((skill, index) => {
+      const name = skill.name?.trim() ?? ''
+      const content = skill.content?.trim() ?? ''
+      const description = skill.description?.trim() || null
+      const tags = Array.isArray(skill.tags)
+        ? skill.tags.map((tag) => tag.trim()).filter(Boolean)
+        : []
+
+      return {
+        id: skill.id,
+        name,
+        description,
+        tags,
+        content,
+        isActive: skill.isActive ?? true,
+        order: index,
+      }
+    })
+    .filter((skill) => skill.id || skill.name || skill.content || skill.description || skill.tags.length > 0)
+
+  const invalid = normalized.find((skill) => !skill.name || !skill.content)
+  if (invalid) {
+    throw new AdminApiError('Chaque compétence doit avoir un nom et un contenu .amd, ou être supprimée.', 400)
+  }
+
+  return normalized
+}
+
+function buildAgentPayload(data: Partial<AgentDefinition>): Partial<AgentDefinition> {
+  const payload: Partial<AgentDefinition> = {
+    key: data.key?.trim(),
+    name: data.name?.trim(),
+    description: data.description === undefined ? undefined : data.description.trim(),
+    provider: data.provider?.trim(),
+    model: data.model?.trim(),
+    systemPrompt: data.systemPrompt?.trim(),
+    expectedOutputSchema: data.expectedOutputSchema,
+    moduleAccess: data.moduleAccess,
+    isActive: data.isActive,
+  }
+
+  const skills = normalizeAgentSkills(data.skills)
+  if (skills !== undefined) payload.skills = skills
+
+  return payload
+}
+
 export async function createAgent(data: Partial<AgentDefinition>): Promise<AgentDefinition> {
-  return apiFetch('/api/admin-v2/agent-definitions', { method: 'POST', body: JSON.stringify(data) })
+  return apiFetch('/api/admin-v2/agent-definitions', { method: 'POST', body: JSON.stringify(buildAgentPayload(data)) })
 }
 
 export async function updateAgent(id: string, data: Partial<AgentDefinition>): Promise<AgentDefinition> {
-  return apiFetch(`/api/admin-v2/agent-definitions/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  return apiFetch(`/api/admin-v2/agent-definitions/${id}`, { method: 'PATCH', body: JSON.stringify(buildAgentPayload(data)) })
 }
 
 export async function deleteAgent(id: string): Promise<void> {
@@ -253,7 +319,7 @@ export async function saveArtisticVisionConfig(config: ArtisticVisionConfig): Pr
 // ─── ARTISTIC RESOURCES ───────────────────────────────────────────────────────
 export async function fetchArtisticResources(): Promise<ArtisticResource[]> {
   // Backend returns { items, pagination } — extract the array
-  const res = await apiFetch<{ items: ArtisticResource[]; pagination: unknown }>('/api/artistic-resources')
+  const res = await apiFetch<{ items: ArtisticResource[]; pagination: unknown }>('/api/admin-v2/artistic-resources')
   return Array.isArray(res) ? res : (res as { items: ArtisticResource[] }).items ?? []
 }
 

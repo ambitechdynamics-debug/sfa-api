@@ -49,8 +49,8 @@ export default function AgentsPage() {
       }
       setDrawerOpen(false)
       setEditAgent(null)
-    } catch {
-      toastError('Erreur lors de la sauvegarde')
+    } catch (error) {
+      toastError(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde')
     } finally {
       setSaving(false)
     }

@@ -115,13 +115,13 @@ const ROUTE_MOUNTS = [
   { path: '/admin-v2',          handler: adminRoutes },
   { path: '/users',          handler: usersRoutes },
   { path: '/projects',       handler: projectsRoutes },
+  { path: '',                handler: artisticBaseRoutes },
   { path: '',                handler: travauxRoutes }, // POST /projects/:id/travaux + /travaux/*
   { path: '/travaux',        handler: memoryRoutes },         // /travaux/:travailId/memories/*
   { path: '/travaux',        handler: orchestratorRoutes },   // /travaux/:travailId/{generate-final-prompt|extract-colors|agent-runs}
   { path: '/travaux',        handler: imageGenRoutes },       // /travaux/:travailId/{generate-images|generated-posters}
   { path: '/agents',         handler: agentsRoutes },
   { path: '/agents-dynamic', handler: agentsDynamicRoutes },
-  { path: '',                handler: artisticBaseRoutes },
   { path: '',                handler: forbiddenRulesRoutes },
   { path: '',                handler: filesRoutes },
   { path: '/ux-metrics',     handler: uxMetricsRoutes },
