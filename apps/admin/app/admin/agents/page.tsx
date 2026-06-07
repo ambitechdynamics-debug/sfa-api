@@ -67,7 +67,7 @@ export default function AgentsPage() {
         <div>
           <h1 className="text-lg font-bold text-[var(--text)]">Agents IA</h1>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Catalogue des agents d'orchestration · {activeCount} actif(s) / {agents.length} total
+            Catalogue des agents · {activeCount} actif(s) / {agents.length} total
           </p>
         </div>
         <button

@@ -293,9 +293,6 @@ export default function ConversationalAgentPage() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-[var(--text)]">Agent conversationnel</h1>
-            <p className="mt-0.5 max-w-2xl text-xs leading-5 text-[var(--text-muted)]">
-              Pilote le chat client de <span className="font-mono">/dashboard/ai</span> via <span className="font-mono">/api/chat</span>. Identité, mémoire de destination, modules de lecture et prompts contextuels.
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -396,10 +393,7 @@ export default function ConversationalAgentPage() {
                 <Database className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Mémoire de destination</h2>
-                <p className="mt-0.5 text-[11px] leading-4 text-[var(--text-subtle)]">
-                  Le premier message de chaque conversation est stocké dans cette mémoire (clef <span className="font-mono">MemoryDefinition.key</span>).
-                </p>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Mémoire agent</h2>
               </div>
             </div>
             <label className="block space-y-1.5 max-w-md">
@@ -419,7 +413,7 @@ export default function ConversationalAgentPage() {
                 ))}
               </select>
               {!memoryExists && (
-                <p className="text-[11px] leading-4 text-amber-600">Cette clef n’existe pas dans MemoryDefinition. Créez-la dans /admin/memories ou choisissez-en une autre.</p>
+                <p className="text-[11px] leading-4 text-amber-600"></p>
               )}
             </label>
           </section>
@@ -446,9 +440,6 @@ export default function ConversationalAgentPage() {
           {/* Section 4 — Modules accessibles */}
           <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-4">Modules de lecture</h2>
-            <p className="mb-4 text-[11px] leading-4 text-[var(--text-subtle)]">
-              Active les sources de données que l’agent peut consulter pendant la conversation. Chaque module est injecté comme bloc contextuel dans le prompt système.
-            </p>
             <div className="grid gap-3 md:grid-cols-2">
               {(Object.keys(MODULE_META) as ChatAgentModule[]).map((key) => {
                 const meta = MODULE_META[key]
@@ -482,10 +473,7 @@ export default function ConversationalAgentPage() {
           <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4">
               <div>
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Prompts contexte workspace</h2>
-                <p className="mt-1 text-[11px] leading-4 text-[var(--text-subtle)]">
-                  Liste CRUD enregistrée en base, triée par priorité avant injection dans le chat client.
-                </p>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Prompts contexte</h2>
               </div>
               <button
                 type="button"
@@ -498,7 +486,7 @@ export default function ConversationalAgentPage() {
             <div className="space-y-3">
               {sortedPrompts.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg)] px-4 py-6 text-center text-xs text-[var(--text-subtle)]">
-                  Aucun prompt workspace configuré.
+                  Aucun prompt.
                 </div>
               ) : (
                 sortedPrompts.map((prompt) => {

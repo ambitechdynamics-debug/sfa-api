@@ -79,7 +79,7 @@ function CreationOptionForm({
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Prompt Contextuel (Injecté dans l'IA)</label>
+        <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Prompt Contextuel (Injecté dans le provider)</label>
         <textarea
           required
           value={formData.contextPrompt}

@@ -77,7 +77,7 @@ export function AdminSidebar() {
         <ConsiliumPrismLogo size={32} />
         <div>
           <div className="text-xs font-bold text-white leading-tight tracking-tight">CONSILIUM</div>
-          <div className="text-[10px] text-[var(--sidebar-text)]">Administration</div>
+          <div className="text-[10px] text-[var(--sidebar-text)]">Design </div>
         </div>
         <button
           className="ml-auto lg:hidden p-1 hover:bg-white/10 rounded-md"
@@ -117,7 +117,7 @@ export function AdminSidebar() {
       {/* Footer */}
       <div className="px-4 py-4 border-t border-[var(--sidebar-border)]">
         <div className="text-[10px] text-[var(--sidebar-text)]">
-          STUDIO FLYER AI v0.1.0
+          CONSILIUM Design v0.1.0
         </div>
       </div>
     </div>

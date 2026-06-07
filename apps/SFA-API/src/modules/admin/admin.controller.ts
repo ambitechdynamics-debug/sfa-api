@@ -111,6 +111,32 @@ export const adminController = {
     sendSuccess(res, 'Admin stats retrieved', stats);
   }),
 
+  listProviderApiKeys: asyncHandler(async (req: Request, res: Response) => {
+    const providerSlug = typeof req.query.providerSlug === 'string' ? req.query.providerSlug : undefined;
+    const keys = await adminService.listProviderApiKeys(providerSlug);
+    sendSuccess(res, 'Provider API keys retrieved', keys);
+  }),
+
+  createProviderApiKey: asyncHandler(async (req: Request, res: Response) => {
+    const key = await adminService.createProviderApiKey(req.body);
+    sendSuccess(res, 'Provider API key created', key, 201);
+  }),
+
+  updateProviderApiKey: asyncHandler(async (req: Request, res: Response) => {
+    const key = await adminService.updateProviderApiKey(req.params.id, req.body);
+    sendSuccess(res, 'Provider API key updated', key);
+  }),
+
+  deleteProviderApiKey: asyncHandler(async (req: Request, res: Response) => {
+    await adminService.deleteProviderApiKey(req.params.id);
+    sendSuccess(res, 'Provider API key deleted', null);
+  }),
+
+  resetProviderApiKeyCooldown: asyncHandler(async (req: Request, res: Response) => {
+    const key = await adminService.resetProviderApiKeyCooldown(req.params.id);
+    sendSuccess(res, 'Provider API key cooldown reset', key);
+  }),
+
   listUsers: asyncHandler(async (_req: Request, res: Response) => {
     const users = await adminService.listUsers();
     sendSuccess(res, 'Users retrieved', users);

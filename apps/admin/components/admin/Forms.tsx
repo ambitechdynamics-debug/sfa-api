@@ -274,7 +274,7 @@ export function MemoryDefinitionForm({ initial, onSubmit, onCancel, isLoading }:
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(form) }} className="space-y-4">
       {isSystem && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-          <span className="text-xs text-amber-700 dark:text-amber-400">Mémoire système — modification limitée</span>
+          <span className="text-xs text-amber-700 dark:text-amber-400">Mémoire système</span>
         </div>
       )}
       <Field label="Clé unique *" hint="Identifiant (ex: M-SMS, M-CONTACT)">
@@ -673,10 +673,7 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
     <form onSubmit={(e) => { e.preventDefault(); hasBatchSelection ? handleBatchCreate() : onSubmit(form) }} className="space-y-4">
       {hasBatchSelection && (
         <div className="rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-3 py-2">
-          <p className="text-xs font-medium text-[var(--text)]">Import automatique actif</p>
-          <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-            Chaque image sera uploadée, analysée par l'IA, puis créée automatiquement.
-          </p>
+          <p className="text-xs font-medium text-[var(--text)]">Import automatique</p>
         </div>
       )}
       {isEditMode && (
@@ -739,9 +736,6 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
                 <div>
                   <p className="text-xs font-semibold text-[var(--text)]">
                     {batchItems.length} image(s) en lot
-                  </p>
-                  <p className="text-[10px] text-[var(--text-subtle)]">
-                    Upload Cloudinary, analyse IA, puis création automatique.
                   </p>
                 </div>
                 <button
@@ -924,14 +918,14 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
           <div className="flex flex-col gap-2 mt-3 p-3 bg-[var(--bg-subtle)] border border-[var(--accent)]/20 rounded-lg">
             {providers.filter(p => p.supportsVision).length === 0 ? (
               <p className="text-xs text-amber-600 text-center font-medium">
-                Aucun provider compatible vision n'est configuré ou activé. Veuillez en configurer un dans les paramètres d'administration.
+                Aucun provider compatible vision n'est configuré ou activé.
               </p>
             ) : (
               <>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-[var(--text)] flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-[var(--accent)]" /> 
-                    Auto-complétion par l'IA
+                    Auto-complétion
                   </span>
                   <select
                     className="border border-[var(--border)] rounded px-2 py-1 text-xs bg-[var(--surface)] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none max-w-[200px]"
@@ -962,7 +956,7 @@ export function ArtisticResourceForm({ initial, existingCategories, onSubmit, on
                 >
                   {isAnalyzing ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyse en cours...
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyse...
                     </>
                   ) : (
                     'Analyser et remplir les champs'
@@ -1269,7 +1263,7 @@ export function ForbiddenRuleForm({ initial, onSubmit, onCancel, isLoading }: Fo
       {isSystem && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
           <span className="text-xs text-amber-700 dark:text-amber-400">
-            Règle système — seuls description, conseils et negative prompt sont modifiables. Suppression désactivée.
+            Règle système.
           </span>
         </div>
       )}
@@ -1374,7 +1368,7 @@ export function ForbiddenRuleForm({ initial, onSubmit, onCancel, isLoading }: Fo
       <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--bg-subtle)]">
         <div>
           <span className="text-sm font-medium text-[var(--text)]">Règle active</span>
-          <p className="text-xs text-[var(--text-muted)]">Désactivée = ignorée par les agents IA</p>
+          <p className="text-xs text-[var(--text-muted)]">Désactivée = ignorée par les agents</p>
         </div>
         <button
           type="button"

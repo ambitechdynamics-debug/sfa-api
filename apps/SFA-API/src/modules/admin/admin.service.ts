@@ -5,6 +5,7 @@ import { stripe } from '../../config/stripe';
 import { orchestratorPipelineService } from '../orchestrator/orchestratorPipeline.service';
 import { chatAgentConfigService } from '../chat/chatAgentConfig.service';
 import { artisticVisionConfigService } from '../artistic-base/artisticVisionConfig.service';
+import { providerApiKeysService } from '../ai/providerApiKeys.service';
 import type { AgentSkillInput } from './admin.validation';
 
 const SUBSCRIPTION_PLAN_DEFAULTS = {
@@ -586,6 +587,10 @@ export const adminService = {
   },
 
   getLlmProviders: async () => {
+    await providerApiKeysService.seedFromLegacySettings();
+    const providerKeys = await providerApiKeysService.list();
+    const hasAvailableKey = (slug: string) => providerKeys.some((key) => key.providerSlug === slug && key.status === 'available');
+
     const allSettings = await prisma.appSetting.findMany({
       where: { category: 'providers' }
     });
@@ -596,10 +601,6 @@ export const adminService = {
     // dans /admin/settings). Plus aucun fallback environnement runtime, et
     // plus aucun modèle par défaut codé — l'admin doit saisir explicitement
     // le modèle souhaité pour chaque provider qu'il active.
-    const openaiKey = findVal('openai_api_key');
-    const anthropicKey = findVal('anthropic_api_key');
-    const geminiKey = findVal('gemini_api_key');
-
     const standardProviders = [
       {
         id: 'openai',
@@ -608,7 +609,7 @@ export const adminService = {
         type: 'openai',
         baseUrl: 'https://api.openai.com/v1',
         defaultModel: findVal('openai_model'),
-        enabled: openaiKey.trim() !== '',
+        enabled: hasAvailableKey('openai'),
         supportsText: true,
         supportsVision: true,
         supportsReasoning: true,
@@ -621,7 +622,7 @@ export const adminService = {
         type: 'anthropic',
         baseUrl: 'https://api.anthropic.com',
         defaultModel: findVal('anthropic_model'),
-        enabled: anthropicKey.trim() !== '',
+        enabled: hasAvailableKey('anthropic'),
         supportsText: true,
         supportsVision: true,
         supportsReasoning: false,
@@ -634,7 +635,7 @@ export const adminService = {
         type: 'gemini',
         baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
         defaultModel: findVal('gemini_model'),
-        enabled: geminiKey.trim() !== '',
+        enabled: hasAvailableKey('gemini'),
         supportsText: true,
         supportsVision: true,
         supportsReasoning: false,
@@ -665,7 +666,7 @@ export const adminService = {
       const type = findVal(`custom_${slug}_type`) || 'openai-compatible';
       const baseUrl = findVal(`custom_${slug}_base_url`);
       const defaultModel = findVal(`custom_${slug}_default_model`);
-      const enabled = findVal(`custom_${slug}_is_active`) === 'true';
+      const enabled = findVal(`custom_${slug}_is_active`) === 'true' && hasAvailableKey(slug);
 
       const supportsTextVal = findVal(`custom_${slug}_supports_text`);
       let supportsText = supportsTextVal === 'true' || supportsTextVal === ''; // default true
@@ -699,6 +700,27 @@ export const adminService = {
     }
 
     return [...standardProviders, ...customList];
+  },
+
+  listProviderApiKeys: async (providerSlug?: string) => {
+    return providerApiKeysService.list(providerSlug);
+  },
+
+  createProviderApiKey: async (data: { providerSlug: string; label?: string; apiKey: string; isActive?: boolean }) => {
+    return providerApiKeysService.create(data);
+  },
+
+  updateProviderApiKey: async (id: string, data: { label?: string; apiKey?: string; isActive?: boolean }) => {
+    return providerApiKeysService.update(id, data);
+  },
+
+  deleteProviderApiKey: async (id: string) => {
+    await providerApiKeysService.delete(id);
+    return null;
+  },
+
+  resetProviderApiKeyCooldown: async (id: string) => {
+    return providerApiKeysService.resetCooldown(id);
   },
 
   /**

@@ -60,8 +60,7 @@ export function SkillsEditor<T extends SkillsEditorEntry>({
             Compétences (.amd)
           </div>
           <div className="text-[11px] text-[var(--text-subtle)]">
-            Injectées dans le contexte de l'agent au moment où il traite une demande. Glisser-déposer
-            un fichier <code className="font-mono">.amd</code> sur une compétence pour pré-remplir.
+            Glisser-déposer un fichier <code className="font-mono">.amd</code>.
           </div>
         </div>
         <button
@@ -75,7 +74,7 @@ export function SkillsEditor<T extends SkillsEditorEntry>({
 
       {skills.length === 0 ? (
         <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg)] px-4 py-6 text-center text-xs text-[var(--text-subtle)]">
-          Aucune compétence. Cliquer sur « Ajouter » ou glisser un fichier <code>.amd</code>.
+          Glisser un fichier <code>.amd</code>.
         </div>
       ) : (
         <ul className="space-y-2">

@@ -125,8 +125,6 @@ export function GlobalLinkGraph({ agents, memories, links, onDeleteLink }: Globa
     return (
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 text-center">
         <Network className="w-8 h-8 text-[var(--text-subtle)] mx-auto mb-2" />
-        <p className="text-sm text-[var(--text-muted)]">Pas assez de données pour afficher le graphe</p>
-        <p className="text-xs text-[var(--text-subtle)] mt-1">Créez des agents et des mémoires pour voir leurs liaisons</p>
       </div>
     )
   }
@@ -136,7 +134,7 @@ export function GlobalLinkGraph({ agents, memories, links, onDeleteLink }: Globa
       {/* Header with title + legend */}
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--text)]">Réseau global Agents ↔ Mémoires</h3>
+          <h3 className="text-sm font-semibold text-[var(--text)]">Agents ↔ Mémoires</h3>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
             {agents.length} agents · {memories.length} mémoires · {resolvedLinks.length}
             {resolvedLinks.length !== links.length && (

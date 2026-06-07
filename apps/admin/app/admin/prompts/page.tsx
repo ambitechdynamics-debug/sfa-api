@@ -38,7 +38,7 @@ export default function PromptsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-[var(--text)]">Prompts Finaux</h1>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">{filtered.length} prompt(s) M-PROMPT1</p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">{filtered.length} prompt</p>
         </div>
       </div>
 

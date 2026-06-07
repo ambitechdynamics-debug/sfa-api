@@ -258,7 +258,7 @@ export default function ArtisticBasePage() {
           <p className="text-xs text-[var(--text-muted)] mt-0.5">{filtered.length} ressource(s)</p>
         </div>
         <button onClick={() => { setEditResource(null); setDrawerOpen(true) }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:bg-[var(--accent-hover)] transition-all shadow-sm">
-          <Plus className="w-4 h-4" /> Ajouter ressource
+          <Plus className="w-4 h-4" /> Ajouter
         </button>
       </div>
 
@@ -380,9 +380,6 @@ export default function ArtisticBasePage() {
             <Palette className="w-8 h-8" />
           </div>
           <h3 className="text-base font-bold text-[var(--text)] mb-1">Aucune ressource trouvée</h3>
-          <p className="text-xs text-[var(--text-muted)] mb-6 max-w-xs mx-auto">
-            Il n'y a actuellement aucune ressource artistique correspondant à ces filtres dans votre base.
-          </p>
           <button 
             onClick={() => { setEditResource(null); setDrawerOpen(true) }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)] text-white text-xs font-semibold hover:bg-[var(--accent-hover)] transition-all shadow-sm"

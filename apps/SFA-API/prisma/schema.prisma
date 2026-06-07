@@ -293,6 +293,27 @@ model AppSetting {
   @@index([category])
 }
 
+model ProviderApiKey {
+  id            String    @id @default(cuid())
+  providerSlug  String
+  label         String
+  apiKey        String
+  isActive      Boolean   @default(true)
+  cooldownUntil DateTime?
+  lastUsedAt    DateTime?
+  lastQuotaAt   DateTime?
+  quotaReason   String?
+  usageCount    Int       @default(0)
+  failureCount  Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([providerSlug, label])
+  @@index([providerSlug])
+  @@index([isActive])
+  @@index([cooldownUntil])
+}
+
 model ForbiddenRule {
   id             String                @id @default(cuid())
   key            String                @unique

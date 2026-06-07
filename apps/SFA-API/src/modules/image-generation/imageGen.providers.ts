@@ -15,6 +15,7 @@ import { prisma } from '../../config/database';
 import { AppError } from '../../utils/appError';
 import { settingsService } from '../settings/settings.service';
 import { fetchAIWithTimeout } from '../ai/ai.providers';
+import { createProviderHttpError, withRotatingProviderApiKey } from '../ai/providerApiKeys.service';
 import type { ImageGenAdapter, ImageGenInput, ImageGenProvider, ImageGenResult } from './imageGen.types';
 
 const ALLOWED_PROVIDERS = new Set<ImageGenProvider>(['mock', 'gemini', 'openai-image']);
@@ -155,70 +156,66 @@ interface GeminiResponse {
   promptFeedback?: { blockReason?: string };
 }
 
-/**
- * Resolve the Gemini API key. Source priority:
- *   1. AppSetting `gemini_api_key` (built-in slot).
- *   2. Any active custom provider declared as image-gen capable
- *      (`custom_<slug>_api_key` with `is_active=true` and
- *      `supports_image_generation=true`).
- *
- * This lets installs that drive the whole pipeline through a custom provider
- * (e.g. slug `gemini-01`) generate images with the same key the orchestrator
- * agents already use, without forcing the admin to duplicate it in the
- * built-in slot.
- */
-async function resolveGeminiApiKey(): Promise<string | null> {
-  const direct = await settingsService.getRaw('gemini_api_key');
-  if (direct && direct.trim()) return direct.trim();
-
+async function resolveGeminiImageProviderSlugs(): Promise<string[]> {
   const allSettings = await prisma.appSetting.findMany({
     where: { category: 'providers' },
     select: { key: true, value: true },
   });
   const byKey = new Map(allSettings.map((s) => [s.key, s.value]));
 
+  const providerSlugs = ['gemini'];
   const slugs = new Set<string>();
   for (const key of byKey.keys()) {
     const match = key.match(/^custom_(.+)_name$/);
     if (match) slugs.add(match[1]);
   }
 
-  // First pass: providers explicitly declared as image-gen capable.
+  // First pass: custom providers explicitly declared as image-gen capable.
   for (const slug of slugs) {
     const isActive = byKey.get(`custom_${slug}_is_active`) === 'true';
     const supportsImage = byKey.get(`custom_${slug}_supports_image_generation`) === 'true';
     if (!isActive || !supportsImage) continue;
-    const key = byKey.get(`custom_${slug}_api_key`);
-    if (key && key.trim()) return key.trim();
+    providerSlugs.push(slug);
   }
-  // Second pass: any active Gemini-compatible provider — Gemini uses the same
-  // API key for text and image endpoints, so the admin's "supports_image_*"
-  // self-flag does not actually gate eligibility for image generation.
+
+  // Second pass: any active Gemini-compatible provider. Gemini uses the same
+  // API key for text and image endpoints.
   for (const slug of slugs) {
     const isActive = byKey.get(`custom_${slug}_is_active`) === 'true';
     if (!isActive) continue;
     const type = (byKey.get(`custom_${slug}_type`) ?? '').toLowerCase();
     if (!type.includes('gemini')) continue;
-    const key = byKey.get(`custom_${slug}_api_key`);
-    if (key && key.trim()) return key.trim();
+    providerSlugs.push(slug);
   }
-  return null;
+
+  return [...new Set(providerSlugs)];
+}
+
+async function withGeminiImageApiKey<T>(operation: (apiKey: string) => Promise<T>): Promise<T> {
+  const providerSlugs = await resolveGeminiImageProviderSlugs();
+  let lastError: unknown = null;
+
+  for (const providerSlug of providerSlugs) {
+    try {
+      return await withRotatingProviderApiKey(providerSlug, operation);
+    } catch (err) {
+      lastError = err;
+      if (err instanceof AppError && err.statusCode === 503) continue;
+      throw err;
+    }
+  }
+
+  throw new AppError(
+    'Clé Gemini manquante ou indisponible. Ajoutez une clé active pour "gemini" ou un provider custom Gemini dans /admin/settings.',
+    503,
+    lastError instanceof Error ? [lastError.message] : [],
+  );
 }
 
 class GeminiImageProvider implements ImageGenAdapter {
   constructor(private readonly modelOverride: string | null = null) {}
 
   async generate(input: ImageGenInput): Promise<ImageGenResult> {
-    // Clé API Gemini : built-in slot OR active custom provider declared as
-    // image-gen capable. See resolveGeminiApiKey for the resolution order.
-    const apiKey = await resolveGeminiApiKey();
-    if (!apiKey) {
-      throw new AppError(
-        'Clé Gemini manquante. Renseignez "gemini_api_key" dans /admin/settings, ou activez un provider custom avec "supports_image_generation=true" dans /admin/settings.',
-        500,
-      );
-    }
-
     // Modèle : Generator-Agent.model (DB) → AppSetting `image_gen_model` →
     // canonical Gemini image-output model. The orchestrator agents (text) run
     // on gemini-2.5-flash-lite; the publicly available Gemini model that
@@ -237,7 +234,6 @@ class GeminiImageProvider implements ImageGenAdapter {
         500,
       );
     }
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.trim()}:generateContent?key=${apiKey}`;
 
     // Instructions textuelles par type d'asset utilisateur — guide Gemini sur
     // l'usage attendu de chaque image attachée.
@@ -316,21 +312,26 @@ class GeminiImageProvider implements ImageGenAdapter {
       },
     };
 
-    let res: Response;
-    try {
-      res = await fetchAIWithTimeout(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-    } catch (err) {
-      throw new AppError(`Gemini API unreachable: ${err instanceof Error ? err.message : 'Unknown'}`, 502);
-    }
+    const res = await withGeminiImageApiKey(async (apiKey) => {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.trim()}:generateContent?key=${apiKey}`;
+      let response: Response;
+      try {
+        response = await fetchAIWithTimeout(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } catch (err) {
+        throw new AppError(`Gemini API unreachable: ${err instanceof Error ? err.message : 'Unknown'}`, 502);
+      }
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      throw new AppError(`Gemini Image API error (${res.status}): ${errText.slice(0, 300)}`, res.status >= 500 ? 502 : res.status);
-    }
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw createProviderHttpError('Gemini Image', response.status, errText.slice(0, 500));
+      }
+
+      return response;
+    });
 
     const json = (await res.json()) as GeminiResponse;
 

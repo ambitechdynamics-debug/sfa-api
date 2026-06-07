@@ -102,7 +102,7 @@ export default function MemoriesPage() {
     <div className="space-y-5 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-[var(--text)]">Mémoires Dynamiques</h1>
+          <h1 className="text-lg font-bold text-[var(--text)]">Mémoires</h1>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">{memories.filter((m) => m.isSystem).length} système(s) · {memories.filter((m) => !m.isSystem).length} personnalisée(s)</p>
         </div>
         <button onClick={() => { setEditMemory(null); setDrawerOpen(true) }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:bg-[var(--accent-hover)] transition-colors">

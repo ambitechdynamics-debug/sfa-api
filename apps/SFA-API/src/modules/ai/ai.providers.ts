@@ -6,6 +6,7 @@
 
 import { AIProviderAdapter, CallTextAIOptions, CallVisionAIOptions, AIProviderCapabilities } from './ai.types';
 import { settingsService } from '../settings/settings.service';
+import { createProviderHttpError, withRotatingProviderApiKey } from './providerApiKeys.service';
 
 const DEFAULT_COMPATIBLE_BASE_URLS = {
   'openai-compatible': 'https://api.openai.com/v1',
@@ -329,7 +330,6 @@ class MockProvider implements AIProviderAdapter {
 // ─────────────────────────────────────────────────────────
 
 class OpenAIProvider implements AIProviderAdapter {
-  private apiKey: string;
   capabilities = {
     supportsText: true,
     supportsVision: true,
@@ -337,29 +337,29 @@ class OpenAIProvider implements AIProviderAdapter {
     supportsImageGeneration: true
   };
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
+  constructor(private readonly providerSlug = 'openai') {}
 
   private async fetchOpenAI(body: object): Promise<string> {
-    const response = await fetchAIWithTimeout('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify(body)
+    return withRotatingProviderApiKey(this.providerSlug, async (apiKey) => {
+      const response = await fetchAIWithTimeout('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw createProviderHttpError('OpenAI', response.status, err);
+      }
+
+      const data = (await response.json()) as {
+        choices: Array<{ message: { content: string } }>;
+      };
+      return data.choices[0]?.message?.content ?? '';
     });
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`OpenAI API error ${response.status}: ${err}`);
-    }
-
-    const data = (await response.json()) as {
-      choices: Array<{ message: { content: string } }>;
-    };
-    return data.choices[0]?.message?.content ?? '';
   }
 
   async callText(options: CallTextAIOptions): Promise<string> {
@@ -400,7 +400,6 @@ class OpenAIProvider implements AIProviderAdapter {
 // ─────────────────────────────────────────────────────────
 
 class AnthropicProvider implements AIProviderAdapter {
-  private apiKey: string;
   capabilities = {
     supportsText: true,
     supportsVision: true,
@@ -408,30 +407,30 @@ class AnthropicProvider implements AIProviderAdapter {
     supportsImageGeneration: false
   };
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
+  constructor(private readonly providerSlug = 'anthropic') {}
 
   private async fetchClaude(body: object): Promise<string> {
-    const response = await fetchAIWithTimeout('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify(body)
+    return withRotatingProviderApiKey(this.providerSlug, async (apiKey) => {
+      const response = await fetchAIWithTimeout('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw createProviderHttpError('Anthropic', response.status, err);
+      }
+
+      const data = (await response.json()) as {
+        content: Array<{ text: string }>;
+      };
+      return data.content[0]?.text ?? '';
     });
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Anthropic API error ${response.status}: ${err}`);
-    }
-
-    const data = (await response.json()) as {
-      content: Array<{ text: string }>;
-    };
-    return data.content[0]?.text ?? '';
   }
 
   async callText(options: CallTextAIOptions): Promise<string> {
@@ -469,7 +468,6 @@ class AnthropicProvider implements AIProviderAdapter {
 // ─────────────────────────────────────────────────────────
 
 class GeminiProvider implements AIProviderAdapter {
-  private apiKey: string;
   capabilities = {
     supportsText: true,
     supportsVision: true,
@@ -477,27 +475,27 @@ class GeminiProvider implements AIProviderAdapter {
     supportsImageGeneration: false
   };
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
+  constructor(private readonly providerSlug = 'gemini') {}
 
   private async fetchGemini(model: string, body: object): Promise<string> {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
-    const response = await fetchAIWithTimeout(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+    return withRotatingProviderApiKey(this.providerSlug, async (apiKey) => {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetchAIWithTimeout(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw createProviderHttpError('Gemini', response.status, err);
+      }
+
+      const data = (await response.json()) as {
+        candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
+      };
+      return data.candidates[0]?.content?.parts[0]?.text ?? '';
     });
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Gemini API error ${response.status}: ${err}`);
-    }
-
-    const data = (await response.json()) as {
-      candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
-    };
-    return data.candidates[0]?.content?.parts[0]?.text ?? '';
   }
 
   async callText(options: CallTextAIOptions): Promise<string> {
@@ -542,37 +540,37 @@ class GeminiProvider implements AIProviderAdapter {
 // ─────────────────────────────────────────────────────────
 
 class OpenAICompatibleProvider implements AIProviderAdapter {
-  private apiKey: string;
   private baseUrl: string;
   private label: string;
   capabilities: AIProviderCapabilities;
 
-  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities, label = 'openai-compatible') {
-    this.apiKey = apiKey;
+  constructor(private readonly providerSlug: string, baseUrl: string, capabilities: AIProviderCapabilities, label = 'openai-compatible') {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.capabilities = capabilities;
     this.label = label;
   }
 
   private async fetchOpenAI(body: object): Promise<string> {
-    const response = await fetchAIWithTimeout(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify(body)
+    return withRotatingProviderApiKey(this.providerSlug, async (apiKey) => {
+      const response = await fetchAIWithTimeout(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw createProviderHttpError(this.label, response.status, err);
+      }
+
+      const data = (await response.json()) as {
+        choices: Array<{ message: { content: string } }>;
+      };
+      return data.choices[0]?.message?.content ?? '';
     });
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`OpenAI-compatible API error ${response.status}: ${err}`);
-    }
-
-    const data = (await response.json()) as {
-      choices: Array<{ message: { content: string } }>;
-    };
-    return data.choices[0]?.message?.content ?? '';
   }
 
   async callText(options: CallTextAIOptions): Promise<string> {
@@ -609,38 +607,38 @@ class OpenAICompatibleProvider implements AIProviderAdapter {
 }
 
 class AnthropicCompatibleProvider implements AIProviderAdapter {
-  private apiKey: string;
   private baseUrl: string;
   private label: string;
   capabilities: AIProviderCapabilities;
 
-  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities, label = 'anthropic-compatible') {
-    this.apiKey = apiKey;
+  constructor(private readonly providerSlug: string, baseUrl: string, capabilities: AIProviderCapabilities, label = 'anthropic-compatible') {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.capabilities = capabilities;
     this.label = label;
   }
 
   private async fetchClaude(body: object): Promise<string> {
-    const response = await fetchAIWithTimeout(`${this.baseUrl}/v1/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify(body)
+    return withRotatingProviderApiKey(this.providerSlug, async (apiKey) => {
+      const response = await fetchAIWithTimeout(`${this.baseUrl}/v1/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw createProviderHttpError(this.label, response.status, err);
+      }
+
+      const data = (await response.json()) as {
+        content: Array<{ text: string }>;
+      };
+      return data.content[0]?.text ?? '';
     });
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Anthropic-compatible API error ${response.status}: ${err}`);
-    }
-
-    const data = (await response.json()) as {
-      content: Array<{ text: string }>;
-    };
-    return data.content[0]?.text ?? '';
   }
 
   async callText(options: CallTextAIOptions): Promise<string> {
@@ -674,35 +672,35 @@ class AnthropicCompatibleProvider implements AIProviderAdapter {
 }
 
 class GeminiCompatibleProvider implements AIProviderAdapter {
-  private apiKey: string;
   private baseUrl: string;
   private label: string;
   capabilities: AIProviderCapabilities;
 
-  constructor(apiKey: string, baseUrl: string, capabilities: AIProviderCapabilities, label = 'gemini-compatible') {
-    this.apiKey = apiKey;
+  constructor(private readonly providerSlug: string, baseUrl: string, capabilities: AIProviderCapabilities, label = 'gemini-compatible') {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
     this.capabilities = capabilities;
     this.label = label;
   }
 
   private async fetchGemini(model: string, body: object): Promise<string> {
-    const url = `${this.baseUrl}/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
-    const response = await fetchAIWithTimeout(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+    return withRotatingProviderApiKey(this.providerSlug, async (apiKey) => {
+      const url = `${this.baseUrl}/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetchAIWithTimeout(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw createProviderHttpError(this.label, response.status, err);
+      }
+
+      const data = (await response.json()) as {
+        candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
+      };
+      return data.candidates[0]?.content?.parts[0]?.text ?? '';
     });
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Gemini-compatible API error ${response.status}: ${err}`);
-    }
-
-    const data = (await response.json()) as {
-      candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
-    };
-    return data.candidates[0]?.content?.parts[0]?.text ?? '';
   }
 
   async callText(options: CallTextAIOptions): Promise<string> {
@@ -755,19 +753,13 @@ class GeminiCompatibleProvider implements AIProviderAdapter {
 export async function createProvider(provider: string): Promise<AIProviderAdapter> {
   switch (provider) {
     case 'openai': {
-      const key = await settingsService.getRaw('openai_api_key');
-      if (!key) throw new Error('Clé OpenAI manquante. Renseignez "openai_api_key" dans /admin/settings.');
-      return new OpenAIProvider(key);
+      return new OpenAIProvider('openai');
     }
     case 'anthropic': {
-      const key = await settingsService.getRaw('anthropic_api_key');
-      if (!key) throw new Error('Clé Anthropic manquante. Renseignez "anthropic_api_key" dans /admin/settings.');
-      return new AnthropicProvider(key);
+      return new AnthropicProvider('anthropic');
     }
     case 'gemini': {
-      const key = await settingsService.getRaw('gemini_api_key');
-      if (!key) throw new Error('Clé Gemini manquante. Renseignez "gemini_api_key" dans /admin/settings.');
-      return new GeminiProvider(key);
+      return new GeminiProvider('gemini');
     }
     case 'mock':
       return new MockProvider();
@@ -778,12 +770,11 @@ export async function createProvider(provider: string): Promise<AIProviderAdapte
       const prefix = `custom_${slug}_`;
 
       const [
-        name, type, apiKey, baseUrl, defaultModel, isActive,
+        name, type, baseUrl, defaultModel, isActive,
         supportsTextSetting, supportsVisionSetting, supportsReasoningSetting, supportsImageGenSetting
       ] = await Promise.all([
         settingsService.getRaw(`${prefix}name`),
         settingsService.getRaw(`${prefix}type`),
-        settingsService.getRaw(`${prefix}api_key`),
         settingsService.getRaw(`${prefix}base_url`),
         settingsService.getRaw(`${prefix}default_model`),
         settingsService.getRaw(`${prefix}is_active`),
@@ -821,21 +812,21 @@ export async function createProvider(provider: string): Promise<AIProviderAdapte
       switch (type) {
         case 'openai-compatible':
           return new OpenAICompatibleProvider(
-            requireApiKey(slug, apiKey),
+            slug,
             resolveCompatibleBaseUrl(slug, type, baseUrl),
             capabilities,
             slug
           );
         case 'anthropic-compatible':
           return new AnthropicCompatibleProvider(
-            requireApiKey(slug, apiKey),
+            slug,
             resolveCompatibleBaseUrl(slug, type, baseUrl),
             capabilities,
             slug
           );
         case 'gemini-compatible':
           return new GeminiCompatibleProvider(
-            requireApiKey(slug, apiKey),
+            slug,
             resolveCompatibleBaseUrl(slug, type, baseUrl),
             capabilities,
             slug

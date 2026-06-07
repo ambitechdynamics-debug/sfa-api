@@ -21,6 +21,8 @@ import {
   orchestratorPipelineConfigSchema,
   chatAgentConfigSchema,
   artisticVisionConfigSchema,
+  createProviderApiKeySchema,
+  updateProviderApiKeySchema,
 } from './admin.validation';
 import { AppError } from '../../utils/appError';
 
@@ -49,6 +51,11 @@ router.use(requireAdmin);
 
 // ─── LLM Providers ──────────────────────────────────────────────────────────
 router.get('/llm-providers', adminController.getLlmProviders);
+router.get('/provider-api-keys', adminController.listProviderApiKeys);
+router.post('/provider-api-keys', validate({ body: createProviderApiKeySchema }), adminController.createProviderApiKey);
+router.patch('/provider-api-keys/:id', validate({ body: updateProviderApiKeySchema }), adminController.updateProviderApiKey);
+router.delete('/provider-api-keys/:id', adminController.deleteProviderApiKey);
+router.post('/provider-api-keys/:id/reset-cooldown', adminController.resetProviderApiKeyCooldown);
 
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 router.get('/stats', adminController.getStats);

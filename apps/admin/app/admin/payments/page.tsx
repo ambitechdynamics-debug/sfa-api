@@ -107,7 +107,7 @@ export default function PaymentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-[var(--text)]">Paiements</h1>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">{filtered.length} transaction(s) · {formatCurrency(totalRevenue, 'XOF')} reçus</p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">{filtered.length} transaction(s) · {formatCurrency(totalRevenue, '€')} reçus</p>
         </div>
         <button onClick={() => downloadCSV(filtered as unknown as Record<string, unknown>[], 'paiements.csv')} className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--text)] hover:bg-[var(--bg-subtle)] transition-colors">
           <Download className="w-4 h-4" /> Exporter CSV
@@ -149,7 +149,7 @@ export default function PaymentsPage() {
           columns={columns}
           isLoading={isLoading}
           emptyIcon={Wallet}
-          emptyTitle="Aucun paiement"
+          emptyTitle="Aucun paiement pour l'instant"
           rowKey={(p) => p.id}
         />
       </div>

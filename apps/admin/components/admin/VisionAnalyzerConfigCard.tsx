@@ -159,7 +159,7 @@ export function VisionAnalyzerConfigCard({ onConfigChange }: Props) {
 
               <label className="block space-y-1.5">
                 <span className="text-xs font-medium text-[var(--text-muted)]">
-                  Prompt système — décris ce que l’IA analyse et le format JSON attendu
+                  Prompt système
                 </span>
                 <textarea
                   value={config.systemPrompt}
@@ -167,9 +167,7 @@ export function VisionAnalyzerConfigCard({ onConfigChange }: Props) {
                   rows={14}
                   className="min-h-[280px] w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-xs leading-5 text-[var(--text)] outline-none transition-colors focus:border-[var(--accent)]"
                 />
-                <p className="text-[11px] leading-4 text-[var(--text-subtle)]">
-                  Définit le rôle de l’IA et la structure JSON exacte à retourner. C’est ce que l’IA reçoit pour chaque image analysée.
-                </p>
+              
               </label>
 
               <label className="block space-y-1.5">

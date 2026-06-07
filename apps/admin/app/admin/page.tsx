@@ -222,7 +222,7 @@ export default function AdminOverviewPage() {
         {/* Recent errors */}
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-[var(--text)]">Erreurs IA récentes</h3>
+            <h3 className="text-sm font-semibold text-[var(--text)]">Erreurs providers récentes</h3>
             <a href="/admin/logs" className="text-xs text-[var(--accent)] hover:underline">Voir logs</a>
           </div>
           <div className="space-y-3">

@@ -107,3 +107,16 @@ export const artisticVisionConfigSchema = z.object({
   systemPrompt: z.string().min(1),
   userPrompt: z.string().min(1),
 });
+
+export const createProviderApiKeySchema = z.object({
+  providerSlug: z.string().min(1),
+  label: z.string().optional(),
+  apiKey: z.string().min(1),
+  isActive: z.boolean().optional(),
+});
+
+export const updateProviderApiKeySchema = z.object({
+  label: z.string().optional(),
+  apiKey: z.string().optional(),
+  isActive: z.boolean().optional(),
+}).refine((value) => Object.keys(value).length > 0, 'At least one field is required');

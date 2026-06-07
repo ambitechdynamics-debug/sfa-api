@@ -3,6 +3,7 @@ import { env } from './config/env';
 import { prisma } from './config/database';
 import { logger } from './utils/logger';
 import { settingsService } from './modules/settings/settings.service';
+import { providerApiKeysService } from './modules/ai/providerApiKeys.service';
 import { forbiddenRulesService } from './modules/forbidden-rules/forbiddenRules.service';
 import { adminService } from './modules/admin/admin.service';
 
@@ -31,8 +32,10 @@ const server = app.listen(env.PORT, '0.0.0.0', async () => {
   // Seed default app settings (no-op if already seeded)
   try {
     const { created, migrated } = await settingsService.seed();
+    const importedApiKeys = await providerApiKeysService.seedFromLegacySettings();
     if (created > 0) logger.info(`AppSettings: ${created} default keys seeded`);
     if (migrated > 0) logger.info(`AppSettings: ${migrated} settings migrated`);
+    if (importedApiKeys > 0) logger.info(`ProviderApiKey: ${importedApiKeys} legacy key(s) imported`);
   } catch (err) {
     logger.error('AppSettings seed failed (non-blocking):', err);
   }

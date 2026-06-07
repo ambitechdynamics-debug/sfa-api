@@ -163,9 +163,6 @@ export default function ForbiddenRulesPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-lg font-bold text-[var(--text)]">Éléments interdits</h1>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Règles utilisées par les agents IA pour éviter les générations de mauvaise qualité
-          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -179,7 +176,7 @@ export default function ForbiddenRulesPage() {
             disabled={syncing}
             className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-xs font-medium text-[var(--text)] hover:bg-[var(--bg-subtle)] transition-colors disabled:opacity-60"
           >
-            <RefreshCw className={cn('w-3.5 h-3.5', syncing && 'animate-spin')} /> Sync M-INTERDITS
+            <RefreshCw className={cn('w-3.5 h-3.5', syncing && 'animate-spin')} /> 
           </button>
           <button
             onClick={() => { setEditRule(null); setDrawerOpen(true) }}
@@ -258,7 +255,7 @@ export default function ForbiddenRulesPage() {
       ) : rules.length === 0 ? (
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl py-16 text-center">
           <Ban className="w-8 h-8 text-[var(--text-subtle)] mx-auto mb-2" />
-          <p className="text-sm text-[var(--text-muted)]">Aucune règle trouvée</p>
+          <p className="text-sm text-[var(--text-muted)]">Aucune règle</p>
         </div>
       ) : (
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
@@ -385,14 +382,11 @@ export default function ForbiddenRulesPage() {
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[var(--accent)]" />
-                <h3 className="text-sm font-semibold text-[var(--text)]">Aperçu negative_prompt généré</h3>
+                <h3 className="text-sm font-semibold text-[var(--text)]">Aperçu negative prompt</h3>
               </div>
               <button onClick={() => setPreviewOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">×</button>
             </div>
             <div className="p-4">
-              <p className="text-xs text-[var(--text-muted)] mb-2">
-                Phrase synthétisée à partir de toutes les règles actives — utilisée par Prompt Architect Agent et Quality Agent.
-              </p>
               <div className="rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] p-3 font-mono text-xs text-[var(--text)] max-h-[60vh] overflow-y-auto whitespace-pre-wrap">
                 {previewText || <span className="italic text-[var(--text-subtle)]">Aucun texte (aucune règle active avec negativePrompt)</span>}
               </div>

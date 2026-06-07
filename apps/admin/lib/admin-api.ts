@@ -729,6 +729,53 @@ export interface LlmProvider {
   supportsImageGeneration: boolean
 }
 
+export interface ProviderApiKey {
+  id: string
+  providerSlug: string
+  label: string
+  apiKey: string
+  isActive: boolean
+  cooldownUntil: string | null
+  lastUsedAt: string | null
+  lastQuotaAt: string | null
+  quotaReason: string | null
+  usageCount: number
+  failureCount: number
+  createdAt: string
+  updatedAt: string
+  status: 'available' | 'cooldown' | 'disabled'
+}
+
+export async function fetchProviderApiKeys(providerSlug?: string): Promise<ProviderApiKey[]> {
+  const query = providerSlug ? `?providerSlug=${encodeURIComponent(providerSlug)}` : ''
+  return apiFetch(`/api/admin-v2/provider-api-keys${query}`)
+}
+
+export async function createProviderApiKey(data: {
+  providerSlug: string
+  label?: string
+  apiKey: string
+  isActive?: boolean
+}): Promise<ProviderApiKey> {
+  return apiFetch('/api/admin-v2/provider-api-keys', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export async function updateProviderApiKey(id: string, data: {
+  label?: string
+  apiKey?: string
+  isActive?: boolean
+}): Promise<ProviderApiKey> {
+  return apiFetch(`/api/admin-v2/provider-api-keys/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
+export async function deleteProviderApiKey(id: string): Promise<void> {
+  return apiFetch(`/api/admin-v2/provider-api-keys/${id}`, { method: 'DELETE' })
+}
+
+export async function resetProviderApiKeyCooldown(id: string): Promise<ProviderApiKey> {
+  return apiFetch(`/api/admin-v2/provider-api-keys/${id}/reset-cooldown`, { method: 'POST', body: '{}' })
+}
+
 export async function fetchLlmProviders(): Promise<LlmProvider[]> {
   try {
     const data = await apiFetch<{ providers: LlmProvider[] }>('/api/admin-v2/llm-providers', {

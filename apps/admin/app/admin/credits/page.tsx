@@ -73,14 +73,14 @@ export default function CreditsPage() {
     <div className="space-y-5 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-[var(--text)]">Crédits IA</h1>
+          <h1 className="text-lg font-bold text-[var(--text)]">Crédits d'utilsation</h1>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">Suivi de la consommation</p>
         </div>
         <select
           onChange={(e) => setCreditUser(users.find((u) => u.id === e.target.value) || null)}
           className="border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-[var(--surface)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)] min-w-[220px]"
         >
-          <option value="">Ajuster les crédits d'un user…</option>
+          <option value="">Ajuster le crédits</option>
           {users.map((u) => <option key={u.id} value={u.id}>{u.fullName} ({u.credits} cr)</option>)}
         </select>
       </div>

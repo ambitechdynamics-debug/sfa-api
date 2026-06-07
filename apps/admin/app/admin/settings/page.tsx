@@ -4,9 +4,15 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   Brain, Key, HardDrive, CreditCard, Shield, Wrench,
   Eye, EyeOff, Save, AlertTriangle, Check, RefreshCw,
+  Plus, Trash2, RotateCcw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { fetchSettings, fetchEffectiveSettings, saveSettings, deleteSettings, AppSetting, SettingsByCategory, EffectiveSetting, SettingSource } from '@/lib/admin-api'
+import {
+  fetchSettings, fetchEffectiveSettings, saveSettings, deleteSettings,
+  fetchProviderApiKeys, createProviderApiKey, updateProviderApiKey,
+  deleteProviderApiKey, resetProviderApiKeyCooldown,
+  AppSetting, EffectiveSetting, SettingSource, ProviderApiKey,
+} from '@/lib/admin-api'
 import { toastSuccess, toastError, toastLoadError } from '@/lib/toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -154,6 +160,7 @@ export default function SettingsPage() {
   const [meta, setMeta] = useState<Record<string, AppSetting>>({})
   // Effective values + source per key (db / env / default / missing)
   const [effective, setEffective] = useState<Record<string, EffectiveSetting>>({})
+  const [providerApiKeys, setProviderApiKeys] = useState<ProviderApiKey[]>([])
 
   // ── Load all settings on mount ──────────────────────────────────────────────
   const loadSettings = useCallback(async () => {
@@ -163,6 +170,7 @@ export default function SettingsPage() {
         fetchSettings(),
         fetchEffectiveSettings().catch(() => [] as EffectiveSetting[]),
       ])
+      const apiKeys = await fetchProviderApiKeys().catch(() => [] as ProviderApiKey[])
       const flat: Record<string, string> = {}
       const flatMeta: Record<string, AppSetting> = {}
       for (const items of Object.values(data)) {
@@ -176,6 +184,7 @@ export default function SettingsPage() {
       setValues(flat)
       setMeta(flatMeta)
       setEffective(eff)
+      setProviderApiKeys(apiKeys)
     } catch (err) {
       toastLoadError(err, 'Impossible de charger les paramètres')
     } finally {
@@ -236,6 +245,8 @@ export default function SettingsPage() {
   // ── Custom providers state ──────────────────────────────────────────────────
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [editingCustomSlug, setEditingCustomSlug] = useState<string | null>(null)
+  const [apiKeyFormProvider, setApiKeyFormProvider] = useState<string | null>(null)
+  const [apiKeyForm, setApiKeyForm] = useState({ label: '', apiKey: '' })
   const [customForm, setCustomForm] = useState({
     name: '', type: 'openai-compatible' as 'openai-compatible' | 'anthropic-compatible' | 'gemini-compatible',
     apiKey: '', baseUrl: '', defaultModel: '', isActive: true,
@@ -243,6 +254,73 @@ export default function SettingsPage() {
   })
 
   const toSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const providerKeysFor = (slug: string) => providerApiKeys.filter((key) => key.providerSlug === slug)
+  const providerStatusCounts = (slug: string) => {
+    const keys = providerKeysFor(slug)
+    return {
+      total: keys.length,
+      available: keys.filter((key) => key.status === 'available').length,
+      cooldown: keys.filter((key) => key.status === 'cooldown').length,
+      disabled: keys.filter((key) => key.status === 'disabled').length,
+    }
+  }
+
+  const builtInProviders = [
+    { slug: 'openai', name: 'OpenAI', type: 'OpenAI', modelKey: 'openai_model', capabilities: ['Texte', 'Vision', 'Raison', 'Image'] },
+    { slug: 'anthropic', name: 'Anthropic', type: 'Anthropic', modelKey: 'anthropic_model', capabilities: ['Texte', 'Vision'] },
+    { slug: 'gemini', name: 'Google Gemini', type: 'Gemini', modelKey: 'gemini_model', capabilities: ['Texte', 'Vision', 'Image'] },
+  ]
+
+  function openAddApiKey(providerSlug: string) {
+    setApiKeyFormProvider(providerSlug)
+    setApiKeyForm({ label: '', apiKey: '' })
+  }
+
+  async function saveProviderApiKey() {
+    if (!apiKeyFormProvider || !apiKeyForm.apiKey.trim()) return
+    try {
+      await createProviderApiKey({
+        providerSlug: apiKeyFormProvider,
+        label: apiKeyForm.label.trim() || undefined,
+        apiKey: apiKeyForm.apiKey,
+      })
+      setApiKeyFormProvider(null)
+      await loadSettings()
+      toastSuccess('Clé API ajoutée')
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Erreur lors de l'ajout de la clé")
+    }
+  }
+
+  async function toggleProviderApiKey(key: ProviderApiKey) {
+    try {
+      await updateProviderApiKey(key.id, { isActive: !key.isActive })
+      await loadSettings()
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour')
+    }
+  }
+
+  async function removeProviderApiKey(id: string) {
+    if (!window.confirm('Supprimer cette clé API ?')) return
+    try {
+      await deleteProviderApiKey(id)
+      await loadSettings()
+      toastSuccess('Clé API supprimée')
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Erreur lors de la suppression')
+    }
+  }
+
+  async function resetProviderKeyCooldown(id: string) {
+    try {
+      await resetProviderApiKeyCooldown(id)
+      await loadSettings()
+      toastSuccess('Cooldown réinitialisé')
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Erreur lors de la réactivation')
+    }
+  }
 
   function parseCustomProviders(): Array<{
     slug: string; name: string; type: string; apiKey: string; baseUrl: string; defaultModel: string; isActive: boolean;
@@ -297,11 +375,10 @@ export default function SettingsPage() {
 
   async function saveCustomProvider() {
     if (!customForm.name.trim()) return
-    const newSlug = toSlug(customForm.name)
+    const newSlug = editingCustomSlug ?? toSlug(customForm.name)
     const entries = [
       { key: `custom_${newSlug}_name`, value: customForm.name, category: 'providers' },
       { key: `custom_${newSlug}_type`, value: customForm.type, category: 'providers' },
-      { key: `custom_${newSlug}_api_key`, value: customForm.apiKey, category: 'providers', isSecret: true },
       { key: `custom_${newSlug}_base_url`, value: customForm.baseUrl, category: 'providers' },
       { key: `custom_${newSlug}_default_model`, value: customForm.defaultModel, category: 'providers' },
       { key: `custom_${newSlug}_is_active`, value: String(customForm.isActive), category: 'providers' },
@@ -340,6 +417,7 @@ export default function SettingsPage() {
       `custom_${slug}_supports_reasoning`, `custom_${slug}_supports_image_generation`,
     ]
     try {
+      await Promise.all(providerKeysFor(slug).map((key) => deleteProviderApiKey(key.id)))
       await deleteSettings(keys)
       await loadSettings()
       toastSuccess('Fournisseur supprimé')
@@ -348,12 +426,95 @@ export default function SettingsPage() {
     }
   }
 
+  function renderProviderApiKeys(provider: {
+    slug: string; name: string; type: string; defaultModel?: string; capabilities: string[]; isActive?: boolean;
+  }) {
+    const keys = providerKeysFor(provider.slug)
+    const counts = providerStatusCounts(provider.slug)
+    return (
+      <div key={provider.slug} className="rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] p-3 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-[var(--text)]">{provider.name}</span>
+              {provider.isActive === false && <span className="px-1.5 py-0.5 text-[9px] rounded bg-gray-200 dark:bg-gray-800 text-[var(--text-muted)]">Inactif</span>}
+              {provider.capabilities.map((cap) => (
+                <span key={cap} className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">{cap}</span>
+              ))}
+            </div>
+            <div className="text-xs text-[var(--text-muted)] mt-0.5 truncate">
+              {provider.type}{provider.defaultModel ? ` · ${provider.defaultModel}` : ''} · {counts.available} disponible(s), {counts.cooldown} cooldown, {counts.disabled} désactivée(s)
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => openAddApiKey(provider.slug)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] hover:bg-[var(--bg)] transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            API
+          </button>
+        </div>
+
+        {keys.length === 0 ? (
+          <div className="rounded-md border border-dashed border-[var(--border)] p-3 text-xs text-[var(--text-muted)]">
+            Aucune clé API. Ce provider ne sera pas utilisé tant qu’une clé active n’est pas ajoutée.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {keys.map((key) => (
+              <div key={key.id} className="flex items-center justify-between gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-[var(--text)]">{key.label}</span>
+                    <span className={cn(
+                      'px-1.5 py-0.5 text-[9px] font-medium rounded',
+                      key.status === 'available' && 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
+                      key.status === 'cooldown' && 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+                      key.status === 'disabled' && 'bg-gray-200 dark:bg-gray-800 text-[var(--text-muted)]'
+                    )}>
+                      {key.status === 'available' ? 'Disponible' : key.status === 'cooldown' ? 'Quota atteint' : 'Désactivée'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[var(--text-muted)] font-mono truncate">{key.apiKey}</div>
+                  {key.cooldownUntil && key.status === 'cooldown' && (
+                    <div className="text-[11px] text-amber-700 dark:text-amber-400">
+                      Pause jusqu’au {new Date(key.cooldownUntil).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {key.status === 'cooldown' && (
+                    <button type="button" onClick={() => resetProviderKeyCooldown(key.id)} className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-subtle)]" title="Réactiver maintenant">
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => toggleProviderApiKey(key)}
+                    className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors', key.isActive ? 'bg-[var(--accent)]' : 'bg-[var(--border)]')}
+                    title={key.isActive ? 'Désactiver' : 'Activer'}
+                  >
+                    <span className={cn('inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform', key.isActive ? 'translate-x-4' : 'translate-x-0.5')} />
+                  </button>
+                  <button type="button" onClick={() => removeProviderApiKey(key.id)} className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" title="Supprimer">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5 max-w-[900px] mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-[var(--text)]">Paramètres</h1>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">Configuration de la plateforme — persistée en base</p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">Configuration</p>
         </div>
         <button
           onClick={loadSettings}
@@ -392,7 +553,7 @@ export default function SettingsPage() {
         {/* ── IA ────────────────────────────────────────────────────────────── */}
         {tab === 'ia' && (
           <div className="space-y-0">
-            <h3 className="text-sm font-semibold text-[var(--text)] mb-4">Configuration IA</h3>
+            <h3 className="text-sm font-semibold text-[var(--text)] mb-4">Configuration Agent</h3>
             {isLoading ? Array.from({ length: 7 }).map((_, i) => <SkeletonField key={i} />) : (
               <>
                 <FieldGroup label="Crédits par génération" hint="Crédits déduits par affiche générée">
@@ -403,15 +564,6 @@ export default function SettingsPage() {
                 </FieldGroup>
                 <FieldGroup label="Prompts gratuits" hint="Prompts gratuits à l'inscription">
                   <input type="number" value={val('free_prompts', '5')} onChange={(e) => set('free_prompts', e.target.value)} className={INPUT_CLS} />
-                </FieldGroup>
-                <FieldGroup label="Modèle par défaut" hint="Modèle utilisé si aucun agent n'est spécifié">
-                  <select value={val('default_model', 'gpt-4o')} onChange={(e) => set('default_model', e.target.value)} className={INPUT_CLS}>
-                    <option value="gpt-4o">GPT-4o</option>
-                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                  </select>
                 </FieldGroup>
                 <FieldGroup label="Timeout (ms)" hint="Délai maximum avant échec d'une requête IA">
                   <input type="number" value={val('timeout_ms', '30000')} onChange={(e) => set('timeout_ms', e.target.value)} className={INPUT_CLS} />
@@ -431,12 +583,32 @@ export default function SettingsPage() {
         {/* ── PROVIDERS ─────────────────────────────────────────────────────── */}
         {tab === 'providers' && (
           <div className="space-y-5">
+            <div>
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-[var(--text)]">APIs des providers standards</h3>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">La clé utilisée à chaque appel est choisie aléatoirement parmi les clés disponibles. Une clé en quota est ignorée pendant 24 h.</p>
+              </div>
+              {isLoading ? (
+                <div className="h-24 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
+              ) : (
+                <div className="space-y-2">
+                  {builtInProviders.map((provider) => renderProviderApiKeys({
+                    slug: provider.slug,
+                    name: provider.name,
+                    type: provider.type,
+                    defaultModel: val(provider.modelKey),
+                    capabilities: provider.capabilities,
+                  }))}
+                </div>
+              )}
+            </div>
+
             {/* ── Custom providers ──────────────────────────────────────────── */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-[var(--text)]">Fournisseurs IA</h3>
-                  <p className="text-xs text-[var(--text-muted)] mt-0.5">Tous les providers sont ajoutés manuellement. Types compatibles : OpenAI / Anthropic / Gemini.</p>
+                  <h3 className="text-sm font-semibold text-[var(--text)]">Fournisseurs provider</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">Tous les providers</p>
                 </div>
                 <button
                   type="button"
@@ -450,37 +622,52 @@ export default function SettingsPage() {
               {isLoading ? (
                 <div className="h-12 rounded-lg bg-[var(--bg-subtle)] animate-skeleton" />
               ) : parseCustomProviders().length === 0 ? (
-                <p className="text-xs text-[var(--text-muted)] text-center py-6">Aucun fournisseur personnalisé configuré.</p>
+                <p className="text-xs text-[var(--text-muted)] text-center py-6">Aucun fournisseur personnalisé</p>
               ) : (
                 <div className="space-y-2">
                   {parseCustomProviders().map((cp) => (
-                    <div key={cp.slug} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)]">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={cn('w-2 h-2 rounded-full flex-shrink-0', cp.isActive ? 'bg-emerald-500' : 'bg-gray-400')} />
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium text-[var(--text)] flex items-center gap-2 flex-wrap">
-                            <span>{cp.name}</span>
-                            <div className="flex gap-1 flex-wrap">
-                              {cp.supportsText && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">Texte</span>}
-                              {cp.supportsVision && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">Vision</span>}
-                              {cp.supportsReasoning && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">Raison</span>}
-                              {cp.supportsImageGeneration && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">Image</span>}
+                    <div key={cp.slug} className="space-y-2">
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)]">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={cn('w-2 h-2 rounded-full flex-shrink-0', cp.isActive ? 'bg-emerald-500' : 'bg-gray-400')} />
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-[var(--text)] flex items-center gap-2 flex-wrap">
+                              <span>{cp.name}</span>
+                              <div className="flex gap-1 flex-wrap">
+                                {cp.supportsText && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">Texte</span>}
+                                {cp.supportsVision && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">Vision</span>}
+                                {cp.supportsReasoning && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">Raison</span>}
+                                {cp.supportsImageGeneration && <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">Image</span>}
+                              </div>
+                            </div>
+                            <div className="text-xs text-[var(--text-muted)] truncate">
+                              {cp.type === 'openai-compatible' ? 'OpenAI' : cp.type === 'anthropic-compatible' ? 'Anthropic' : 'Gemini'} compatible
+                              {cp.defaultModel ? ` · ${cp.defaultModel}` : ''}
                             </div>
                           </div>
-                          <div className="text-xs text-[var(--text-muted)] truncate">
-                            {cp.type === 'openai-compatible' ? 'OpenAI' : cp.type === 'anthropic-compatible' ? 'Anthropic' : 'Gemini'} compatible
-                            {cp.defaultModel ? ` · ${cp.defaultModel}` : ''}
-                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button type="button" onClick={() => openEditCustomProvider(cp)} className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors" title="Modifier">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          </button>
+                          <button type="button" onClick={() => deleteCustomProvider(cp.slug)} className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Supprimer">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button type="button" onClick={() => openEditCustomProvider(cp)} className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors" title="Modifier">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                        </button>
-                        <button type="button" onClick={() => deleteCustomProvider(cp.slug)} className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Supprimer">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
+                      {renderProviderApiKeys({
+                        slug: cp.slug,
+                        name: `${cp.name} · APIs`,
+                        type: cp.type === 'openai-compatible' ? 'OpenAI compatible' : cp.type === 'anthropic-compatible' ? 'Anthropic compatible' : 'Gemini compatible',
+                        defaultModel: cp.defaultModel,
+                        capabilities: [
+                          ...(cp.supportsText ? ['Texte'] : []),
+                          ...(cp.supportsVision ? ['Vision'] : []),
+                          ...(cp.supportsReasoning ? ['Raison'] : []),
+                          ...(cp.supportsImageGeneration ? ['Image'] : []),
+                        ],
+                        isActive: cp.isActive,
+                      })}
                     </div>
                   ))}
                 </div>
@@ -506,10 +693,6 @@ export default function SettingsPage() {
                         <option value="anthropic-compatible">Anthropic compatible</option>
                         <option value="gemini-compatible">Gemini compatible</option>
                       </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-[var(--text-muted)]">Clé API</label>
-                      <input type="password" value={customForm.apiKey} onChange={(e) => setCustomForm(f => ({ ...f, apiKey: e.target.value }))} placeholder="sk-..." className={MONO_INPUT_CLS} />
                     </div>
                     <div>
                       <label className="text-xs text-[var(--text-muted)]">URL de base</label>
@@ -557,7 +740,7 @@ export default function SettingsPage() {
                             onChange={(e) => setCustomForm(f => ({ ...f, supportsImageGeneration: e.target.checked }))}
                             className="rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] bg-[var(--surface)]"
                           />
-                          <span>Génération d'images</span>
+                          <span>Génération visuelle</span>
                         </label>
                       </div>
                     </div>
@@ -579,6 +762,35 @@ export default function SettingsPage() {
                     </button>
                     <button type="button" onClick={saveCustomProvider} disabled={!customForm.name.trim()} className="flex-1 px-3 py-2 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
                       {editingCustomSlug ? 'Enregistrer' : 'Ajouter'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {apiKeyFormProvider && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                <div className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 space-y-4 shadow-xl">
+                  <h4 className="text-sm font-semibold text-[var(--text)]">Ajouter une API</h4>
+                  <div className="text-xs text-[var(--text-muted)]">
+                    Provider : <span className="font-mono text-[var(--text)]">{apiKeyFormProvider}</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)]">Libellé</label>
+                      <input type="text" value={apiKeyForm.label} onChange={(e) => setApiKeyForm(f => ({ ...f, label: e.target.value }))} placeholder="Compte principal" className={INPUT_CLS} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)]">Clé API *</label>
+                      <input type="password" value={apiKeyForm.apiKey} onChange={(e) => setApiKeyForm(f => ({ ...f, apiKey: e.target.value }))} placeholder="sk-..." className={MONO_INPUT_CLS} autoFocus />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button type="button" onClick={() => setApiKeyFormProvider(null)} className="flex-1 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--text)] hover:bg-[var(--bg-subtle)] transition-colors">
+                      Annuler
+                    </button>
+                    <button type="button" onClick={saveProviderApiKey} disabled={!apiKeyForm.apiKey.trim()} className="flex-1 px-3 py-2 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+                      Ajouter
                     </button>
                   </div>
                 </div>
@@ -651,50 +863,18 @@ export default function SettingsPage() {
               <>
                 <FieldGroup label="Devise" hint="Devise utilisée pour les transactions">
                   <select value={val('currency', 'XOF')} onChange={(e) => set('currency', e.target.value)} className={INPUT_CLS}>
-                    <option value="XOF">XOF (FCFA)</option>
                     <option value="EUR">EUR (€)</option>
                     <option value="USD">USD ($)</option>
                   </select>
                 </FieldGroup>
 
-                {/* MTN */}
-                <div className="py-4 border-b border-[var(--border)]">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium text-[var(--text)]">MTN Mobile Money</div>
-                      <div className="text-xs text-[var(--text-muted)]">Paiement via MTN MoMo</div>
-                    </div>
-                    <button onClick={() => toggle('mtn_enabled')} className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors', boolVal('mtn_enabled') ? 'bg-[var(--accent)]' : 'bg-[var(--border)]')}>
-                      <span className={cn('inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform', boolVal('mtn_enabled') ? 'translate-x-4' : 'translate-x-0.5')} />
-                    </button>
-                  </div>
-                  {boolVal('mtn_enabled') && (
-                    <input type="text" value={val('mtn_number')} onChange={(e) => set('mtn_number', e.target.value)} placeholder="Numéro MTN marchand" className={cn(INPUT_CLS, 'mt-3 max-w-xs')} />
-                  )}
-                </div>
-
-                {/* Airtel */}
-                <div className="py-4 border-b border-[var(--border)]">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium text-[var(--text)]">Airtel Money</div>
-                      <div className="text-xs text-[var(--text-muted)]">Paiement via Airtel Money</div>
-                    </div>
-                    <button onClick={() => toggle('airtel_enabled')} className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors', boolVal('airtel_enabled') ? 'bg-[var(--accent)]' : 'bg-[var(--border)]')}>
-                      <span className={cn('inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform', boolVal('airtel_enabled') ? 'translate-x-4' : 'translate-x-0.5')} />
-                    </button>
-                  </div>
-                  {boolVal('airtel_enabled') && (
-                    <input type="text" value={val('airtel_number')} onChange={(e) => set('airtel_number', e.target.value)} placeholder="Numéro Airtel marchand" className={cn(INPUT_CLS, 'mt-3 max-w-xs')} />
-                  )}
-                </div>
 
                 {/* Stripe */}
                 <div className="py-4 border-b border-[var(--border)]">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-sm font-medium text-[var(--text)]">Stripe</div>
-                      <div className="text-xs text-[var(--text-muted)]">Paiement par carte bancaire</div>
+                      <div className="text-xs text-[var(--text-muted)]">Carte bancaire</div>
                     </div>
                     <button onClick={() => toggle('stripe_enabled')} className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors', boolVal('stripe_enabled') ? 'bg-[var(--accent)]' : 'bg-[var(--border)]')}>
                       <span className={cn('inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform', boolVal('stripe_enabled') ? 'translate-x-4' : 'translate-x-0.5')} />

@@ -89,6 +89,13 @@ deux verbes :
 `POST /generate-images` + `GET /generated-posters`
 (`imageGen.routes.ts:11`).
 
+est ce que dans le dashboard client et l'api la  : logique de si un client joint un ou plusieurs visuel dans frame elements importé, c'est elements doit etres envoi dans le systeme pour
+  trait. 1. le  client par la discution avec le provider de conversation, le provider visuel les images joints et poser des questions pour comprendre le  besoin de l'utilisateur. et si
+  c'est un elle personnel comme logo lorsque c'est pour la creation d'un affiche ce logo, produit, inspiration, produit, etc  tout les element doit envoi dans le prompt final direction.
+  memoire stocker dans la discution doit suivre son procuse normal. je veux tu verifie et corrige le provider chat de conversation dispose de la logique necessaire lui permettent un fois
+  la discution terminer avec l'utilisateur avec la confirme de celui ci demarrer le cycle de generation du visuel demander. et apres creer du visuel par l'agent de generation que le 
+  visuel s'affiche en dans frame creer a cette effet et de mettre de telecharger celui ci 
+
 **Validation** : `chat.validation.ts:15-25` impose `message ≤ 8000
 caractères`, `history ≤ 40` ; `chat.validation.ts:30-36` ajoute le
 nouveau schéma `chatOpeningRequestSchema` qui exige uniquement
